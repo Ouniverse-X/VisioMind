@@ -1,0 +1,57 @@
+"""Canonical shared models used across runtime, integrations, and agents."""
+
+from .perception import PerceptionObject, PerceptionRelation, PerceptionReport
+from .runtime import NavigationRuntimeState, RuntimeFeedback, SubtaskStepOutcome
+from .completion import (
+    CompletionCriterion,
+    CompletionEvaluationContext,
+    CompletionVerdict,
+)
+from .scene_state import (
+    NAVIGATION_ROLE_OBSTACLE,
+    NAVIGATION_ROLE_OVERHEAD,
+    NAVIGATION_ROLE_STRUCTURAL,
+    NAVIGATION_ROLE_SUPPORT_SURFACE,
+    NON_BLOCKING_NAVIGATION_ROLES,
+    RuntimeDoorState,
+    RuntimeObjectState,
+    RuntimeObstacleState,
+    RuntimeRelationState,
+    SceneRuntimeState,
+    compute_relation_signature,
+    compute_scene_state_signature,
+    door_is_navigation_passable,
+    door_is_open_from_joints,
+    is_door_category,
+    navigation_role_from_category,
+    scene_runtime_state_from_payload,
+)
+
+__all__ = [
+    "CompletionCriterion",
+    "CompletionEvaluationContext",
+    "CompletionVerdict",
+    "NavigationRuntimeState",
+    "NAVIGATION_ROLE_OBSTACLE",
+    "NAVIGATION_ROLE_OVERHEAD",
+    "NAVIGATION_ROLE_STRUCTURAL",
+    "NAVIGATION_ROLE_SUPPORT_SURFACE",
+    "NON_BLOCKING_NAVIGATION_ROLES",
+    "PerceptionObject",
+    "PerceptionRelation",
+    "PerceptionReport",
+    "RuntimeDoorState",
+    "RuntimeFeedback",
+    "RuntimeObjectState",
+    "RuntimeObstacleState",
+    "RuntimeRelationState",
+    "SceneRuntimeState",
+    "SubtaskStepOutcome",
+    "compute_scene_state_signature",
+    "compute_relation_signature",
+    "door_is_navigation_passable",
+    "door_is_open_from_joints",
+    "is_door_category",
+    "navigation_role_from_category",
+    "scene_runtime_state_from_payload",
+]

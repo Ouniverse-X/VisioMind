@@ -1,0 +1,107 @@
+# VisioMind：工业环境物体感知识别与指令交互智能体
+
+VisioMind 是面向挑战杯 XH-202607 赛题的“感知—决策—执行—验证—恢复”闭环系统。系统接收中英文自然语言工业指令，以 RGB-D 实例观测和 AnyGrasp 生成抓取候选，通过可审计任务分解、A*/CuRobo 规划驱动 R1 Pro，并用目标身份、抬升、附着、释放、稳定和 AABB 包含证据判断真实完成，而不是直接采用仿真器可能误报的任务谓词。
+
+## 当前交付能力
+
+- 感知：RGB-D/实例分割目标条件点云、AnyGrasp 6D 抓取、机器人真实夹爪几何适配、非目标碰撞审计；
+- 决策：中英双语工业指令模型、物体/容器/格位/空间关系抽取、详细任务序列和可执行 ACTION 序列；
+- 执行：CuRobo 全身与机械臂规划、sticky/assisted 抓取、携物 A* 导航、容器顶入放置和释放；
+- 验证：对象身份、连续 5 帧抬升与相对位姿、attachment、释放状态、AABB 包含及阶段化错误证据；
+- 训练：2,304 条训练数据、336 条独立模板测试数据、训练脚本和 208 KB 模型权重；
+- 工程：CPU 回归、一键自然语言 Dry Run、AnyGrasp 服务脚本和 Isaac Demo 入口。
+
+工业指令分类模型在固定的 held-out paraphrase template 测试集上达到 `99.11%` Accuracy、`98.97%` Macro-F1；同一测试集上的显式关键词规则基线为 `28.57%`/`22.22%`。完整数据和混淆矩阵见 `reports/instruction_model_metrics.json`。这些数字只代表当前合成工业指令集，不等价于真实工厂分布性能。
+
+## 工程结构
+
+```text
+.
+├── visiomind/                 # 指令理解、槽位抽取和任务分解
+├── voltron/                   # 竞赛隔离的感知/执行运行时代码
+│   ├── agents/action/         # 技能选择与 AnyGrasp 动作技能
+│   ├── integrations/          # AnyGrasp 服务、观测、坐标与 CuRobo 执行
+│   └── configs/               # Isaac/BEHAVIOR 固定实例配置
+├── training/                  # 数据生成与模型训练
+├── data/instructions/         # 可复现实验数据
+├── models/                    # 项目训练权重、哈希和第三方模型说明
+├── tests/                     # CPU 可执行回归
+├── scripts/                   # 服务与 Demo 启动器
+├── docs/                      # 技术报告、使用手册、合规矩阵
+├── reports/                   # 指令指标与真实 Isaac 证据摘要
+├── demo/                      # 52.7 秒评审版 Isaac Sim MP4
+├── run_instruction_demo.py    # 自然语言→场景 grounding→Isaac 执行
+└── run_action_only_overlay.py # 隔离加载竞赛执行代码
+```
+
+## 快速验收
+
+CPU 侧无需 Isaac Sim：
+
+```bash
+source /home/huangyixuan/miniconda3/etc/profile.d/conda.sh
+conda activate /mnt/data/huangyixuan/conda_envs/voltron
+pytest -q tests
+python run_instruction_demo.py "把半个苹果放进包装箱" --dry-run
+```
+
+重新训练并复现实验指标：
+
+```bash
+python training/generate_instruction_dataset.py --output-dir data/instructions
+python training/train_instruction_model.py \
+  --train data/instructions/train.jsonl \
+  --test data/instructions/test.jsonl \
+  --output models/industrial_instruction.joblib \
+  --metrics reports/instruction_model_metrics.json
+```
+
+GPU/Isaac 主机上：
+
+```bash
+./scripts/start_anygrasp_service.sh
+./scripts/run_demo.sh "把半个苹果放进包装箱"
+```
+
+完整环境、路径、模型授权和故障排查见 `docs/user_guide.md`。
+
+## 已验证 Isaac Sim 结果
+
+本仓库包含可直接播放的 [`demo/visiomind_isaac_demo.mp4`](demo/visiomind_isaac_demo.mp4)，
+对应完整的“半个苹果→包装箱”运行。选取的三次工程复测中有两次满足严格物理成功，
+另一次因物体超出带余量箱壁约 1.4 mm 被安全门控拒绝，不计成功。它们不是用于估计
+泛化成功率的统计实验，而是正、负路径的可复现审计样本。
+
+最新严格成功证据：`control_step=872`、`step_count=1282`、A* 路径 0.791 m、
+释放前下落高度 0.167 m、`released=true`、`aabb_contained=true`，且终态
+`action_keys=[]` 不会重放上一帧动作。逐运行哈希和几何数据见
+[`reports/real_isaac_runs.md`](reports/real_isaac_runs.md) 与 JSON companion。
+
+## 成功判据
+
+一次合格的 `place_inside` 必须同时满足：
+
+1. AnyGrasp 锚定到指令指定实例；
+2. 抓取后目标抬升超过阈值，连续采样相对位姿稳定且 attachment 有效；
+3. 携物导航沿净空约束 A* 航点完成；
+4. 放置规划与执行完成，释放后夹爪无附着对象；
+5. 目标 AABB 完整位于容器 AABB 内（1 mm 数值容差）；
+6. 结构化结果中 `placement_success=true`、`placement_verified=true`、`released=true`、`aabb_contained=true`。
+
+仿真环境的 `task_success` 只作旁证，不能代替以上物理证据。
+
+## 模型与授权
+
+本仓库包含项目自行训练的 `models/industrial_instruction.joblib`。AnyGrasp SDK、机器绑定许可证及 296 MB 官方检测权重不在仓库中分发；请按 AnyGrasp 官方流程申请，并用 `models/third_party_models.json` 中的 SHA-256 核验本地文件。详见 `models/MODELS.md` 和 `THIRD_PARTY_NOTICES.md`。
+
+比赛所需 Voltron Python 运行时代码已复制到本仓库，并由入口强制优先加载；Isaac
+Sim、OmniGibson/BEHAVIOR-1K、CuRobo 与 AnyGrasp 仍是需独立安装或授权的外部依赖。
+
+## 文档
+
+- `docs/technical_report.md`：架构、算法、实验、创新与局限；
+- `docs/user_guide.md`：环境、安装、训练、运行、接口与排障；
+- `docs/competition_compliance.md`：赛题条款到代码/证据的逐项映射；
+- `docs/model_card.md`：工业指令模型数据、指标和适用边界。
+
+本项目当前以 Ubuntu 22.04、Python 3.10、RTX 3090 24 GB、Isaac Sim 4.5/OmniGibson、R1 Pro 和 AnyGrasp 服务为已验证运行栈。

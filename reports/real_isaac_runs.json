@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "acceptance_criterion": "strict_guarded_physical_place_inside_v1",
+  "run_count": 3,
+  "strict_success_count": 2,
+  "strict_failure_count": 1,
+  "runs": [
+    {
+      "run_id": "half_apple_to_packing_box_place_inside_i10_20260823_190553",
+      "strict_physical_success": true,
+      "started_at": "2026-08-23T19:05:53",
+      "ended_at": "2026-08-23T19:13:50",
+      "wall_clock_duration_s": 477.0,
+      "process_data": {
+        "bytes": 18536729,
+        "sha256": "d4988effddfbf58f540574e72559d17eaaf61e02fba684d956de92b065aff493"
+      },
+      "video": {
+        "filename": "trajectory.mp4",
+        "bytes": 5297070,
+        "sha256": "f486277eb4293cc35a66ca092bb1dd9533f2cc5a9ead70193fadbee99e1d7f5b"
+      },
+      "terminal": {
+        "control_step": 873,
+        "step_count": 1296,
+        "status": "success",
+        "action_keys": [],
+        "placement_success": true,
+        "placement_verified": true,
+        "placement_strategy": "guarded_gravity_drop",
+        "released": true,
+        "aabb_contained": true,
+        "last_applied_action_keys": [
+          "robot_r1"
+        ]
+      },
+      "physical_evidence": {
+        "pre_navigation_steps": 847,
+        "pre_navigation_mode": "traversability_multi_side_standoff_terminal_approach",
+        "pre_navigation_geodesic_distance_m": 0.7914213295029743,
+        "drop_alignment_steps": null,
+        "drop_alignment_attempts": null,
+        "drop_height_m": 0.18957531452178955,
+        "wall_margin_m": 0.01,
+        "xy_contained_with_margin": true,
+        "release_steps": 5,
+        "settle_steps": 20,
+        "object_aabb_world_after_settle": [
+          [
+            4.181561470031738,
+            -1.824419617652893,
+            0.9110958576202393
+          ],
+          [
+            4.265798091888428,
+            -1.7258824110031128,
+            0.9823894500732422
+          ]
+        ],
+        "destination_aabb_world_after_settle": [
+          [
+            4.10584831237793,
+            -2.0230908393859863,
+            0.8875321745872498
+          ],
+          [
+            4.430829048156738,
+            -1.670038104057312,
+            1.0252774953842163
+          ]
+        ]
+      },
+      "environment_run_end": {
+        "task_success": true,
+        "task_progress": 100.0,
+        "step_count": 1296
+      },
+      "failure_results": [],
+      "forbidden_runtime_events": []
+    },
+    {
+      "run_id": "half_apple_to_packing_box_place_inside_i10_20260823_191650",
+      "strict_physical_success": false,
+      "started_at": "2026-08-23T19:16:50",
+      "ended_at": "2026-08-23T19:25:59",
+      "wall_clock_duration_s": 549.0,
+      "process_data": {
+        "bytes": 18155963,
+        "sha256": "5b31bd5f96327ce7d6baa1b8b7b5485ba16ce0cd6ef4e593594da8eed93d3f6e"
+      },
+      "video": {
+        "filename": "trajectory.mp4",
+        "bytes": 5162595,
+        "sha256": "495cdad1e4a792950fd0a9d81eecf0f63b3320b89e5817f9f430e857cda27ce7"
+      },
+      "terminal": {
+        "control_step": null,
+        "step_count": null,
+        "status": null,
+        "action_keys": null,
+        "placement_success": null,
+        "placement_verified": null,
+        "placement_strategy": null,
+        "released": null,
+        "aabb_contained": null,
+        "last_applied_action_keys": null
+      },
+      "physical_evidence": {
+        "pre_navigation_steps": null,
+        "pre_navigation_mode": null,
+        "pre_navigation_geodesic_distance_m": null,
+        "drop_alignment_steps": null,
+        "drop_alignment_attempts": null,
+        "drop_height_m": null,
+        "wall_margin_m": null,
+        "xy_contained_with_margin": null,
+        "release_steps": null,
+        "settle_steps": null,
+        "object_aabb_world_after_settle": null,
+        "destination_aabb_world_after_settle": null
+      },
+      "environment_run_end": {
+        "task_success": true,
+        "task_progress": 100.0,
+        "step_count": 1269
+      },
+      "failure_results": [
+        {
+          "ts": "2026-08-23T19:25:57",
+          "subtask_id": "st_02",
+          "error_code": "PLACE_EXECUTION_FAILED",
+          "control_step": 846
+        }
+      ],
+      "forbidden_runtime_events": []
+    },
+    {
+      "run_id": "half_apple_to_packing_box_place_inside_i10_20260823_193048",
+      "strict_physical_success": true,
+      "started_at": "2026-08-23T19:30:48",
+      "ended_at": "2026-08-23T19:38:40",
+      "wall_clock_duration_s": 472.0,
+      "process_data": {
+        "bytes": 18331469,
+        "sha256": "90d4e420020f2b6215180e9b44201aa4ca3fc62656bfc168a1dd24d24e1ef211"
+      },
+      "video": {
+        "filename": "trajectory.mp4",
+        "bytes": 5331490,
+        "sha256": "468eb6cc9096e3745f9804f61a1320eb22af57676541edc0433aac47092e63d0"
+      },
+      "terminal": {
+        "control_step": 872,
+        "step_count": 1282,
+        "status": "success",
+        "action_keys": [],
+        "placement_success": true,
+        "placement_verified": true,
+        "placement_strategy": "guarded_gravity_drop",
+        "released": true,
+        "aabb_contained": true,
+        "last_applied_action_keys": [
+          "robot_r1"
+        ]
+      },
+      "physical_evidence": {
+        "pre_navigation_steps": 846,
+        "pre_navigation_mode": "traversability_multi_side_standoff_terminal_approach",
+        "pre_navigation_geodesic_distance_m": 0.7914213295029743,
+        "drop_alignment_steps": 0,
+        "drop_alignment_attempts": [
+          {
+            "attempt": 1,
+            "margin_m": 0.025,
+            "correction_xy_m": [
+              0.0,
+              0.0
+            ],
+            "correction_norm_m": 0.0,
+            "can_fit": true,
+            "executed": false
+          }
+        ],
+        "drop_height_m": 0.1674572229385376,
+        "wall_margin_m": 0.01,
+        "xy_contained_with_margin": true,
+        "release_steps": 5,
+        "settle_steps": 20,
+        "object_aabb_world_after_settle": [
+          [
+            4.267596244812012,
+            -1.865099549293518,
+            0.9110375046730042
+          ],
+          [
+            4.358119487762451,
+            -1.763828158378601,
+            0.9556423425674438
+          ]
+        ],
+        "destination_aabb_world_after_settle": [
+          [
+            4.106733322143555,
+            -2.0225870609283447,
+            0.8875322341918945
+          ],
+          [
+            4.431438446044922,
+            -1.6696875095367432,
+            1.0252801179885864
+          ]
+        ]
+      },
+      "environment_run_end": {
+        "task_success": true,
+        "task_progress": 100.0,
+        "step_count": 1282
+      },
+      "failure_results": [],
+      "forbidden_runtime_events": []
+    }
+  ]
+}
