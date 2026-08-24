@@ -47,3 +47,24 @@ def test_missing_destination_is_rejected() -> None:
         assert "destination" in str(exc)
     else:
         raise AssertionError("missing placement destination must be rejected")
+
+
+def test_recovery_instruction_preserves_third_cell_evidence() -> None:
+    plan = IndustrialInstructionModel(MODEL).parse(
+        "检测到钳子摆放失败，请重新放进工具箱第三格"
+    )
+    assert plan.intent == "recover_placement"
+    assert plan.slots["object"] == "pliers"
+    assert plan.slots["container"] == "toolbox"
+    assert plan.slots["cell_index"] == 3
+    assert plan.task_sequence[0]["step"] == "detect_failed_placement"
+    assert plan.action_sequence[0]["target"]["recovery"] is True
+    assert plan.action_sequence[1]["target"]["cell_index"] == 3
+
+
+def test_power_drill_alias_is_supported() -> None:
+    plan = IndustrialInstructionModel(MODEL).parse(
+        "Please inspect the power drill on the industrial workbench."
+    )
+    assert plan.intent == "inspect"
+    assert plan.slots["object"] == "drill"

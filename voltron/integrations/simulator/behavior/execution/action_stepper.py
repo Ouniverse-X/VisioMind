@@ -214,6 +214,64 @@ def _verified_action_free_placement(result: Any) -> dict[str, Any] | None:
         return None
     if evidence.get("aabb_contained") is not True:
         return None
+    if evidence.get("cell_index") is not None:
+        if evidence.get("cell_containment_check_available") is not True:
+            return None
+        if evidence.get("cell_aabb_contained") is not True:
+            return None
+    return evidence
+
+
+def _verified_action_free_grasp(result: Any) -> dict[str, Any] | None:
+    """Return evidence for a physically verified, action-free grasp terminal.
+
+    AnyGrasp applies its last control action before its generator emits the
+    terminal result.  A successful pick is also an intermediate task state,
+    so the overall BDDL goal is intentionally still false.  These strict
+    checks let the runtime finish the pick subtask without replaying a stale
+    action or waiting for the later placement goal.
+    """
+
+    payload = getattr(result, "result", None)
+    artifacts = getattr(result, "runtime_artifacts", None)
+    if not isinstance(payload, dict) or not isinstance(artifacts, dict):
+        return None
+    if payload.get("action_keys") != []:
+        return None
+    full_action = artifacts.get("full_action")
+    projected_action = artifacts.get("projected_action")
+    if not isinstance(full_action, dict) or full_action:
+        return None
+    if not isinstance(projected_action, dict) or projected_action:
+        return None
+    if payload.get("skill_id") != "anygrasp_manipulation_skill":
+        return None
+    if payload.get("grasp_plan_completed") is not True:
+        return None
+    if payload.get("grasp_success") is not True:
+        return None
+    if payload.get("physical_grasp_verified") is not True:
+        return None
+    if payload.get("object_in_hand") != payload.get("target_object"):
+        return None
+    if not str(payload.get("skill_source", "")).endswith("curobo"):
+        return None
+    evidence = payload.get("physical_evidence")
+    if not isinstance(evidence, dict):
+        evidence = artifacts.get("physical_evidence")
+    if not isinstance(evidence, dict):
+        return None
+    required_truths = (
+        "passed",
+        "target_z_rise_passed",
+        "relative_pose_stable",
+        "object_identity_matches",
+        "attachment_passed",
+    )
+    if any(evidence.get(key) is not True for key in required_truths):
+        return None
+    if evidence.get("sample_count") != evidence.get("required_sample_count"):
+        return None
     return evidence
 
 
@@ -238,6 +296,9 @@ def build_action_terminal_success_response(
         "placement_strategy": placement_strategy,
         "released": True,
         "aabb_contained": True,
+        "cell_index": evidence.get("cell_index"),
+        "grid_shape": evidence.get("grid_shape"),
+        "cell_aabb_contained": evidence.get("cell_aabb_contained"),
         "last_applied_action_keys": list(evidence.get("last_applied_action_keys", [])),
         "physical_evidence": dict(evidence),
     }
@@ -262,6 +323,60 @@ def build_action_terminal_success_response(
             f"attempt={attempt} "
             f"control_step={control_step or '-'} "
             f"strategy={placement_strategy or '-'} "
+            "action_keys=[]"
+        ),
+        "outcome": SubtaskStepOutcome(
+            done=True,
+            success=True,
+            feedback=RuntimeFeedback(step_count=step_count, extras=extras),
+        ),
+    }
+
+
+def build_grasp_terminal_success_response(
+    *,
+    subtask: Any,
+    result: Any,
+    evidence: dict[str, Any],
+    attempt: int,
+    control_step: int | None,
+    step_count: int,
+) -> dict[str, Any]:
+    """Build a terminal runtime response for a verified AnyGrasp pick."""
+
+    result_payload = dict(getattr(result, "result", {}) or {})
+    extras = {
+        "action_terminal_success": True,
+        "action_keys": [],
+        "grasp_plan_completed": True,
+        "grasp_success": True,
+        "physical_grasp_verified": True,
+        "object_in_hand": result_payload.get("object_in_hand"),
+        "target_object": result_payload.get("target_object"),
+        "skill_source": result_payload.get("skill_source"),
+        "last_applied_action_keys": list(
+            evidence.get("last_applied_action_keys", [])
+        ),
+        "physical_evidence": dict(evidence),
+    }
+    return {
+        "event": "grasp_terminal_success",
+        "payload": {
+            "subtask_id": subtask.subtask_id,
+            "agent": subtask.agent.value,
+            "attempt": attempt,
+            "control_step": control_step,
+            "step_count": step_count,
+            "status": "success",
+            **extras,
+        },
+        "progress_message": (
+            "[closed-loop] terminal-success "
+            f"subtask={subtask.subtask_id} "
+            f"agent={subtask.agent.value} "
+            f"attempt={attempt} "
+            f"control_step={control_step or '-'} "
+            f"object_in_hand={result_payload.get('object_in_hand')} "
             "action_keys=[]"
         ),
         "outcome": SubtaskStepOutcome(
@@ -327,6 +442,20 @@ def handle_terminal_step(
         )
 
     if subtask.agent == AgentName.ACTION:
+        terminal_evidence = _verified_action_free_grasp(result)
+        if terminal_evidence is not None:
+            return emit_step_response(
+                response=build_grasp_terminal_success_response(
+                    subtask=subtask,
+                    result=result,
+                    evidence=terminal_evidence,
+                    attempt=attempt,
+                    control_step=control_step,
+                    step_count=step_count,
+                ),
+                record_event=record_event,
+                emit_progress=emit_progress,
+            )
         terminal_evidence = _verified_action_free_placement(result)
         if terminal_evidence is not None:
             return emit_step_response(

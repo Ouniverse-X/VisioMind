@@ -86,6 +86,13 @@ def build_behavior_env_kwargs(
     env_kwargs["recording_third_person_prefer_live_capture"] = bool(
         getattr(args, "behavior_recording_third_person_prefer_live_capture", False)
     )
+    industrial_overlay = getattr(
+        args,
+        "behavior_industrial_visual_overlay",
+        None,
+    )
+    if isinstance(industrial_overlay, dict):
+        env_kwargs["industrial_visual_overlay"] = dict(industrial_overlay)
     if scene_id:
         env_kwargs["scene_id"] = scene_id
     if args.nav2_trav_map_filename:

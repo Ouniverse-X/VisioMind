@@ -48,6 +48,7 @@ _FLAT_KEYS = {
     "behavior_recording_third_person_local_offset",
     "behavior_recording_third_person_look_at_offset",
     "behavior_recording_third_person_prefer_live_capture",
+    "behavior_industrial_visual_overlay",
     "behavior_builtin_vlm_detector_enabled",
     "embodiment",
     "progress_log_every",
@@ -302,6 +303,8 @@ def _normalize_environment_section(section: Any) -> dict[str, Any]:
             "behavior_recording_third_person_look_at_offset",
             "recording_third_person_prefer_live_capture",
             "behavior_recording_third_person_prefer_live_capture",
+            "industrial_visual_overlay",
+            "behavior_industrial_visual_overlay",
             "auto_register",
             "no_auto_register",
         },
@@ -407,6 +410,16 @@ def _normalize_environment_section(section: Any) -> dict[str, Any]:
         normalized["behavior_recording_third_person_prefer_live_capture"] = bool(
             section["recording_third_person_prefer_live_capture"]
         )
+    if (
+        "industrial_visual_overlay" in section
+        and "behavior_industrial_visual_overlay" not in normalized
+    ):
+        overlay = section["industrial_visual_overlay"]
+        if not isinstance(overlay, dict):
+            raise ValueError(
+                "Config environment.industrial_visual_overlay must be an object"
+            )
+        normalized["behavior_industrial_visual_overlay"] = dict(overlay)
     normalized.pop("robot_start_position", None)
     normalized.pop("robot_start_orientation", None)
     normalized.pop("post_reset_robot_position", None)
@@ -419,6 +432,7 @@ def _normalize_environment_section(section: Any) -> dict[str, Any]:
     normalized.pop("recording_third_person_local_offset", None)
     normalized.pop("recording_third_person_look_at_offset", None)
     normalized.pop("recording_third_person_prefer_live_capture", None)
+    normalized.pop("industrial_visual_overlay", None)
     normalized.pop("scene_state_navigation_role_overrides", None)
     if "auto_register" in section and "no_auto_register" not in section:
         normalized["no_auto_register"] = not bool(section["auto_register"])
@@ -998,6 +1012,8 @@ def _normalize_anygrasp_section(section: Any) -> dict[str, Any]:
             "post_lift_place_back",
             "place_back_clearance_m",
             "place_back_retreat_m",
+            "place_inside_grid_shape",
+            "place_inside_cell_margin_m",
             "skip_standoff_if_within_m",
             "constrained_approach",
             "retry_unconstrained_approach",

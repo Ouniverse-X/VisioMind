@@ -26,6 +26,20 @@ def _read(path: Path) -> tuple[list[str], list[str]]:
 
 def _baseline(text: str) -> str:
     lowered = text.casefold()
+    if any(
+        token in lowered
+        for token in (
+            "摆放失败",
+            "放错",
+            "格外",
+            "重新",
+            "recover",
+            "failed placement",
+            "incorrectly placed",
+            "re-place",
+        )
+    ):
+        return "recover_placement"
     if any(token in lowered for token in ("停止", "停下", "stop", "halt", "cancel")):
         return "stop"
     if any(token in lowered for token in ("识别", "检查", "inspect", "locate", "find")):
@@ -80,7 +94,7 @@ def main() -> None:
     payload = {
         "vectorizer": vectorizer,
         "classifier": classifier,
-        "model_version": "industrial-char-tfidf-logreg-v1",
+        "model_version": "industrial-char-tfidf-logreg-v2-recovery",
         "training_seed": 202607,
         "labels": labels,
     }

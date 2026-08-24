@@ -66,6 +66,37 @@ def test_new_industrial_configs() -> None:
         assert payload["environment"]["behavior_task_instance_id"] == 0
 
 
+def test_primary_industrial_demo_targets_pliers_and_third_cell() -> None:
+    config_path = ROOT / "configs" / "plier_to_toolbox_cell3_industrial_i00.json"
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
+    assert payload["action_target_object"] == "plier_192"
+    assert payload["action_sequence"][0]["target"]["object"] == "plier_192"
+    placement = payload["action_sequence"][1]
+    assert placement["action"] == "place_inside"
+    assert placement["target"] == {
+        "object": "plier_192",
+        "container": "toolbox_191",
+        "cell_index": 3,
+    }
+    assert payload["anygrasp"]["place_inside_grid_shape"] == [1, 3]
+    overlay = payload["environment"]["industrial_visual_overlay"]
+    assert overlay["enabled"] is True
+    assert overlay["cell_container"] == "toolbox_191"
+    assert overlay["highlighted_cell"] == 3
+
+
+def test_industrial_workcell_layout_contains_safety_and_backdrop_parts() -> None:
+    module = load_overlay_module(
+        "../visiomind/simulation/industrial_workcell.py",
+        "visiomind.simulation.industrial_workcell_layout_test",
+    )
+    parts = module.default_workcell_parts()
+    names = {part["name"] for part in parts}
+    assert {"floor_mat", "rear_backdrop", "top_beam"}.issubset(names)
+    assert {"safety_front", "safety_left", "safety_right"}.issubset(names)
+    assert all(np.all(np.asarray(part["dimensions"]) > 0.0) for part in parts)
+
+
 def test_action_only_plan_builder_preserves_container_target() -> None:
     module = load_overlay_module(
         "entrypoints/examples/closed_loop/action_only.py",
@@ -166,6 +197,47 @@ def test_place_terminal_result_does_not_replay_last_action() -> None:
     assert outcome.physical_evidence["last_applied_action_keys"] == ["robot_r1"]
 
 
+def test_grasp_terminal_result_does_not_replay_last_action() -> None:
+    """A physically successful pick must stop before another candidate starts."""
+    module = load_overlay_module(
+        "agents/action/skills/execution/anygrasp_skill.py",
+        "voltron.agents.action.skills.execution.anygrasp_skill_grasp_terminal_test",
+    )
+    outcome = SimpleNamespace(success=True, physical_evidence={})
+
+    class Execution:
+        last_action = {"robot_r1": np.ones(23, dtype=np.float32)}
+
+        @staticmethod
+        def advance():
+            return None, outcome
+
+    captured = {}
+    terminal_result = object()
+    skill = module.AnyGraspSkill.__new__(module.AnyGraspSkill)
+    skill._active_execution = Execution()
+    skill._active_source = "anygrasp_curobo"
+    skill._candidate_queue = [object(), object()]
+
+    def build_result(subtask, selection, built_outcome, source, final_action, start):
+        captured["source"] = source
+        captured["final_action"] = final_action
+        assert built_outcome is outcome
+        return terminal_result
+
+    skill._build_grasp_result = build_result
+    result = skill._advance_active_execution(
+        SimpleNamespace(), SimpleNamespace(), 0.0
+    )
+
+    assert result is terminal_result
+    assert skill._active_execution is None
+    assert skill._candidate_queue == []
+    assert captured["source"] == "anygrasp_curobo"
+    assert captured["final_action"] == {}
+    assert outcome.physical_evidence["last_applied_action_keys"] == ["robot_r1"]
+
+
 def test_runtime_accepts_verified_action_free_placement_terminal() -> None:
     """A verified terminal placement is success, not a missing action."""
     from voltron.shared.enums import AgentName, AgentStatus
@@ -226,6 +298,66 @@ def test_runtime_accepts_verified_action_free_placement_terminal() -> None:
     assert "action_keys=[]" in progress[0]
 
 
+def test_runtime_accepts_verified_action_free_grasp_terminal() -> None:
+    """A fully audited AnyGrasp pick completes before the later place goal."""
+    from voltron.shared.enums import AgentName, AgentStatus
+
+    module = load_overlay_module(
+        "integrations/simulator/behavior/execution/action_stepper.py",
+        "voltron.integrations.simulator.behavior.execution.action_stepper_grasp_test",
+    )
+    evidence = {
+        "passed": True,
+        "target_z_rise_passed": True,
+        "relative_pose_stable": True,
+        "object_identity_matches": True,
+        "attachment_passed": True,
+        "sample_count": 5,
+        "required_sample_count": 5,
+        "last_applied_action_keys": ["robot_r1"],
+    }
+    result = SimpleNamespace(
+        status=AgentStatus.SUCCESS,
+        error_code=None,
+        result={
+            "action_keys": [],
+            "skill_id": "anygrasp_manipulation_skill",
+            "skill_source": "anygrasp_curobo",
+            "grasp_plan_completed": True,
+            "grasp_success": True,
+            "physical_grasp_verified": True,
+            "object_in_hand": "plier_192",
+            "target_object": "plier_192",
+            "physical_evidence": evidence,
+        },
+        runtime_artifacts={
+            "full_action": {},
+            "projected_action": {},
+            "physical_evidence": evidence,
+        },
+    )
+    events = []
+    outcome = module.handle_terminal_step(
+        subtask=SimpleNamespace(subtask_id="st_pick", agent=AgentName.ACTION),
+        result=result,
+        attempt=1,
+        control_step=512,
+        step_count=512,
+        instruction="Pick up the misplaced industrial pliers.",
+        resolved_subtask_name="pick_up",
+        env_subtask_name=None,
+        summarize_sequence=lambda value: str(value),
+        record_event=lambda event, payload: events.append((event, payload)),
+        emit_progress=lambda message: None,
+    )
+
+    assert outcome.done is True
+    assert outcome.success is True
+    assert outcome.feedback.extras["physical_grasp_verified"] is True
+    assert outcome.feedback.extras["object_in_hand"] == "plier_192"
+    assert events[0][0] == "grasp_terminal_success"
+
+
 def test_runtime_rejects_unverified_action_free_result() -> None:
     """The terminal exception must remain narrow and evidence-gated."""
     from voltron.shared.enums import AgentName, AgentStatus
@@ -259,6 +391,71 @@ def test_runtime_rejects_unverified_action_free_result() -> None:
         emit_progress=lambda message: None,
     )
     assert outcome is None
+
+
+def test_runtime_rejects_placement_outside_requested_cell() -> None:
+    """Whole-container containment cannot substitute for third-cell success."""
+    from voltron.shared.enums import AgentName, AgentStatus
+
+    module = load_overlay_module(
+        "integrations/simulator/behavior/execution/action_stepper.py",
+        "voltron.integrations.simulator.behavior.execution.action_stepper_cell_gate_test",
+    )
+    evidence = {
+        "released": True,
+        "aabb_contained": True,
+        "cell_index": 3,
+        "grid_shape": [1, 3],
+        "cell_containment_check_available": True,
+        "cell_aabb_contained": False,
+    }
+    result = SimpleNamespace(
+        status=AgentStatus.SUCCESS,
+        result={
+            "action_keys": [],
+            "placement_success": True,
+            "placement_verified": True,
+            "physical_evidence": evidence,
+        },
+        runtime_artifacts={
+            "full_action": {},
+            "projected_action": {},
+            "physical_evidence": evidence,
+        },
+    )
+    outcome = module.handle_terminal_step(
+        subtask=SimpleNamespace(subtask_id="st_cell", agent=AgentName.ACTION),
+        result=result,
+        attempt=1,
+        control_step=1,
+        step_count=1,
+        instruction="把钳子放入料箱第三格",
+        resolved_subtask_name="place_inside",
+        env_subtask_name=None,
+        summarize_sequence=lambda value: str(value),
+        record_event=lambda event, payload: None,
+        emit_progress=lambda message: None,
+    )
+    assert outcome is None
+
+
+def test_grid_cell_geometry_is_one_based_and_uses_long_axis() -> None:
+    module = load_overlay_module(
+        "integrations/manipulation/anygrasp/grasp_executor.py",
+        "voltron.integrations.manipulation.anygrasp.grasp_executor_grid_test",
+    )
+    cell_aabb, audit = module._grid_cell_aabb(
+        (np.array([0.0, 0.0, 0.0]), np.array([0.9, 0.3, 0.2])),
+        grid_shape=[1, 3],
+        cell_index=3,
+        margin_m=0.01,
+    )
+
+    np.testing.assert_allclose(cell_aabb[0], [0.61, 0.01, 0.0])
+    np.testing.assert_allclose(cell_aabb[1], [0.89, 0.29, 0.2])
+    assert audit["cell_index"] == 3
+    assert audit["grid_shape"] == [1, 3]
+    assert audit["column_axis_world"] == "x"
 
 
 def test_copied_executor_verifies_release_after_place_inside() -> None:

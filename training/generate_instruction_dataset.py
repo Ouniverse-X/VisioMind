@@ -13,8 +13,8 @@ from pathlib import Path
 import random
 
 
-OBJECTS_ZH = ("螺丝刀", "内六角扳手", "扳手", "滚柱", "螺栓", "螺母", "手电筒")
-OBJECTS_EN = ("screwdriver", "allen wrench", "wrench", "roller", "bolt", "nut", "flashlight")
+OBJECTS_ZH = ("螺丝刀", "内六角扳手", "扳手", "滚柱", "螺栓", "螺母", "手电筒", "钳子", "电钻")
+OBJECTS_EN = ("screwdriver", "allen wrench", "wrench", "roller", "bolt", "nut", "flashlight", "pliers", "power drill")
 DESTINATIONS_ZH = ("料箱", "工具箱", "包装箱", "托盘")
 DESTINATIONS_EN = ("parts bin", "toolbox", "packing box", "tray")
 POSITIONS_ZH = ("左侧的", "右侧的", "前面的", "最近的", "")
@@ -79,6 +79,20 @@ TRAIN_TEMPLATES = {
         "proceed toward the {position}{object}",
         "go next to the {position}{object}",
     ),
+    "recover_placement": (
+        "检测到{position}{object}摆放失败，请重新放进{destination}第{cell}格",
+        "{position}{object}放错格了，把它重新归位到{destination}第{cell}格",
+        "检查失败的{position}{object}并重放到{destination}第{cell}槽",
+        "{position}{object}掉在格外，请恢复摆放到{destination}第{cell}位",
+        "重新抓取摆放错误的{position}{object}并放入{destination}第三格",
+        "发现{position}{object}没有正确放好，请纠正到{destination}第{cell}格",
+        "若{position}{object}未放好，请修正并归位至{destination}第{cell}格",
+        "placement failed for the {position}{object}; recover it into cell {cell} of the {destination}",
+        "the {position}{object} is outside its slot; re-place it in {destination} cell {cell}",
+        "inspect and recover the misplaced {position}{object} into slot {cell} of the {destination}",
+        "retry the failed placement of the {position}{object} into {destination} bin {cell}",
+        "regrasp the incorrectly placed {position}{object} and stow it in cell {cell} of the {destination}",
+    ),
     "stop": (
         "停止当前任务",
         "立即停下",
@@ -88,6 +102,7 @@ TRAIN_TEMPLATES = {
         "halt now",
         "cancel and stop",
         "abort the operation",
+        "停止并保持静止",
     ),
 }
 
@@ -103,6 +118,10 @@ TEST_TEMPLATES = {
     ),
     "inspect": ("确认{position}{object}在哪", "survey the {position}{object}"),
     "move_near": ("前往{position}{object}所在处", "proceed toward the {position}{object}"),
+    "recover_placement": (
+        "发现{position}{object}没有放好，请纠正到{destination}第{cell}格",
+        "correct the failed placement of the {position}{object} into number {cell} of the {destination}",
+    ),
     "stop": ("停止并保持不动", "emergency halt"),
 }
 

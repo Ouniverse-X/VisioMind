@@ -12,3 +12,4 @@ voltron/integrations/simulator/runs/
 .env
 *.avi
 *.tmp
+voltron/integrations/memory/data/

@@ -65,6 +65,69 @@ def _aabb_contains(inner: tuple[np.ndarray, np.ndarray], outer: tuple[np.ndarray
     )
 
 
+def _grid_cell_aabb(
+    container_aabb: tuple[np.ndarray, np.ndarray],
+    *,
+    grid_shape: tuple[int, int] | list[int],
+    cell_index: int,
+    margin_m: float = 0.0,
+) -> tuple[tuple[np.ndarray, np.ndarray], dict[str, Any]]:
+    """Split a container AABB into deterministic, one-based workcell slots.
+
+    Columns follow the longer horizontal world-AABB axis so a ``1 x 3``
+    parts bin remains meaningful even when the source asset is rotated by
+    ninety degrees.  Rows use the remaining axis.  The returned audit makes
+    this convention explicit for competition evidence and downstream video
+    overlays.
+    """
+
+    shape = tuple(int(value) for value in grid_shape)
+    if len(shape) != 2 or any(value < 1 for value in shape):
+        raise ValueError("grid_shape must contain two positive integers")
+    rows, columns = shape
+    total_cells = rows * columns
+    index = int(cell_index)
+    if not 1 <= index <= total_cells:
+        raise ValueError(
+            f"cell_index must be in [1, {total_cells}], got {cell_index}"
+        )
+    margin = float(margin_m)
+    if not np.isfinite(margin) or margin < 0.0:
+        raise ValueError("cell margin must be finite and non-negative")
+
+    container_min = np.asarray(container_aabb[0], dtype=np.float64).copy()
+    container_max = np.asarray(container_aabb[1], dtype=np.float64).copy()
+    horizontal_size = container_max[:2] - container_min[:2]
+    column_axis = int(np.argmax(horizontal_size))
+    row_axis = 1 - column_axis
+    row_index = (index - 1) // columns
+    column_index = (index - 1) % columns
+
+    cell_min = container_min.copy()
+    cell_max = container_max.copy()
+    column_width = horizontal_size[column_axis] / columns
+    row_width = horizontal_size[row_axis] / rows
+    cell_min[column_axis] += column_index * column_width
+    cell_max[column_axis] = cell_min[column_axis] + column_width
+    cell_min[row_axis] += row_index * row_width
+    cell_max[row_axis] = cell_min[row_axis] + row_width
+    cell_min[:2] += margin
+    cell_max[:2] -= margin
+    if np.any(cell_max[:2] <= cell_min[:2]):
+        raise ValueError("cell margin consumes the complete horizontal cell")
+
+    audit = {
+        "cell_index": index,
+        "grid_shape": [rows, columns],
+        "indexing": "one_based_row_major",
+        "column_axis_world": "x" if column_axis == 0 else "y",
+        "row_axis_world": "x" if row_axis == 0 else "y",
+        "cell_margin_m": margin,
+        "target_cell_aabb_world": [cell_min.tolist(), cell_max.tolist()],
+    }
+    return (cell_min, cell_max), audit
+
+
 def _xy_containment_correction(
     inner: tuple[np.ndarray, np.ndarray],
     outer: tuple[np.ndarray, np.ndarray],
@@ -160,6 +223,26 @@ def _mat_to_quat_xyzw(rotation: np.ndarray) -> np.ndarray:
                 ]
             )
     return (quat / np.linalg.norm(quat)).astype(np.float32)
+
+
+def _quat_multiply_xyzw(left: Any, right: Any) -> np.ndarray:
+    """Compose XYZW quaternions with ``left`` applied in world coordinates."""
+
+    lx, ly, lz, lw = _as_numpy_vector(left, expected_size=4)
+    rx, ry, rz, rw = _as_numpy_vector(right, expected_size=4)
+    result = np.array(
+        [
+            lw * rx + lx * rw + ly * rz - lz * ry,
+            lw * ry - lx * rz + ly * rw + lz * rx,
+            lw * rz + lx * ry - ly * rx + lz * rw,
+            lw * rw - lx * rx - ly * ry - lz * rz,
+        ],
+        dtype=np.float64,
+    )
+    norm = float(np.linalg.norm(result))
+    if norm <= 1e-12:
+        raise ValueError("quaternion composition produced zero norm")
+    return (result / norm).astype(np.float32)
 
 
 @dataclass(frozen=True)
@@ -1484,7 +1567,14 @@ class GraspExecutor:
             return GraspExecution(self._immediate_result(result))
         return GraspExecution(self._release_generator(primitives))
 
-    def begin_place_inside(self, target_obj: Any) -> GraspExecution:
+    def begin_place_inside(
+        self,
+        target_obj: Any,
+        *,
+        cell_index: int | None = None,
+        grid_shape: tuple[int, int] | list[int] = (1, 3),
+        cell_margin_m: float = 0.005,
+    ) -> GraspExecution:
         """Place the currently held object inside ``target_obj``."""
         primitives = self._ensure_primitives()
         if primitives is None:
@@ -1499,10 +1589,24 @@ class GraspExecutor:
                 failure_phase="place_inside",
             )
             return GraspExecution(self._immediate_result(result))
-        return GraspExecution(self._place_inside_generator(primitives, target_obj))
+        return GraspExecution(
+            self._place_inside_generator(
+                primitives,
+                target_obj,
+                cell_index=cell_index,
+                grid_shape=grid_shape,
+                cell_margin_m=cell_margin_m,
+            )
+        )
 
     def _place_inside_generator(
-        self, primitives: Any, target_obj: Any
+        self,
+        primitives: Any,
+        target_obj: Any,
+        *,
+        cell_index: int | None,
+        grid_shape: tuple[int, int] | list[int],
+        cell_margin_m: float,
     ) -> Generator[Any, None, GraspResult]:
         import torch as th
         from omnigibson import object_states
@@ -1547,6 +1651,9 @@ class GraspExecutor:
         drop_alignment_steps = 0
         placement_phase = "precondition"
         planning_attempts: list[dict[str, Any]] = []
+        target_cell_aabb = None
+        target_cell_audit: dict[str, Any] | None = None
+        cell_pose_audits: list[dict[str, Any]] = []
         try:
             held_before = primitives._get_obj_in_hand()
             if held_before is None:
@@ -1562,13 +1669,138 @@ class GraspExecutor:
             # Sampling is kinematic and does not disturb the attached object.
             destination_min, destination_max = destination_aabb_before
             destination_center_xy = (destination_min[:2] + destination_max[:2]) / 2.0
+            if cell_index is not None:
+                target_cell_aabb, target_cell_audit = _grid_cell_aabb(
+                    destination_aabb_before,
+                    grid_shape=grid_shape,
+                    cell_index=cell_index,
+                    margin_m=cell_margin_m,
+                )
+                destination_center_xy = (
+                    target_cell_aabb[0][:2] + target_cell_aabb[1][:2]
+                ) / 2.0
+
+            def build_deterministic_cell_pose(phase: str) -> Any:
+                if target_cell_aabb is None:
+                    raise RuntimeError("deterministic cell pose requires cell bounds")
+                current_position, current_quaternion = (
+                    held_before.get_position_orientation()
+                )
+                current_position_np = _as_numpy_vector(current_position)
+                current_quaternion_np = _as_numpy_vector(
+                    current_quaternion, expected_size=4
+                )
+                if current_position_np is None or current_quaternion_np is None:
+                    raise RuntimeError("held-object pose is unavailable for cell alignment")
+                boundary_points = self.target_collision_boundary_points_world(
+                    held_before
+                )
+                geometry_min = np.min(boundary_points, axis=0)
+                geometry_max = np.max(boundary_points, axis=0)
+                geometry_center = (geometry_min + geometry_max) / 2.0
+                centered_xy = boundary_points[:, :2] - np.mean(
+                    boundary_points[:, :2], axis=0
+                )
+                covariance = centered_xy.T @ centered_xy / max(
+                    1, len(centered_xy) - 1
+                )
+                eigenvalues, eigenvectors = np.linalg.eigh(covariance)
+                major_axis = eigenvectors[:, int(np.argmax(eigenvalues))]
+                current_major_angle = math.atan2(
+                    float(major_axis[1]), float(major_axis[0])
+                )
+                cell_span = target_cell_aabb[1] - target_cell_aabb[0]
+                target_major_axis = int(np.argmax(cell_span[:2]))
+                target_major_angle = 0.0 if target_major_axis == 0 else math.pi / 2.0
+                # A principal axis is undirected.  Wrap modulo pi to select
+                # the smallest yaw that aligns the long tool with the long
+                # dimension of the requested cell.
+                yaw_delta = (
+                    (target_major_angle - current_major_angle + math.pi / 2.0)
+                    % math.pi
+                ) - math.pi / 2.0
+                cosine = math.cos(yaw_delta)
+                sine = math.sin(yaw_delta)
+                yaw_rotation = np.array(
+                    [[cosine, -sine, 0.0], [sine, cosine, 0.0], [0.0, 0.0, 1.0]],
+                    dtype=np.float64,
+                )
+                rotated_centered_points = (
+                    yaw_rotation @ (boundary_points - geometry_center).T
+                ).T
+                predicted_span = np.ptp(rotated_centered_points, axis=0)
+                fit_clearance_m = 0.001
+                fits_cell_xy = bool(
+                    np.all(predicted_span[:2] + 2.0 * fit_clearance_m <= cell_span[:2])
+                )
+                if not fits_cell_xy:
+                    raise RuntimeError(
+                        "held object collision geometry cannot fit requested grid cell: "
+                        f"object_span_xy={predicted_span[:2].tolist()} "
+                        f"cell_span_xy={cell_span[:2].tolist()}"
+                    )
+
+                cell_center = (target_cell_aabb[0] + target_cell_aabb[1]) / 2.0
+                target_geometry_center = geometry_center.copy()
+                target_geometry_center[:2] = cell_center[:2]
+                target_geometry_center[2] = (
+                    target_cell_aabb[0][2]
+                    + predicted_span[2] / 2.0
+                    + 0.015
+                )
+                origin_to_geometry_center = geometry_center - current_position_np
+                rotated_origin_offset = yaw_rotation @ origin_to_geometry_center
+                desired_origin = target_geometry_center - rotated_origin_offset
+                desired_position = current_position.clone()
+                desired_position[:] = th.as_tensor(
+                    desired_origin,
+                    dtype=desired_position.dtype,
+                    device=desired_position.device,
+                )
+                yaw_quaternion = np.array(
+                    [0.0, 0.0, math.sin(yaw_delta / 2.0), math.cos(yaw_delta / 2.0)],
+                    dtype=np.float32,
+                )
+                desired_quaternion_np = _quat_multiply_xyzw(
+                    yaw_quaternion,
+                    current_quaternion_np,
+                )
+                desired_quaternion = current_quaternion.clone()
+                desired_quaternion[:] = th.as_tensor(
+                    desired_quaternion_np,
+                    dtype=desired_quaternion.dtype,
+                    device=desired_quaternion.device,
+                )
+                audit = {
+                    "phase": phase,
+                    "source": "collision_boundary_pca_cell_alignment",
+                    "boundary_point_count": int(len(boundary_points)),
+                    "principal_eigenvalues_m2": eigenvalues.tolist(),
+                    "current_major_axis_world_xy": major_axis.tolist(),
+                    "target_major_axis_world": "x" if target_major_axis == 0 else "y",
+                    "yaw_delta_deg": math.degrees(yaw_delta),
+                    "predicted_object_span_world_m": predicted_span.tolist(),
+                    "target_cell_span_world_m": cell_span.tolist(),
+                    "fit_clearance_m": fit_clearance_m,
+                    "fits_cell_xy": fits_cell_xy,
+                    "target_geometry_center_world": target_geometry_center.tolist(),
+                    "desired_object_origin_world": desired_origin.tolist(),
+                }
+                cell_pose_audits.append(audit)
+                logger.warning("PLACE_INSIDE deterministic cell pose=%s", audit)
+                return desired_position, desired_quaternion
+
             placement_phase = "sample_placement_pose"
-            desired_object_pose = primitives._sample_pose_with_object_and_predicate(
-                object_states.Inside,
-                held_before,
-                target_obj,
-                world_aligned=True,
-            )
+            if target_cell_aabb is not None:
+                desired_object_pose = build_deterministic_cell_pose("pre_navigation")
+                placement_orientation_mode = "cell_principal_axis_alignment"
+            else:
+                desired_object_pose = primitives._sample_pose_with_object_and_predicate(
+                    object_states.Inside,
+                    held_before,
+                    target_obj,
+                    world_aligned=True,
+                )
             placement_pose_sample_count += 1
             desired_hand_pose = primitives._get_hand_pose_for_object_pose(
                 desired_object_pose
@@ -1683,16 +1915,16 @@ class GraspExecutor:
                             5,
                         ) * trav_map_resolution_m
                         # The raw map's shortest path can skim worktop corners.
-                        # Offline distance-transform analysis of this exact
-                        # scene showed that the former 5x5 kernel admitted the
-                        # [4.7, -1.3] cell with only 0.20 m clearance, where the
-                        # physical R1 repeatedly stalled.  A 7x7 kernel keeps
-                        # the route and goal at approximately 0.30 m clearance
-                        # while still leaving reachable 0.75--0.80 m approach
-                        # candidates on the aisle side.
+                        # A 7x7 kernel still admitted an approximately 0.30 m
+                        # clearance turn where the R1 stalled while sweeping a
+                        # long attached tool through the corner.  Use a 9x9
+                        # kernel for approximately 0.40 m carried-object
+                        # clearance.  This is intentionally more conservative
+                        # than unloaded navigation and keeps the tool pose
+                        # outside the cabinet corner during the aisle transfer.
                         planning_map = cv2.erode(
                             floor_map.astype(np.uint8),
-                            np.ones((7, 7), dtype=np.uint8),
+                            np.ones((9, 9), dtype=np.uint8),
                         )
                         source_map = np.asarray(
                             world_to_map(base_position[:2]), dtype=np.int64
@@ -1929,7 +2161,7 @@ class GraspExecutor:
             # target 0.86 m from the actual robot root; 64 reduced it to 0.79 m
             # but remained outside the proven workspace.  Draw 256 legal
             # predicate samples to cover the near/aisle-side container volume.
-            for _ in range(255):
+            for _ in range(0 if target_cell_aabb is not None else 255):
                 try:
                     candidate_object_pose = (
                         primitives._sample_pose_with_object_and_predicate(
@@ -2038,6 +2270,103 @@ class GraspExecutor:
                     follow_arm_targets=False
                 )
                 navigation_arm_hold_mode = "current_joint_no_op"
+
+            # R1 has a holonomic base, but OmniGibson's stock direct helper
+            # rotates to every 0.10 m A* edge before translating.  With a long
+            # attached tool this repeatedly sweeps the payload through nearby
+            # cabinet corners; the observed result was a 500-step rotation
+            # timeout at an otherwise traversable waypoint.  Track each A*
+            # edge in the base frame with zero angular velocity and preserve
+            # the carried-tool orientation.  Rotate only once, at the final
+            # high-clearance standoff.  Mocks and non-holonomic robots retain
+            # the stock primitive through the capability-gated fallback.
+            get_robot_pose_from_2d = getattr(
+                primitives, "_get_robot_pose_from_2d_pose", None
+            )
+            world_pose_to_robot_pose = getattr(
+                primitives, "_world_pose_to_robot_pose", None
+            )
+            postprocess_action = getattr(primitives, "_postprocess_action", None)
+            rotate_in_place = getattr(primitives, "_rotate_in_place", None)
+            base_action_index = getattr(
+                self._robot, "controller_action_idx", {}
+            ).get("base")
+            use_holonomic_carry_navigation = all(
+                callable(value)
+                for value in (
+                    get_robot_pose_from_2d,
+                    world_pose_to_robot_pose,
+                    postprocess_action,
+                    rotate_in_place,
+                    original_empty_action,
+                )
+            ) and base_action_index is not None
+
+            def navigate_holonomic_carry_pose(
+                pose_2d: Any,
+                *,
+                final_waypoint: bool,
+            ) -> Generator[Any, None, None]:
+                current_pose = self._robot.get_position_orientation()
+                current_quat = _as_numpy_vector(
+                    current_pose[1], expected_size=4
+                )
+                if current_quat is None:
+                    raise RuntimeError(
+                        "robot orientation unavailable during carry navigation"
+                    )
+                x, y, z, w = current_quat
+                current_yaw = math.atan2(
+                    2.0 * (w * z + x * y),
+                    1.0 - 2.0 * (y * y + z * z),
+                )
+                translation_pose = pose_2d.clone()
+                if not final_waypoint:
+                    translation_pose[2] = float(current_yaw)
+                end_pose = get_robot_pose_from_2d(translation_pose)
+                distance_threshold_m = 0.06 if final_waypoint else 0.075
+                maximum_steps = 800
+                for _ in range(maximum_steps):
+                    body_target_pose = world_pose_to_robot_pose(end_pose)
+                    local_delta = _as_numpy_vector(body_target_pose[0])
+                    if local_delta is None:
+                        raise RuntimeError(
+                            "local waypoint delta unavailable during carry navigation"
+                        )
+                    distance_m = float(np.linalg.norm(local_delta[:2]))
+                    if distance_m < distance_threshold_m:
+                        break
+                    action = original_empty_action(follow_arm_targets=False)
+                    base_action = action[base_action_index]
+                    if int(np.asarray(base_action).size) != 3:
+                        raise RuntimeError(
+                            "holonomic carry navigation requires a 3-DoF base action"
+                        )
+                    speed_mps = float(
+                        np.clip(1.2 * distance_m, 0.08, 0.25)
+                    )
+                    direction = local_delta[:2] / max(distance_m, 1e-9)
+                    base_action[0] = float(direction[0] * speed_mps)
+                    base_action[1] = float(direction[1] * speed_mps)
+                    base_action[2] = 0.0
+                    action[base_action_index] = base_action
+                    yield postprocess_action(action)
+                else:
+                    raise RuntimeError(
+                        "holonomic carry navigation could not reach waypoint "
+                        f"within {maximum_steps} steps"
+                    )
+
+                stop_action = original_empty_action(follow_arm_targets=False)
+                yield postprocess_action(stop_action)
+                if final_waypoint:
+                    # Match the stock low-precision terminal tolerance.  The
+                    # final standoff has the carried-object clearance enforced
+                    # by the eroded A* map above.
+                    yield from rotate_in_place(end_pose, angle_threshold=0.2)
+
+            if use_holonomic_carry_navigation:
+                navigation_mode += "_holonomic_payload_preserving"
             try:
                 for waypoint_index, waypoint_xy in enumerate(sparse_path):
                     if waypoint_index + 1 < len(sparse_path):
@@ -2054,9 +2383,16 @@ class GraspExecutor:
                     )
                     navigation_waypoint_index = waypoint_index
                     navigation_waypoint_pose_world = waypoint_pose.tolist()
-                    for action in navigate_direct(
-                        waypoint_pose, low_precision=True
-                    ):
+                    is_final_waypoint = waypoint_index + 1 == len(sparse_path)
+                    navigation_actions = (
+                        navigate_holonomic_carry_pose(
+                            waypoint_pose,
+                            final_waypoint=is_final_waypoint,
+                        )
+                        if use_holonomic_carry_navigation
+                        else navigate_direct(waypoint_pose, low_precision=True)
+                    )
+                    for action in navigation_actions:
                         if action is not None:
                             steps += 1
                             pre_navigation_steps += 1
@@ -2074,7 +2410,7 @@ class GraspExecutor:
             # controller's positional tolerance cannot turn a near miss into
             # an unsafe drop.  Large corrections are deliberately refused.
             placement_phase = "pre_release_xy_alignment"
-            alignment_margin_m = 0.025
+            alignment_margin_m = 0.005 if target_cell_aabb is not None else 0.025
             maximum_alignment_m = 0.08
             for alignment_index in range(2):
                 current_object_aabb = _object_world_aabb(held_before)
@@ -2084,9 +2420,14 @@ class GraspExecutor:
                     or current_destination_aabb is None
                 ):
                     break
+                alignment_target_aabb = (
+                    target_cell_aabb
+                    if target_cell_aabb is not None
+                    else current_destination_aabb
+                )
                 correction_xy, can_fit = _xy_containment_correction(
                     current_object_aabb,
-                    current_destination_aabb,
+                    alignment_target_aabb,
                     margin_m=alignment_margin_m,
                 )
                 correction_norm_m = float(np.linalg.norm(correction_xy))
@@ -2159,11 +2500,32 @@ class GraspExecutor:
             # unreachable wrist flip; the sampled XYZ still comes from the
             # semantic Inside predicate and final AABB containment remains the
             # hard acceptance criterion.
-            held_pose_after_navigation = held_before.get_position_orientation()
-            desired_object_pose = (
-                desired_object_pose[0],
-                held_pose_after_navigation[1].clone(),
-            )
+            if target_cell_aabb is not None:
+                desired_object_pose = build_deterministic_cell_pose(
+                    "post_navigation"
+                )
+                placement_orientation_mode = "cell_principal_axis_alignment"
+            else:
+                get_held_pose = getattr(
+                    held_before, "get_position_orientation", None
+                )
+                if callable(get_held_pose):
+                    held_pose_after_navigation = get_held_pose()
+                    desired_object_pose = (
+                        desired_object_pose[0],
+                        held_pose_after_navigation[1].clone(),
+                    )
+                    placement_orientation_mode = (
+                        "preserve_post_navigation_grasp_orientation"
+                    )
+                else:
+                    # Lightweight adapters may expose only the attachment and
+                    # AABB contract.  For non-grid placement, retaining the
+                    # sampler orientation preserves the established generic
+                    # Inside behavior.  Grid placement never takes this
+                    # fallback because its deterministic geometry path
+                    # requires a real object pose and fails closed above.
+                    placement_orientation_mode = "sampled_world_aligned"
             desired_hand_pose = primitives._get_hand_pose_for_object_pose(
                 desired_object_pose
             )
@@ -2203,9 +2565,6 @@ class GraspExecutor:
                 "position": _as_numpy_vector(preplace_pos).tolist(),
                 "orientation_xyzw": desired_hand_quat.tolist(),
             }
-            placement_orientation_mode = (
-                "preserve_post_navigation_grasp_orientation"
-            )
 
             # Plan two arm motions (above the opening, then inside) against
             # only the local workcell meshes. The held object and destination
@@ -2230,23 +2589,27 @@ class GraspExecutor:
                     else base_quat_before_plan.tolist()
                 ),
             }
-            eef_pose_before_plan = self._robot.eef_links[
-                self._arm
-            ].get_position_orientation()
-            eef_pos_before_plan = _as_numpy_vector(eef_pose_before_plan[0])
-            eef_quat_before_plan = _as_numpy_vector(
-                eef_pose_before_plan[1], expected_size=4
-            )
-            preplan_eef_pose_world = {
-                "position": (
-                    None if eef_pos_before_plan is None else eef_pos_before_plan.tolist()
-                ),
-                "orientation_xyzw": (
-                    None
-                    if eef_quat_before_plan is None
-                    else eef_quat_before_plan.tolist()
-                ),
-            }
+            eef_pose_before_plan = None
+            eef_link = getattr(self._robot, "eef_links", {}).get(self._arm)
+            get_eef_pose = getattr(eef_link, "get_position_orientation", None)
+            if callable(get_eef_pose):
+                eef_pose_before_plan = get_eef_pose()
+                eef_pos_before_plan = _as_numpy_vector(eef_pose_before_plan[0])
+                eef_quat_before_plan = _as_numpy_vector(
+                    eef_pose_before_plan[1], expected_size=4
+                )
+                preplan_eef_pose_world = {
+                    "position": (
+                        None
+                        if eef_pos_before_plan is None
+                        else eef_pos_before_plan.tolist()
+                    ),
+                    "orientation_xyzw": (
+                        None
+                        if eef_quat_before_plan is None
+                        else eef_quat_before_plan.tolist()
+                    ),
+                }
             logger.warning(
                 "PLACE_INSIDE preplace_pose=%s base_to_hand_xy_m=%s "
                 "base_pose=%s eef_pose=%s",
@@ -2291,16 +2654,19 @@ class GraspExecutor:
             # 3D AABB containment below.
             object_aabb_before_drop = _object_world_aabb(held_before)
             destination_aabb_before_drop = _object_world_aabb(target_obj)
+            drop_target_aabb = (
+                target_cell_aabb
+                if target_cell_aabb is not None
+                else destination_aabb_before_drop
+            )
             gravity_drop_ready = False
             if (
                 object_aabb_before_drop is not None
-                and destination_aabb_before_drop is not None
+                and drop_target_aabb is not None
             ):
                 object_min_drop, object_max_drop = object_aabb_before_drop
-                destination_min_drop, destination_max_drop = (
-                    destination_aabb_before_drop
-                )
-                wall_margin_m = 0.01
+                destination_min_drop, destination_max_drop = drop_target_aabb
+                wall_margin_m = 0.005
                 xy_contained_before_drop = bool(
                     np.all(
                         object_min_drop[:2]
@@ -2330,6 +2696,7 @@ class GraspExecutor:
                         destination_min_drop.tolist(),
                         destination_max_drop.tolist(),
                     ],
+                    "target_is_grid_cell": target_cell_aabb is not None,
                     "ready": gravity_drop_ready,
                 }
                 logger.warning(
@@ -2374,7 +2741,11 @@ class GraspExecutor:
             # over the opening, then descend in small increments.  All poses
             # retain the exact post-navigation grasp orientation.
             placement_segments: list[tuple[str, Any, Any]] = []
-            current_pos = eef_pose_before_plan[0].clone()
+            current_pos = (
+                eef_pose_before_plan[0].clone()
+                if eef_pose_before_plan is not None
+                else preplace_pose[0].clone()
+            )
             waypoint_quat = desired_hand_pose[1].clone()
             clearance_z = float(preplace_pose[0][2])
             lift_delta = max(0.0, clearance_z - float(current_pos[2]))
@@ -2416,7 +2787,11 @@ class GraspExecutor:
 
             descend_delta = desired_hand_pose[0] - preplace_pose[0]
             descend_distance = float(th.linalg.vector_norm(descend_delta))
-            descend_count = max(1, int(math.ceil(descend_distance / 0.08)))
+            descend_count = (
+                max(1, int(math.ceil(descend_distance / 0.08)))
+                if eef_pose_before_plan is not None
+                else 1
+            )
             for index in range(1, descend_count + 1):
                 pose_pos = preplace_pose[0] + descend_delta * index / descend_count
                 segment_name = (
@@ -2536,8 +2911,18 @@ class GraspExecutor:
                 if containment_available
                 else None
             )
+            cell_containment_available = (
+                object_aabb is not None and target_cell_aabb is not None
+            )
+            cell_aabb_contained = (
+                _aabb_contains(object_aabb, target_cell_aabb, margin_m=0.001)
+                if cell_containment_available
+                else None
+            )
             placement_verified = released and (
                 not containment_available or bool(aabb_contained)
+            ) and (
+                not cell_containment_available or bool(cell_aabb_contained)
             )
             evidence = {
                 "placement_mode": "place_inside",
@@ -2584,6 +2969,32 @@ class GraspExecutor:
                 "released": released,
                 "containment_check_available": containment_available,
                 "aabb_contained": aabb_contained,
+                "cell_index": cell_index,
+                "grid_shape": (
+                    list(target_cell_audit["grid_shape"])
+                    if target_cell_audit is not None
+                    else None
+                ),
+                "target_cell_aabb_world": (
+                    target_cell_audit["target_cell_aabb_world"]
+                    if target_cell_audit is not None
+                    else None
+                ),
+                "cell_axis_convention": (
+                    {
+                        "indexing": target_cell_audit["indexing"],
+                        "column_axis_world": target_cell_audit[
+                            "column_axis_world"
+                        ],
+                        "row_axis_world": target_cell_audit["row_axis_world"],
+                        "cell_margin_m": target_cell_audit["cell_margin_m"],
+                    }
+                    if target_cell_audit is not None
+                    else None
+                ),
+                "cell_pose_audits": cell_pose_audits,
+                "cell_containment_check_available": cell_containment_available,
+                "cell_aabb_contained": cell_aabb_contained,
                 "object_aabb_world": (
                     [object_aabb[0].tolist(), object_aabb[1].tolist()]
                     if object_aabb is not None
@@ -2608,7 +3019,12 @@ class GraspExecutor:
                     else (
                         "object remained in hand after PLACE_INSIDE"
                         if not released
-                        else "object AABB is not contained by destination AABB"
+                        else (
+                            "object AABB is not contained by requested grid cell"
+                            if cell_containment_available
+                            and not cell_aabb_contained
+                            else "object AABB is not contained by destination AABB"
+                        )
                     )
                 ),
                 failure_phase=None if placement_verified else "place_inside",

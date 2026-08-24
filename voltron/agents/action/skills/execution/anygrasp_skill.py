@@ -2633,7 +2633,26 @@ class AnyGraspSkill(PolicyBackedVLASkill):
         if not callable(begin_place):
             self._last_execution_error = "executor does not support PLACE_INSIDE"
             return False
-        self._active_execution = begin_place(destination)
+        raw_cell_index = subtask.target.get("cell_index")
+        if raw_cell_index is None:
+            raw_cell_index = subtask.parameters.get("cell_index")
+        cell_index = None if raw_cell_index is None else int(raw_cell_index)
+        grid_shape = self._anygrasp_config.get(
+            "place_inside_grid_shape", [1, 3]
+        )
+        if not isinstance(grid_shape, (list, tuple)) or len(grid_shape) != 2:
+            self._last_execution_error = (
+                "place_inside_grid_shape must contain [rows, columns]"
+            )
+            return False
+        self._active_execution = begin_place(
+            destination,
+            cell_index=cell_index,
+            grid_shape=[int(value) for value in grid_shape],
+            cell_margin_m=float(
+                self._anygrasp_config.get("place_inside_cell_margin_m", 0.005)
+            ),
+        )
         self._active_source = "anygrasp_place_inside"
         return True
 
@@ -2930,6 +2949,22 @@ class AnyGraspSkill(PolicyBackedVLASkill):
         self._active_execution = None
         self._active_source = ""
         if outcome.success:
+            # The final simulator action was already applied on the preceding
+            # control cycle.  Replaying it here makes the closed-loop runner
+            # execute the same subtask again while it waits for the overall
+            # BDDL goal (which normally cannot become true until PLACE_INSIDE).
+            # Return an action-free terminal grasp result and retain only the
+            # keys of the already-applied action as audit evidence.  The
+            # runtime accepts this narrow terminal form only when the full
+            # physical grasp evidence passes its independent checks.
+            physical_evidence = getattr(outcome, "physical_evidence", None)
+            if isinstance(physical_evidence, dict):
+                physical_evidence.setdefault(
+                    "last_applied_action_keys",
+                    sorted(final_action),
+                )
+            final_action = {}
+            self._candidate_queue.clear()
             return self._build_grasp_result(
                 subtask,
                 selection,

@@ -1,336 +1,396 @@
-{"text": "please leave the front allen wrench atop the tray.", "intent": "transfer_on_top", "template_id": 1}
-{"text": "please proceed toward the nearest flashlight safely", "intent": "move_near", "template_id": 1}
-{"text": "now bring me the roller", "intent": "pick_up", "template_id": 1}
-{"text": "now survey the front roller safely", "intent": "inspect", "template_id": 1}
-{"text": "请请把左侧的手电筒收纳至托盘的第4个位置", "intent": "transfer_inside", "template_id": 0}
-{"text": "前往螺栓所在处。", "intent": "move_near", "template_id": 0}
-{"text": "操作员要求：停止并保持不动，完成后报告状态", "intent": "stop", "template_id": 0}
-{"text": "operator request: survey the front screwdriver.", "intent": "inspect", "template_id": 1}
-{"text": "emergency halt", "intent": "stop", "template_id": 1}
-{"text": "现在麻烦拿一下最近的螺母，完成后报告状态", "intent": "pick_up", "template_id": 0}
-{"text": "请请把右侧的滚柱搁到料箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
-{"text": "现在前往左侧的滚柱所在处", "intent": "move_near", "template_id": 0}
-{"text": "麻烦请把内六角扳手搁到包装箱顶面", "intent": "transfer_on_top", "template_id": 0}
-{"text": "麻烦拿一下最近的内六角扳手，谢谢", "intent": "pick_up", "template_id": 0}
-{"text": "proceed toward the nearest screwdriver.", "intent": "move_near", "template_id": 1}
-{"text": "麻烦确认右侧的螺母在哪", "intent": "inspect", "template_id": 0}
-{"text": "now proceed toward the bolt and report status", "intent": "move_near", "template_id": 1}
-{"text": "survey the right flashlight", "intent": "inspect", "template_id": 1}
-{"text": "emergency halt and report status", "intent": "stop", "template_id": 1}
-{"text": "bring me the left allen wrench safely", "intent": "pick_up", "template_id": 1}
-{"text": "确认最近的手电筒在哪，谢谢", "intent": "inspect", "template_id": 0}
-{"text": "操作员要求：请把前面的内六角扳手收纳至托盘的第6个位置。", "intent": "transfer_inside", "template_id": 0}
-{"text": "现在停止并保持不动，谢谢", "intent": "stop", "template_id": 0}
-{"text": "请请把前面的滚柱搁到工具箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
-{"text": "now leave the left flashlight atop the tray", "intent": "transfer_on_top", "template_id": 1}
-{"text": "现在确认左侧的扳手在哪，完成后报告状态", "intent": "inspect", "template_id": 0}
-{"text": "operator request: bring me the front nut and report status", "intent": "pick_up", "template_id": 1}
-{"text": "现在麻烦拿一下左侧的螺母，谢谢", "intent": "pick_up", "template_id": 0}
-{"text": "现在前往内六角扳手所在处。", "intent": "move_near", "template_id": 0}
-{"text": "now stow the right flashlight in number 6 of the toolbox", "intent": "transfer_inside", "template_id": 1}
-{"text": "operator request: leave the roller atop the toolbox and report status", "intent": "transfer_on_top", "template_id": 1}
-{"text": "now survey the roller safely", "intent": "inspect", "template_id": 1}
-{"text": "麻烦请把最近的螺栓搁到料箱顶面，完成后报告状态", "intent": "transfer_on_top", "template_id": 0}
 {"text": "停止并保持不动", "intent": "stop", "template_id": 0}
-{"text": "麻烦拿一下最近的滚柱。", "intent": "pick_up", "template_id": 0}
-{"text": "请前往最近的螺丝刀所在处，谢谢", "intent": "move_near", "template_id": 0}
-{"text": "operator request: leave the left nut atop the parts bin and report status", "intent": "transfer_on_top", "template_id": 1}
-{"text": "please leave the right nut atop the parts bin and report status", "intent": "transfer_on_top", "template_id": 1}
-{"text": "stow the front bolt in number 6 of the parts bin and report status", "intent": "transfer_inside", "template_id": 1}
-{"text": "请把左侧的内六角扳手收纳至料箱的第2个位置", "intent": "transfer_inside", "template_id": 0}
-{"text": "停止并保持不动，完成后报告状态", "intent": "stop", "template_id": 0}
-{"text": "麻烦前往左侧的螺母所在处。", "intent": "move_near", "template_id": 0}
-{"text": "stow the bolt in number 4 of the parts bin", "intent": "transfer_inside", "template_id": 1}
-{"text": "please stow the nearest bolt in number 5 of the parts bin and report status", "intent": "transfer_inside", "template_id": 1}
-{"text": "operator request: survey the left nut safely", "intent": "inspect", "template_id": 1}
-{"text": "麻烦停止并保持不动，完成后报告状态", "intent": "stop", "template_id": 0}
-{"text": "leave the nearest roller atop the parts bin and report status", "intent": "transfer_on_top", "template_id": 1}
-{"text": "please leave the front flashlight atop the packing box safely", "intent": "transfer_on_top", "template_id": 1}
-{"text": "now emergency halt", "intent": "stop", "template_id": 1}
-{"text": "操作员要求：请把滚柱收纳至包装箱的第1个位置，谢谢", "intent": "transfer_inside", "template_id": 0}
-{"text": "操作员要求：麻烦拿一下前面的内六角扳手。", "intent": "pick_up", "template_id": 0}
-{"text": "操作员要求：停止并保持不动", "intent": "stop", "template_id": 0}
-{"text": "停止并保持不动。", "intent": "stop", "template_id": 0}
-{"text": "现在停止并保持不动，完成后报告状态", "intent": "stop", "template_id": 0}
-{"text": "麻烦拿一下扳手，完成后报告状态", "intent": "pick_up", "template_id": 0}
-{"text": "麻烦拿一下右侧的滚柱", "intent": "pick_up", "template_id": 0}
-{"text": "stow the right wrench in number 2 of the toolbox.", "intent": "transfer_inside", "template_id": 1}
-{"text": "前往左侧的螺母所在处，谢谢", "intent": "move_near", "template_id": 0}
-{"text": "now proceed toward the nearest bolt and report status", "intent": "move_near", "template_id": 1}
-{"text": "现在确认内六角扳手在哪", "intent": "inspect", "template_id": 0}
-{"text": "now proceed toward the right bolt and report status", "intent": "move_near", "template_id": 1}
-{"text": "now stow the nearest nut in number 3 of the tray and report status", "intent": "transfer_inside", "template_id": 1}
-{"text": "operator request: survey the nearest bolt and report status", "intent": "inspect", "template_id": 1}
-{"text": "请把螺丝刀收纳至工具箱的第3个位置", "intent": "transfer_inside", "template_id": 0}
-{"text": "now bring me the left wrench", "intent": "pick_up", "template_id": 1}
-{"text": "麻烦请把前面的内六角扳手搁到工具箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
-{"text": "now leave the nearest allen wrench atop the packing box.", "intent": "transfer_on_top", "template_id": 1}
-{"text": "operator request: proceed toward the right bolt safely", "intent": "move_near", "template_id": 1}
-{"text": "operator request: bring me the left flashlight.", "intent": "pick_up", "template_id": 1}
-{"text": "now leave the flashlight atop the parts bin safely", "intent": "transfer_on_top", "template_id": 1}
-{"text": "操作员要求：前往最近的内六角扳手所在处", "intent": "move_near", "template_id": 0}
-{"text": "please bring me the nearest bolt.", "intent": "pick_up", "template_id": 1}
-{"text": "operator request: leave the front allen wrench atop the toolbox safely", "intent": "transfer_on_top", "template_id": 1}
-{"text": "请请把最近的螺母收纳至包装箱的第2个位置。", "intent": "transfer_inside", "template_id": 0}
-{"text": "now leave the front bolt atop the packing box.", "intent": "transfer_on_top", "template_id": 1}
-{"text": "请确认螺丝刀在哪", "intent": "inspect", "template_id": 0}
-{"text": "operator request: stow the nut in number 2 of the parts bin", "intent": "transfer_inside", "template_id": 1}
-{"text": "请请把螺母收纳至包装箱的第4个位置，谢谢", "intent": "transfer_inside", "template_id": 0}
-{"text": "请停止并保持不动，谢谢", "intent": "stop", "template_id": 0}
-{"text": "please bring me the left screwdriver.", "intent": "pick_up", "template_id": 1}
-{"text": "now survey the left screwdriver safely", "intent": "inspect", "template_id": 1}
-{"text": "请把最近的滚柱搁到托盘顶面，完成后报告状态", "intent": "transfer_on_top", "template_id": 0}
-{"text": "操作员要求：请把扳手收纳至料箱的第3个位置", "intent": "transfer_inside", "template_id": 0}
-{"text": "前往前面的滚柱所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
-{"text": "operator request: emergency halt.", "intent": "stop", "template_id": 1}
-{"text": "请请把前面的内六角扳手搁到托盘顶面", "intent": "transfer_on_top", "template_id": 0}
-{"text": "survey the front wrench safely", "intent": "inspect", "template_id": 1}
-{"text": "survey the wrench safely", "intent": "inspect", "template_id": 1}
-{"text": "麻烦前往扳手所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
-{"text": "proceed toward the nearest wrench", "intent": "move_near", "template_id": 1}
-{"text": "proceed toward the bolt.", "intent": "move_near", "template_id": 1}
-{"text": "现在麻烦拿一下前面的内六角扳手", "intent": "pick_up", "template_id": 0}
-{"text": "proceed toward the allen wrench", "intent": "move_near", "template_id": 1}
-{"text": "please stow the roller in number 4 of the toolbox.", "intent": "transfer_inside", "template_id": 1}
-{"text": "请把左侧的螺母收纳至工具箱的第3个位置。", "intent": "transfer_inside", "template_id": 0}
-{"text": "operator request: leave the left roller atop the toolbox safely", "intent": "transfer_on_top", "template_id": 1}
-{"text": "麻烦停止并保持不动。", "intent": "stop", "template_id": 0}
-{"text": "now leave the nearest wrench atop the parts bin safely", "intent": "transfer_on_top", "template_id": 1}
-{"text": "请请把右侧的内六角扳手收纳至料箱的第6个位置，完成后报告状态", "intent": "transfer_inside", "template_id": 0}
-{"text": "operator request: survey the left flashlight.", "intent": "inspect", "template_id": 1}
-{"text": "bring me the nearest flashlight", "intent": "pick_up", "template_id": 1}
-{"text": "now stow the nearest bolt in number 2 of the parts bin.", "intent": "transfer_inside", "template_id": 1}
-{"text": "now proceed toward the nearest roller", "intent": "move_near", "template_id": 1}
-{"text": "now bring me the bolt", "intent": "pick_up", "template_id": 1}
-{"text": "now proceed toward the screwdriver and report status", "intent": "move_near", "template_id": 1}
-{"text": "麻烦麻烦拿一下右侧的内六角扳手", "intent": "pick_up", "template_id": 0}
-{"text": "now proceed toward the right allen wrench", "intent": "move_near", "template_id": 1}
-{"text": "麻烦请把最近的螺栓收纳至料箱的第6个位置，完成后报告状态", "intent": "transfer_inside", "template_id": 0}
-{"text": "now survey the nearest wrench and report status", "intent": "inspect", "template_id": 1}
-{"text": "操作员要求：确认右侧的螺母在哪", "intent": "inspect", "template_id": 0}
-{"text": "操作员要求：请把左侧的内六角扳手搁到托盘顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
-{"text": "please emergency halt", "intent": "stop", "template_id": 1}
-{"text": "now stow the front allen wrench in number 1 of the tray and report status", "intent": "transfer_inside", "template_id": 1}
-{"text": "操作员要求：请把右侧的内六角扳手搁到托盘顶面。", "intent": "transfer_on_top", "template_id": 0}
-{"text": "请确认扳手在哪", "intent": "inspect", "template_id": 0}
-{"text": "operator request: bring me the nut and report status", "intent": "pick_up", "template_id": 1}
-{"text": "operator request: leave the right roller atop the parts bin.", "intent": "transfer_on_top", "template_id": 1}
-{"text": "麻烦麻烦拿一下前面的手电筒，完成后报告状态", "intent": "pick_up", "template_id": 0}
-{"text": "操作员要求：前往右侧的内六角扳手所在处。", "intent": "move_near", "template_id": 0}
-{"text": "leave the front bolt atop the toolbox and report status", "intent": "transfer_on_top", "template_id": 1}
-{"text": "现在麻烦拿一下内六角扳手，谢谢", "intent": "pick_up", "template_id": 0}
-{"text": "麻烦请把右侧的螺丝刀收纳至料箱的第2个位置。", "intent": "transfer_inside", "template_id": 0}
-{"text": "操作员要求：确认扳手在哪，谢谢", "intent": "inspect", "template_id": 0}
-{"text": "请把左侧的手电筒收纳至料箱的第1个位置，完成后报告状态", "intent": "transfer_inside", "template_id": 0}
-{"text": "请前往扳手所在处。", "intent": "move_near", "template_id": 0}
-{"text": "operator request: survey the left flashlight safely", "intent": "inspect", "template_id": 1}
-{"text": "麻烦请把左侧的内六角扳手收纳至工具箱的第4个位置，谢谢", "intent": "transfer_inside", "template_id": 0}
-{"text": "麻烦确认螺母在哪。", "intent": "inspect", "template_id": 0}
-{"text": "please leave the left wrench atop the parts bin", "intent": "transfer_on_top", "template_id": 1}
-{"text": "确认前面的内六角扳手在哪。", "intent": "inspect", "template_id": 0}
-{"text": "please bring me the screwdriver", "intent": "pick_up", "template_id": 1}
-{"text": "操作员要求：请把前面的扳手搁到包装箱顶面。", "intent": "transfer_on_top", "template_id": 0}
-{"text": "now bring me the nut and report status", "intent": "pick_up", "template_id": 1}
-{"text": "请把螺栓收纳至工具箱的第1个位置。", "intent": "transfer_inside", "template_id": 0}
-{"text": "operator request: stow the left allen wrench in number 4 of the parts bin", "intent": "transfer_inside", "template_id": 1}
-{"text": "现在停止并保持不动", "intent": "stop", "template_id": 0}
-{"text": "现在确认前面的扳手在哪", "intent": "inspect", "template_id": 0}
-{"text": "now proceed toward the front flashlight.", "intent": "move_near", "template_id": 1}
-{"text": "操作员要求：停止并保持不动，谢谢", "intent": "stop", "template_id": 0}
-{"text": "麻烦前往右侧的滚柱所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
-{"text": "now leave the nearest allen wrench atop the parts bin safely", "intent": "transfer_on_top", "template_id": 1}
-{"text": "now emergency halt safely", "intent": "stop", "template_id": 1}
-{"text": "请麻烦拿一下右侧的滚柱", "intent": "pick_up", "template_id": 0}
-{"text": "survey the nearest allen wrench safely", "intent": "inspect", "template_id": 1}
-{"text": "operator request: proceed toward the nut and report status", "intent": "move_near", "template_id": 1}
-{"text": "proceed toward the nut safely", "intent": "move_near", "template_id": 1}
-{"text": "请把前面的螺丝刀搁到工具箱顶面。", "intent": "transfer_on_top", "template_id": 0}
-{"text": "操作员要求：确认最近的螺母在哪。", "intent": "inspect", "template_id": 0}
-{"text": "麻烦麻烦拿一下前面的螺母，完成后报告状态", "intent": "pick_up", "template_id": 0}
-{"text": "now bring me the front screwdriver.", "intent": "pick_up", "template_id": 1}
-{"text": "麻烦请把前面的内六角扳手搁到包装箱顶面", "intent": "transfer_on_top", "template_id": 0}
-{"text": "proceed toward the front wrench", "intent": "move_near", "template_id": 1}
-{"text": "请麻烦拿一下最近的扳手。", "intent": "pick_up", "template_id": 0}
-{"text": "现在麻烦拿一下右侧的螺母", "intent": "pick_up", "template_id": 0}
-{"text": "操作员要求：麻烦拿一下内六角扳手，完成后报告状态", "intent": "pick_up", "template_id": 0}
-{"text": "operator request: proceed toward the right wrench and report status", "intent": "move_near", "template_id": 1}
-{"text": "please proceed toward the right roller", "intent": "move_near", "template_id": 1}
-{"text": "now survey the roller", "intent": "inspect", "template_id": 1}
-{"text": "stow the wrench in number 5 of the toolbox safely", "intent": "transfer_inside", "template_id": 1}
-{"text": "survey the allen wrench safely", "intent": "inspect", "template_id": 1}
-{"text": "please proceed toward the nearest roller.", "intent": "move_near", "template_id": 1}
-{"text": "前往左侧的扳手所在处。", "intent": "move_near", "template_id": 0}
-{"text": "请麻烦拿一下螺栓", "intent": "pick_up", "template_id": 0}
-{"text": "现在麻烦拿一下左侧的螺丝刀，谢谢", "intent": "pick_up", "template_id": 0}
-{"text": "operator request: stow the nearest bolt in number 6 of the parts bin safely", "intent": "transfer_inside", "template_id": 1}
-{"text": "now leave the front nut atop the parts bin", "intent": "transfer_on_top", "template_id": 1}
-{"text": "现在确认右侧的扳手在哪。", "intent": "inspect", "template_id": 0}
-{"text": "现在前往最近的手电筒所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
-{"text": "现在请把前面的螺栓搁到工具箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
-{"text": "proceed toward the bolt and report status", "intent": "move_near", "template_id": 1}
-{"text": "操作员要求：确认最近的螺母在哪，谢谢", "intent": "inspect", "template_id": 0}
-{"text": "确认螺栓在哪，谢谢", "intent": "inspect", "template_id": 0}
-{"text": "现在前往左侧的扳手所在处", "intent": "move_near", "template_id": 0}
-{"text": "前往右侧的手电筒所在处", "intent": "move_near", "template_id": 0}
-{"text": "please bring me the front roller", "intent": "pick_up", "template_id": 1}
-{"text": "emergency halt safely", "intent": "stop", "template_id": 1}
-{"text": "stow the nearest wrench in number 3 of the toolbox.", "intent": "transfer_inside", "template_id": 1}
-{"text": "操作员要求：前往螺母所在处。", "intent": "move_near", "template_id": 0}
-{"text": "麻烦请把右侧的手电筒搁到包装箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
-{"text": "operator request: proceed toward the right wrench", "intent": "move_near", "template_id": 1}
-{"text": "please survey the right nut.", "intent": "inspect", "template_id": 1}
-{"text": "proceed toward the front flashlight safely", "intent": "move_near", "template_id": 1}
-{"text": "麻烦请把左侧的滚柱搁到工具箱顶面，完成后报告状态", "intent": "transfer_on_top", "template_id": 0}
-{"text": "麻烦前往前面的螺母所在处", "intent": "move_near", "template_id": 0}
-{"text": "操作员要求：请把最近的扳手搁到托盘顶面", "intent": "transfer_on_top", "template_id": 0}
-{"text": "麻烦请把左侧的内六角扳手搁到包装箱顶面", "intent": "transfer_on_top", "template_id": 0}
-{"text": "please bring me the nearest nut safely", "intent": "pick_up", "template_id": 1}
-{"text": "operator request: stow the nearest wrench in number 4 of the packing box", "intent": "transfer_inside", "template_id": 1}
-{"text": "bring me the left screwdriver.", "intent": "pick_up", "template_id": 1}
-{"text": "please stow the nearest wrench in number 1 of the toolbox and report status", "intent": "transfer_inside", "template_id": 1}
-{"text": "确认螺栓在哪，完成后报告状态", "intent": "inspect", "template_id": 0}
-{"text": "now stow the front bolt in number 6 of the parts bin", "intent": "transfer_inside", "template_id": 1}
-{"text": "stow the nut in number 3 of the toolbox.", "intent": "transfer_inside", "template_id": 1}
-{"text": "please survey the front bolt", "intent": "inspect", "template_id": 1}
-{"text": "now proceed toward the right flashlight", "intent": "move_near", "template_id": 1}
-{"text": "now proceed toward the left screwdriver.", "intent": "move_near", "template_id": 1}
-{"text": "now bring me the front bolt", "intent": "pick_up", "template_id": 1}
-{"text": "survey the left bolt and report status", "intent": "inspect", "template_id": 1}
-{"text": "operator request: bring me the nearest flashlight", "intent": "pick_up", "template_id": 1}
-{"text": "please survey the left wrench", "intent": "inspect", "template_id": 1}
-{"text": "please survey the left flashlight and report status", "intent": "inspect", "template_id": 1}
-{"text": "please survey the right allen wrench and report status", "intent": "inspect", "template_id": 1}
-{"text": "operator request: bring me the bolt and report status", "intent": "pick_up", "template_id": 1}
-{"text": "bring me the nut", "intent": "pick_up", "template_id": 1}
-{"text": "please emergency halt.", "intent": "stop", "template_id": 1}
-{"text": "operator request: survey the allen wrench and report status", "intent": "inspect", "template_id": 1}
-{"text": "操作员要求：请把最近的扳手搁到包装箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
-{"text": "survey the nut", "intent": "inspect", "template_id": 1}
-{"text": "please bring me the right bolt and report status", "intent": "pick_up", "template_id": 1}
-{"text": "leave the right nut atop the toolbox", "intent": "transfer_on_top", "template_id": 1}
-{"text": "现在确认最近的手电筒在哪，谢谢", "intent": "inspect", "template_id": 0}
-{"text": "麻烦请把前面的螺栓搁到工具箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
-{"text": "please proceed toward the nearest screwdriver.", "intent": "move_near", "template_id": 1}
-{"text": "前往最近的螺丝刀所在处，谢谢", "intent": "move_near", "template_id": 0}
-{"text": "leave the nearest allen wrench atop the toolbox", "intent": "transfer_on_top", "template_id": 1}
-{"text": "please stow the front flashlight in number 6 of the toolbox", "intent": "transfer_inside", "template_id": 1}
-{"text": "前往螺母所在处，谢谢", "intent": "move_near", "template_id": 0}
-{"text": "proceed toward the nearest nut.", "intent": "move_near", "template_id": 1}
-{"text": "now emergency halt and report status", "intent": "stop", "template_id": 1}
-{"text": "please stow the left bolt in number 3 of the packing box safely", "intent": "transfer_inside", "template_id": 1}
-{"text": "请把最近的螺栓收纳至料箱的第6个位置。", "intent": "transfer_inside", "template_id": 0}
-{"text": "survey the screwdriver.", "intent": "inspect", "template_id": 1}
-{"text": "前往左侧的螺丝刀所在处", "intent": "move_near", "template_id": 0}
-{"text": "麻烦停止并保持不动，谢谢", "intent": "stop", "template_id": 0}
-{"text": "now stow the bolt in number 6 of the toolbox", "intent": "transfer_inside", "template_id": 1}
-{"text": "现在确认内六角扳手在哪，谢谢", "intent": "inspect", "template_id": 0}
-{"text": "操作员要求：请把前面的扳手搁到料箱顶面，完成后报告状态", "intent": "transfer_on_top", "template_id": 0}
-{"text": "现在请把最近的滚柱搁到托盘顶面，完成后报告状态", "intent": "transfer_on_top", "template_id": 0}
-{"text": "麻烦确认手电筒在哪，谢谢", "intent": "inspect", "template_id": 0}
-{"text": "现在确认左侧的内六角扳手在哪，谢谢", "intent": "inspect", "template_id": 0}
-{"text": "leave the flashlight atop the tray safely", "intent": "transfer_on_top", "template_id": 1}
-{"text": "operator request: leave the allen wrench atop the packing box and report status", "intent": "transfer_on_top", "template_id": 1}
-{"text": "leave the right nut atop the toolbox and report status", "intent": "transfer_on_top", "template_id": 1}
-{"text": "leave the nut atop the tray and report status", "intent": "transfer_on_top", "template_id": 1}
-{"text": "操作员要求：麻烦拿一下左侧的内六角扳手", "intent": "pick_up", "template_id": 0}
-{"text": "stow the front bolt in number 2 of the toolbox", "intent": "transfer_inside", "template_id": 1}
-{"text": "前往最近的手电筒所在处", "intent": "move_near", "template_id": 0}
-{"text": "please bring me the front allen wrench safely", "intent": "pick_up", "template_id": 1}
-{"text": "现在请把前面的扳手收纳至托盘的第5个位置，谢谢", "intent": "transfer_inside", "template_id": 0}
-{"text": "确认内六角扳手在哪。", "intent": "inspect", "template_id": 0}
-{"text": "please stow the allen wrench in number 3 of the toolbox safely", "intent": "transfer_inside", "template_id": 1}
-{"text": "now leave the flashlight atop the tray and report status", "intent": "transfer_on_top", "template_id": 1}
-{"text": "please proceed toward the nearest roller safely", "intent": "move_near", "template_id": 1}
-{"text": "麻烦拿一下螺丝刀，谢谢", "intent": "pick_up", "template_id": 0}
-{"text": "operator request: stow the left nut in number 5 of the tray and report status", "intent": "transfer_inside", "template_id": 1}
-{"text": "请停止并保持不动", "intent": "stop", "template_id": 0}
-{"text": "请请把前面的滚柱收纳至包装箱的第2个位置", "intent": "transfer_inside", "template_id": 0}
-{"text": "现在麻烦拿一下手电筒，完成后报告状态", "intent": "pick_up", "template_id": 0}
-{"text": "please emergency halt and report status", "intent": "stop", "template_id": 1}
-{"text": "现在请把前面的扳手收纳至托盘的第5个位置", "intent": "transfer_inside", "template_id": 0}
-{"text": "now survey the nut", "intent": "inspect", "template_id": 1}
-{"text": "now proceed toward the front roller", "intent": "move_near", "template_id": 1}
-{"text": "请停止并保持不动，完成后报告状态", "intent": "stop", "template_id": 0}
-{"text": "前往前面的螺母所在处", "intent": "move_near", "template_id": 0}
-{"text": "operator request: bring me the roller.", "intent": "pick_up", "template_id": 1}
-{"text": "现在确认右侧的扳手在哪，完成后报告状态", "intent": "inspect", "template_id": 0}
-{"text": "bring me the nearest allen wrench safely", "intent": "pick_up", "template_id": 1}
-{"text": "麻烦请把左侧的手电筒收纳至托盘的第3个位置", "intent": "transfer_inside", "template_id": 0}
-{"text": "请确认左侧的扳手在哪，完成后报告状态", "intent": "inspect", "template_id": 0}
-{"text": "操作员要求：麻烦拿一下内六角扳手，谢谢", "intent": "pick_up", "template_id": 0}
-{"text": "now stow the roller in number 6 of the tray and report status", "intent": "transfer_inside", "template_id": 1}
-{"text": "operator request: emergency halt", "intent": "stop", "template_id": 1}
-{"text": "请停止并保持不动。", "intent": "stop", "template_id": 0}
-{"text": "操作员要求：麻烦拿一下扳手，完成后报告状态", "intent": "pick_up", "template_id": 0}
-{"text": "停止并保持不动，谢谢", "intent": "stop", "template_id": 0}
-{"text": "麻烦前往最近的内六角扳手所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
-{"text": "survey the left flashlight safely", "intent": "inspect", "template_id": 1}
-{"text": "operator request: bring me the screwdriver", "intent": "pick_up", "template_id": 1}
-{"text": "now emergency halt.", "intent": "stop", "template_id": 1}
-{"text": "现在确认右侧的内六角扳手在哪，完成后报告状态", "intent": "inspect", "template_id": 0}
-{"text": "操作员要求：请把最近的内六角扳手搁到料箱顶面", "intent": "transfer_on_top", "template_id": 0}
-{"text": "现在前往螺丝刀所在处。", "intent": "move_near", "template_id": 0}
-{"text": "麻烦请把右侧的扳手搁到料箱顶面", "intent": "transfer_on_top", "template_id": 0}
-{"text": "请把右侧的螺母收纳至托盘的第4个位置，完成后报告状态", "intent": "transfer_inside", "template_id": 0}
-{"text": "麻烦停止并保持不动", "intent": "stop", "template_id": 0}
-{"text": "请把螺母收纳至料箱的第4个位置", "intent": "transfer_inside", "template_id": 0}
-{"text": "now leave the nut atop the tray safely", "intent": "transfer_on_top", "template_id": 1}
-{"text": "emergency halt.", "intent": "stop", "template_id": 1}
-{"text": "现在请把前面的手电筒收纳至料箱的第3个位置", "intent": "transfer_inside", "template_id": 0}
-{"text": "now survey the nearest roller.", "intent": "inspect", "template_id": 1}
-{"text": "操作员要求：请把前面的螺丝刀收纳至托盘的第2个位置，完成后报告状态", "intent": "transfer_inside", "template_id": 0}
-{"text": "bring me the front bolt and report status", "intent": "pick_up", "template_id": 1}
-{"text": "please leave the flashlight atop the toolbox and report status", "intent": "transfer_on_top", "template_id": 1}
-{"text": "现在确认螺栓在哪。", "intent": "inspect", "template_id": 0}
-{"text": "操作员要求：麻烦拿一下右侧的螺栓，谢谢", "intent": "pick_up", "template_id": 0}
-{"text": "请前往左侧的螺母所在处。", "intent": "move_near", "template_id": 0}
-{"text": "operator request: proceed toward the right flashlight and report status", "intent": "move_near", "template_id": 1}
-{"text": "survey the wrench and report status", "intent": "inspect", "template_id": 1}
-{"text": "现在麻烦拿一下前面的扳手，谢谢", "intent": "pick_up", "template_id": 0}
-{"text": "operator request: emergency halt safely", "intent": "stop", "template_id": 1}
-{"text": "麻烦请把螺栓搁到托盘顶面。", "intent": "transfer_on_top", "template_id": 0}
-{"text": "操作员要求：确认最近的内六角扳手在哪，谢谢", "intent": "inspect", "template_id": 0}
-{"text": "现在麻烦拿一下左侧的手电筒。", "intent": "pick_up", "template_id": 0}
-{"text": "leave the nearest screwdriver atop the parts bin", "intent": "transfer_on_top", "template_id": 1}
-{"text": "leave the left wrench atop the toolbox", "intent": "transfer_on_top", "template_id": 1}
-{"text": "操作员要求：麻烦拿一下最近的螺丝刀，完成后报告状态", "intent": "pick_up", "template_id": 0}
-{"text": "please proceed toward the front roller", "intent": "move_near", "template_id": 1}
-{"text": "bring me the front wrench and report status", "intent": "pick_up", "template_id": 1}
-{"text": "请把左侧的滚柱收纳至工具箱的第4个位置", "intent": "transfer_inside", "template_id": 0}
-{"text": "麻烦前往左侧的螺栓所在处", "intent": "move_near", "template_id": 0}
-{"text": "operator request: emergency halt and report status", "intent": "stop", "template_id": 1}
-{"text": "operator request: stow the roller in number 1 of the toolbox", "intent": "transfer_inside", "template_id": 1}
-{"text": "麻烦确认前面的滚柱在哪，完成后报告状态", "intent": "inspect", "template_id": 0}
+{"text": "操作员要求：请把最近的螺母收纳至工具箱的第3个位置", "intent": "transfer_inside", "template_id": 0}
+{"text": "leave the nearest allen wrench atop the parts bin", "intent": "transfer_on_top", "template_id": 1}
+{"text": "麻烦拿一下最近的扳手，谢谢", "intent": "pick_up", "template_id": 0}
+{"text": "麻烦发现前面的内六角扳手没有放好，请纠正到料箱第6格，谢谢", "intent": "recover_placement", "template_id": 0}
+{"text": "麻烦前往左侧的手电筒所在处", "intent": "move_near", "template_id": 0}
+{"text": "操作员要求：确认前面的螺栓在哪", "intent": "inspect", "template_id": 0}
+{"text": "now survey the left allen wrench safely", "intent": "inspect", "template_id": 1}
+{"text": "现在请把钳子收纳至托盘的第6个位置，完成后报告状态", "intent": "transfer_inside", "template_id": 0}
 {"text": "now stow the front screwdriver in number 5 of the tray.", "intent": "transfer_inside", "template_id": 1}
-{"text": "现在请把左侧的内六角扳手收纳至托盘的第4个位置，谢谢", "intent": "transfer_inside", "template_id": 0}
-{"text": "麻烦拿一下前面的手电筒", "intent": "pick_up", "template_id": 0}
-{"text": "请确认前面的扳手在哪", "intent": "inspect", "template_id": 0}
-{"text": "麻烦前往内六角扳手所在处。", "intent": "move_near", "template_id": 0}
-{"text": "bring me the left bolt and report status", "intent": "pick_up", "template_id": 1}
+{"text": "麻烦麻烦拿一下最近的螺母", "intent": "pick_up", "template_id": 0}
+{"text": "operator request: correct the failed placement of the nearest power drill into number 2 of the toolbox", "intent": "recover_placement", "template_id": 1}
+{"text": "现在确认前面的手电筒在哪，谢谢", "intent": "inspect", "template_id": 0}
+{"text": "now proceed toward the left flashlight", "intent": "move_near", "template_id": 1}
+{"text": "操作员要求：确认内六角扳手在哪。", "intent": "inspect", "template_id": 0}
+{"text": "请请把最近的螺丝刀搁到托盘顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
+{"text": "now survey the nut safely", "intent": "inspect", "template_id": 1}
+{"text": "现在请把最近的手电筒搁到托盘顶面，完成后报告状态", "intent": "transfer_on_top", "template_id": 0}
+{"text": "请前往最近的内六角扳手所在处，谢谢", "intent": "move_near", "template_id": 0}
+{"text": "proceed toward the wrench safely", "intent": "move_near", "template_id": 1}
 {"text": "操作员要求：停止并保持不动。", "intent": "stop", "template_id": 0}
-{"text": "请前往左侧的手电筒所在处。", "intent": "move_near", "template_id": 0}
-{"text": "now stow the nut in number 1 of the parts bin.", "intent": "transfer_inside", "template_id": 1}
-{"text": "请把最近的螺栓收纳至料箱的第3个位置。", "intent": "transfer_inside", "template_id": 0}
-{"text": "now stow the right wrench in number 5 of the parts bin safely", "intent": "transfer_inside", "template_id": 1}
-{"text": "现在确认右侧的手电筒在哪", "intent": "inspect", "template_id": 0}
-{"text": "请请把最近的螺母搁到料箱顶面。", "intent": "transfer_on_top", "template_id": 0}
-{"text": "现在停止并保持不动。", "intent": "stop", "template_id": 0}
-{"text": "请请把左侧的扳手收纳至工具箱的第2个位置，完成后报告状态", "intent": "transfer_inside", "template_id": 0}
-{"text": "请前往最近的扳手所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
-{"text": "麻烦请把最近的内六角扳手搁到料箱顶面", "intent": "transfer_on_top", "template_id": 0}
-{"text": "now bring me the left allen wrench", "intent": "pick_up", "template_id": 1}
-{"text": "操作员要求：请把前面的手电筒搁到工具箱顶面", "intent": "transfer_on_top", "template_id": 0}
-{"text": "操作员要求：请把前面的手电筒搁到包装箱顶面，完成后报告状态", "intent": "transfer_on_top", "template_id": 0}
+{"text": "operator request: survey the power drill", "intent": "inspect", "template_id": 1}
+{"text": "请前往右侧的螺丝刀所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "麻烦确认左侧的电钻在哪，完成后报告状态", "intent": "inspect", "template_id": 0}
+{"text": "现在请把左侧的螺母搁到工具箱顶面", "intent": "transfer_on_top", "template_id": 0}
+{"text": "operator request: correct the failed placement of the right pliers into number 6 of the packing box safely", "intent": "recover_placement", "template_id": 1}
+{"text": "现在麻烦拿一下滚柱，谢谢", "intent": "pick_up", "template_id": 0}
+{"text": "survey the nearest wrench safely", "intent": "inspect", "template_id": 1}
+{"text": "leave the nearest flashlight atop the parts bin and report status", "intent": "transfer_on_top", "template_id": 1}
+{"text": "确认螺母在哪，完成后报告状态", "intent": "inspect", "template_id": 0}
+{"text": "operator request: leave the nearest pliers atop the parts bin safely", "intent": "transfer_on_top", "template_id": 1}
+{"text": "operator request: survey the nearest bolt and report status", "intent": "inspect", "template_id": 1}
+{"text": "operator request: bring me the front flashlight safely", "intent": "pick_up", "template_id": 1}
+{"text": "operator request: correct the failed placement of the wrench into number 5 of the tray", "intent": "recover_placement", "template_id": 1}
+{"text": "麻烦发现前面的电钻没有放好，请纠正到工具箱第5格", "intent": "recover_placement", "template_id": 0}
+{"text": "麻烦拿一下最近的滚柱，完成后报告状态", "intent": "pick_up", "template_id": 0}
+{"text": "请发现前面的螺丝刀没有放好，请纠正到工具箱第2格，完成后报告状态", "intent": "recover_placement", "template_id": 0}
+{"text": "please stow the left power drill in number 3 of the packing box safely", "intent": "transfer_inside", "template_id": 1}
+{"text": "now leave the nearest nut atop the parts bin safely", "intent": "transfer_on_top", "template_id": 1}
+{"text": "operator request: leave the left pliers atop the packing box.", "intent": "transfer_on_top", "template_id": 1}
+{"text": "现在请把左侧的内六角扳手收纳至包装箱的第4个位置。", "intent": "transfer_inside", "template_id": 0}
+{"text": "麻烦发现前面的手电筒没有放好，请纠正到包装箱第5格，谢谢", "intent": "recover_placement", "template_id": 0}
+{"text": "now leave the wrench atop the tray safely", "intent": "transfer_on_top", "template_id": 1}
+{"text": "发现最近的手电筒没有放好，请纠正到工具箱第5格。", "intent": "recover_placement", "template_id": 0}
+{"text": "现在发现右侧的螺丝刀没有放好，请纠正到工具箱第4格，谢谢", "intent": "recover_placement", "template_id": 0}
+{"text": "now correct the failed placement of the right nut into number 2 of the packing box", "intent": "recover_placement", "template_id": 1}
+{"text": "emergency halt.", "intent": "stop", "template_id": 1}
+{"text": "please proceed toward the nearest allen wrench", "intent": "move_near", "template_id": 1}
+{"text": "现在前往最近的内六角扳手所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "请把最近的扳手收纳至料箱的第1个位置", "intent": "transfer_inside", "template_id": 0}
+{"text": "operator request: emergency halt.", "intent": "stop", "template_id": 1}
+{"text": "现在发现右侧的电钻没有放好，请纠正到工具箱第1格", "intent": "recover_placement", "template_id": 0}
+{"text": "麻烦请把左侧的钳子搁到工具箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
+{"text": "麻烦请把前面的滚柱搁到工具箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
+{"text": "correct the failed placement of the front wrench into number 5 of the tray safely", "intent": "recover_placement", "template_id": 1}
+{"text": "请发现最近的滚柱没有放好，请纠正到托盘第5格，完成后报告状态", "intent": "recover_placement", "template_id": 0}
+{"text": "please stow the left wrench in number 5 of the parts bin and report status", "intent": "transfer_inside", "template_id": 1}
+{"text": "麻烦拿一下左侧的螺母", "intent": "pick_up", "template_id": 0}
+{"text": "please bring me the left wrench.", "intent": "pick_up", "template_id": 1}
+{"text": "bring me the front allen wrench", "intent": "pick_up", "template_id": 1}
+{"text": "proceed toward the left pliers safely", "intent": "move_near", "template_id": 1}
+{"text": "please bring me the left screwdriver.", "intent": "pick_up", "template_id": 1}
+{"text": "stow the nearest wrench in number 2 of the parts bin.", "intent": "transfer_inside", "template_id": 1}
+{"text": "现在确认左侧的扳手在哪。", "intent": "inspect", "template_id": 0}
+{"text": "operator request: stow the front power drill in number 4 of the toolbox and report status", "intent": "transfer_inside", "template_id": 1}
+{"text": "operator request: proceed toward the nearest flashlight and report status", "intent": "move_near", "template_id": 1}
+{"text": "请把左侧的扳手收纳至料箱的第2个位置", "intent": "transfer_inside", "template_id": 0}
+{"text": "now emergency halt", "intent": "stop", "template_id": 1}
+{"text": "bring me the left screwdriver and report status", "intent": "pick_up", "template_id": 1}
+{"text": "now leave the right power drill atop the toolbox safely", "intent": "transfer_on_top", "template_id": 1}
+{"text": "请停止并保持不动。", "intent": "stop", "template_id": 0}
+{"text": "emergency halt", "intent": "stop", "template_id": 1}
+{"text": "请确认右侧的螺栓在哪，谢谢", "intent": "inspect", "template_id": 0}
+{"text": "operator request: bring me the nearest nut.", "intent": "pick_up", "template_id": 1}
+{"text": "麻烦拿一下钳子。", "intent": "pick_up", "template_id": 0}
+{"text": "now survey the left pliers safely", "intent": "inspect", "template_id": 1}
+{"text": "proceed toward the right bolt", "intent": "move_near", "template_id": 1}
+{"text": "survey the right power drill and report status", "intent": "inspect", "template_id": 1}
+{"text": "现在请把电钻收纳至工具箱的第2个位置。", "intent": "transfer_inside", "template_id": 0}
+{"text": "确认螺栓在哪。", "intent": "inspect", "template_id": 0}
+{"text": "operator request: proceed toward the nearest roller safely", "intent": "move_near", "template_id": 1}
+{"text": "请确认右侧的内六角扳手在哪", "intent": "inspect", "template_id": 0}
+{"text": "操作员要求：麻烦拿一下扳手，谢谢", "intent": "pick_up", "template_id": 0}
+{"text": "proceed toward the left roller and report status", "intent": "move_near", "template_id": 1}
+{"text": "请把最近的钳子收纳至工具箱的第6个位置，完成后报告状态", "intent": "transfer_inside", "template_id": 0}
+{"text": "前往滚柱所在处", "intent": "move_near", "template_id": 0}
+{"text": "请把最近的手电筒收纳至料箱的第2个位置，谢谢", "intent": "transfer_inside", "template_id": 0}
+{"text": "操作员要求：确认前面的钳子在哪，完成后报告状态", "intent": "inspect", "template_id": 0}
 {"text": "麻烦麻烦拿一下右侧的螺丝刀，谢谢", "intent": "pick_up", "template_id": 0}
+{"text": "please proceed toward the front roller and report status", "intent": "move_near", "template_id": 1}
+{"text": "now correct the failed placement of the nut into number 4 of the packing box and report status", "intent": "recover_placement", "template_id": 1}
+{"text": "麻烦发现右侧的钳子没有放好，请纠正到料箱第1格，完成后报告状态", "intent": "recover_placement", "template_id": 0}
+{"text": "请发现前面的钳子没有放好，请纠正到料箱第1格，谢谢", "intent": "recover_placement", "template_id": 0}
+{"text": "麻烦前往右侧的电钻所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "bring me the nearest bolt and report status", "intent": "pick_up", "template_id": 1}
+{"text": "now correct the failed placement of the front nut into number 1 of the parts bin.", "intent": "recover_placement", "template_id": 1}
+{"text": "bring me the front allen wrench and report status", "intent": "pick_up", "template_id": 1}
+{"text": "now proceed toward the wrench and report status", "intent": "move_near", "template_id": 1}
+{"text": "now leave the nearest flashlight atop the toolbox safely", "intent": "transfer_on_top", "template_id": 1}
+{"text": "现在请把右侧的螺母搁到包装箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
+{"text": "leave the nearest wrench atop the toolbox", "intent": "transfer_on_top", "template_id": 1}
+{"text": "麻烦请把右侧的内六角扳手收纳至工具箱的第6个位置，完成后报告状态", "intent": "transfer_inside", "template_id": 0}
+{"text": "操作员要求：发现前面的滚柱没有放好，请纠正到包装箱第4格，完成后报告状态", "intent": "recover_placement", "template_id": 0}
+{"text": "操作员要求：请把右侧的螺栓搁到托盘顶面", "intent": "transfer_on_top", "template_id": 0}
+{"text": "operator request: proceed toward the power drill safely", "intent": "move_near", "template_id": 1}
+{"text": "操作员要求：麻烦拿一下最近的滚柱，谢谢", "intent": "pick_up", "template_id": 0}
+{"text": "correct the failed placement of the right power drill into number 4 of the tray.", "intent": "recover_placement", "template_id": 1}
+{"text": "操作员要求：确认右侧的电钻在哪", "intent": "inspect", "template_id": 0}
+{"text": "请麻烦拿一下钳子，完成后报告状态", "intent": "pick_up", "template_id": 0}
+{"text": "请请把前面的钳子搁到工具箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
+{"text": "proceed toward the left screwdriver and report status", "intent": "move_near", "template_id": 1}
+{"text": "现在发现前面的内六角扳手没有放好，请纠正到托盘第1格，完成后报告状态", "intent": "recover_placement", "template_id": 0}
+{"text": "操作员要求：前往左侧的扳手所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "请请把最近的螺栓收纳至工具箱的第1个位置，完成后报告状态", "intent": "transfer_inside", "template_id": 0}
+{"text": "麻烦请把左侧的滚柱搁到包装箱顶面", "intent": "transfer_on_top", "template_id": 0}
+{"text": "现在请把前面的电钻收纳至料箱的第6个位置", "intent": "transfer_inside", "template_id": 0}
+{"text": "操作员要求：停止并保持不动，完成后报告状态", "intent": "stop", "template_id": 0}
+{"text": "please proceed toward the wrench.", "intent": "move_near", "template_id": 1}
+{"text": "please survey the nearest wrench safely", "intent": "inspect", "template_id": 1}
+{"text": "please leave the wrench atop the tray safely", "intent": "transfer_on_top", "template_id": 1}
+{"text": "操作员要求：请把最近的螺栓搁到包装箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
+{"text": "now survey the front roller safely", "intent": "inspect", "template_id": 1}
+{"text": "bring me the left wrench safely", "intent": "pick_up", "template_id": 1}
+{"text": "确认前面的电钻在哪", "intent": "inspect", "template_id": 0}
+{"text": "operator request: leave the nearest screwdriver atop the packing box safely", "intent": "transfer_on_top", "template_id": 1}
+{"text": "现在发现扳手没有放好，请纠正到工具箱第4格，谢谢", "intent": "recover_placement", "template_id": 0}
+{"text": "麻烦请把滚柱搁到托盘顶面。", "intent": "transfer_on_top", "template_id": 0}
+{"text": "stow the right nut in number 2 of the toolbox.", "intent": "transfer_inside", "template_id": 1}
+{"text": "操作员要求：停止并保持不动", "intent": "stop", "template_id": 0}
+{"text": "确认前面的螺栓在哪，完成后报告状态", "intent": "inspect", "template_id": 0}
+{"text": "now leave the left nut atop the toolbox and report status", "intent": "transfer_on_top", "template_id": 1}
+{"text": "请把前面的扳手收纳至料箱的第6个位置。", "intent": "transfer_inside", "template_id": 0}
+{"text": "现在请把左侧的扳手收纳至托盘的第4个位置，谢谢", "intent": "transfer_inside", "template_id": 0}
+{"text": "please correct the failed placement of the roller into number 6 of the toolbox and report status", "intent": "recover_placement", "template_id": 1}
+{"text": "麻烦请把手电筒收纳至工具箱的第1个位置", "intent": "transfer_inside", "template_id": 0}
+{"text": "麻烦拿一下前面的螺母，完成后报告状态", "intent": "pick_up", "template_id": 0}
+{"text": "麻烦发现前面的电钻没有放好，请纠正到工具箱第3格", "intent": "recover_placement", "template_id": 0}
+{"text": "operator request: bring me the roller and report status", "intent": "pick_up", "template_id": 1}
+{"text": "stow the right nut in number 4 of the packing box and report status", "intent": "transfer_inside", "template_id": 1}
+{"text": "现在停止并保持不动", "intent": "stop", "template_id": 0}
+{"text": "请停止并保持不动", "intent": "stop", "template_id": 0}
+{"text": "麻烦请把前面的电钻搁到工具箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
+{"text": "现在请把左侧的螺丝刀收纳至托盘的第1个位置。", "intent": "transfer_inside", "template_id": 0}
+{"text": "现在发现前面的钳子没有放好，请纠正到工具箱第4格，谢谢", "intent": "recover_placement", "template_id": 0}
+{"text": "现在请把前面的滚柱搁到工具箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
+{"text": "proceed toward the front pliers.", "intent": "move_near", "template_id": 1}
+{"text": "操作员要求：麻烦拿一下最近的钳子", "intent": "pick_up", "template_id": 0}
+{"text": "please correct the failed placement of the right bolt into number 5 of the parts bin.", "intent": "recover_placement", "template_id": 1}
+{"text": "操作员要求：前往前面的滚柱所在处", "intent": "move_near", "template_id": 0}
+{"text": "please leave the right allen wrench atop the packing box safely", "intent": "transfer_on_top", "template_id": 1}
+{"text": "please correct the failed placement of the nut into number 4 of the tray", "intent": "recover_placement", "template_id": 1}
+{"text": "operator request: emergency halt", "intent": "stop", "template_id": 1}
+{"text": "bring me the right flashlight.", "intent": "pick_up", "template_id": 1}
+{"text": "survey the screwdriver safely", "intent": "inspect", "template_id": 1}
+{"text": "survey the left screwdriver", "intent": "inspect", "template_id": 1}
+{"text": "operator request: bring me the right wrench and report status", "intent": "pick_up", "template_id": 1}
+{"text": "proceed toward the left bolt", "intent": "move_near", "template_id": 1}
+{"text": "stow the bolt in number 5 of the toolbox safely", "intent": "transfer_inside", "template_id": 1}
+{"text": "麻烦停止并保持不动。", "intent": "stop", "template_id": 0}
+{"text": "发现电钻没有放好，请纠正到工具箱第4格。", "intent": "recover_placement", "template_id": 0}
+{"text": "please leave the front flashlight atop the tray.", "intent": "transfer_on_top", "template_id": 1}
+{"text": "操作员要求：发现左侧的螺丝刀没有放好，请纠正到托盘第2格，谢谢", "intent": "recover_placement", "template_id": 0}
+{"text": "操作员要求：停止并保持不动，谢谢", "intent": "stop", "template_id": 0}
 {"text": "please emergency halt safely", "intent": "stop", "template_id": 1}
-{"text": "现在请把右侧的扳手收纳至包装箱的第4个位置，完成后报告状态", "intent": "transfer_inside", "template_id": 0}
-{"text": "now bring me the front wrench.", "intent": "pick_up", "template_id": 1}
-{"text": "操作员要求：麻烦拿一下最近的内六角扳手，完成后报告状态", "intent": "pick_up", "template_id": 0}
-{"text": "please stow the front screwdriver in number 2 of the toolbox", "intent": "transfer_inside", "template_id": 1}
-{"text": "操作员要求：请把前面的手电筒搁到托盘顶面，完成后报告状态", "intent": "transfer_on_top", "template_id": 0}
-{"text": "麻烦请把右侧的扳手搁到包装箱顶面", "intent": "transfer_on_top", "template_id": 0}
-{"text": "leave the front roller atop the packing box and report status", "intent": "transfer_on_top", "template_id": 1}
-{"text": "please survey the right roller", "intent": "inspect", "template_id": 1}
-{"text": "麻烦请把左侧的螺丝刀收纳至托盘的第4个位置，完成后报告状态", "intent": "transfer_inside", "template_id": 0}
-{"text": "操作员要求：确认最近的扳手在哪，完成后报告状态", "intent": "inspect", "template_id": 0}
-{"text": "please survey the screwdriver.", "intent": "inspect", "template_id": 1}
+{"text": "现在前往右侧的扳手所在处。", "intent": "move_near", "template_id": 0}
+{"text": "现在请把左侧的扳手搁到包装箱顶面", "intent": "transfer_on_top", "template_id": 0}
+{"text": "麻烦麻烦拿一下前面的钳子。", "intent": "pick_up", "template_id": 0}
+{"text": "now survey the left flashlight.", "intent": "inspect", "template_id": 1}
+{"text": "现在确认前面的钳子在哪。", "intent": "inspect", "template_id": 0}
+{"text": "现在请把电钻搁到料箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
+{"text": "proceed toward the front pliers", "intent": "move_near", "template_id": 1}
+{"text": "please correct the failed placement of the nearest allen wrench into number 5 of the tray", "intent": "recover_placement", "template_id": 1}
+{"text": "please bring me the nearest power drill.", "intent": "pick_up", "template_id": 1}
+{"text": "now leave the nearest screwdriver atop the parts bin and report status", "intent": "transfer_on_top", "template_id": 1}
+{"text": "麻烦麻烦拿一下最近的螺栓，完成后报告状态", "intent": "pick_up", "template_id": 0}
+{"text": "stow the pliers in number 5 of the tray and report status", "intent": "transfer_inside", "template_id": 1}
+{"text": "bring me the nearest pliers safely", "intent": "pick_up", "template_id": 1}
+{"text": "now survey the screwdriver", "intent": "inspect", "template_id": 1}
+{"text": "前往前面的扳手所在处，谢谢", "intent": "move_near", "template_id": 0}
+{"text": "麻烦麻烦拿一下左侧的扳手，谢谢", "intent": "pick_up", "template_id": 0}
+{"text": "麻烦确认前面的螺丝刀在哪。", "intent": "inspect", "template_id": 0}
+{"text": "请确认右侧的滚柱在哪，完成后报告状态", "intent": "inspect", "template_id": 0}
+{"text": "now leave the nearest allen wrench atop the parts bin", "intent": "transfer_on_top", "template_id": 1}
+{"text": "发现右侧的滚柱没有放好，请纠正到工具箱第4格，完成后报告状态", "intent": "recover_placement", "template_id": 0}
+{"text": "now correct the failed placement of the pliers into number 3 of the toolbox safely", "intent": "recover_placement", "template_id": 1}
+{"text": "请前往最近的螺栓所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "stow the front power drill in number 6 of the parts bin and report status", "intent": "transfer_inside", "template_id": 1}
+{"text": "请发现左侧的电钻没有放好，请纠正到工具箱第1格，谢谢", "intent": "recover_placement", "template_id": 0}
+{"text": "bring me the nearest roller safely", "intent": "pick_up", "template_id": 1}
+{"text": "麻烦发现左侧的螺栓没有放好，请纠正到工具箱第1格", "intent": "recover_placement", "template_id": 0}
+{"text": "now bring me the roller and report status", "intent": "pick_up", "template_id": 1}
+{"text": "leave the wrench atop the parts bin.", "intent": "transfer_on_top", "template_id": 1}
+{"text": "操作员要求：前往右侧的扳手所在处。", "intent": "move_near", "template_id": 0}
+{"text": "operator request: correct the failed placement of the left nut into number 3 of the parts bin.", "intent": "recover_placement", "template_id": 1}
+{"text": "麻烦确认最近的内六角扳手在哪，完成后报告状态", "intent": "inspect", "template_id": 0}
+{"text": "now correct the failed placement of the nearest bolt into number 4 of the toolbox and report status", "intent": "recover_placement", "template_id": 1}
+{"text": "survey the right wrench and report status", "intent": "inspect", "template_id": 1}
+{"text": "operator request: emergency halt and report status", "intent": "stop", "template_id": 1}
+{"text": "bring me the front flashlight.", "intent": "pick_up", "template_id": 1}
+{"text": "emergency halt safely", "intent": "stop", "template_id": 1}
+{"text": "operator request: bring me the front screwdriver.", "intent": "pick_up", "template_id": 1}
+{"text": "operator request: stow the left roller in number 4 of the parts bin", "intent": "transfer_inside", "template_id": 1}
+{"text": "operator request: stow the nearest nut in number 1 of the toolbox safely", "intent": "transfer_inside", "template_id": 1}
+{"text": "survey the roller and report status", "intent": "inspect", "template_id": 1}
+{"text": "stow the left roller in number 5 of the toolbox and report status", "intent": "transfer_inside", "template_id": 1}
+{"text": "now survey the right roller safely", "intent": "inspect", "template_id": 1}
+{"text": "现在前往右侧的螺栓所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "survey the front flashlight.", "intent": "inspect", "template_id": 1}
+{"text": "now leave the bolt atop the packing box and report status", "intent": "transfer_on_top", "template_id": 1}
+{"text": "operator request: bring me the nearest bolt safely", "intent": "pick_up", "template_id": 1}
+{"text": "请把最近的扳手搁到料箱顶面", "intent": "transfer_on_top", "template_id": 0}
+{"text": "operator request: leave the front allen wrench atop the packing box", "intent": "transfer_on_top", "template_id": 1}
+{"text": "now leave the allen wrench atop the toolbox", "intent": "transfer_on_top", "template_id": 1}
+{"text": "确认内六角扳手在哪。", "intent": "inspect", "template_id": 0}
+{"text": "麻烦请把钳子搁到工具箱顶面，完成后报告状态", "intent": "transfer_on_top", "template_id": 0}
+{"text": "操作员要求：麻烦拿一下左侧的扳手", "intent": "pick_up", "template_id": 0}
+{"text": "proceed toward the front wrench safely", "intent": "move_near", "template_id": 1}
+{"text": "operator request: stow the nearest wrench in number 5 of the parts bin safely", "intent": "transfer_inside", "template_id": 1}
+{"text": "survey the left power drill safely", "intent": "inspect", "template_id": 1}
+{"text": "now leave the screwdriver atop the toolbox safely", "intent": "transfer_on_top", "template_id": 1}
+{"text": "请前往最近的手电筒所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "发现最近的内六角扳手没有放好，请纠正到包装箱第3格，完成后报告状态", "intent": "recover_placement", "template_id": 0}
+{"text": "now bring me the front allen wrench.", "intent": "pick_up", "template_id": 1}
+{"text": "operator request: survey the front power drill", "intent": "inspect", "template_id": 1}
+{"text": "前往左侧的手电筒所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "前往内六角扳手所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "麻烦请把右侧的钳子搁到料箱顶面。", "intent": "transfer_on_top", "template_id": 0}
+{"text": "now leave the right nut atop the toolbox.", "intent": "transfer_on_top", "template_id": 1}
+{"text": "确认最近的钳子在哪，谢谢", "intent": "inspect", "template_id": 0}
+{"text": "now proceed toward the flashlight", "intent": "move_near", "template_id": 1}
+{"text": "请确认螺栓在哪", "intent": "inspect", "template_id": 0}
+{"text": "please bring me the nearest allen wrench", "intent": "pick_up", "template_id": 1}
+{"text": "现在发现最近的内六角扳手没有放好，请纠正到工具箱第5格，谢谢", "intent": "recover_placement", "template_id": 0}
+{"text": "麻烦确认滚柱在哪，完成后报告状态", "intent": "inspect", "template_id": 0}
+{"text": "please proceed toward the front bolt", "intent": "move_near", "template_id": 1}
+{"text": "please stow the nearest allen wrench in number 3 of the tray safely", "intent": "transfer_inside", "template_id": 1}
+{"text": "操作员要求：麻烦拿一下右侧的滚柱。", "intent": "pick_up", "template_id": 0}
+{"text": "now leave the front nut atop the parts bin", "intent": "transfer_on_top", "template_id": 1}
+{"text": "please proceed toward the front flashlight", "intent": "move_near", "template_id": 1}
+{"text": "please correct the failed placement of the left bolt into number 1 of the toolbox safely", "intent": "recover_placement", "template_id": 1}
+{"text": "确认前面的螺母在哪", "intent": "inspect", "template_id": 0}
+{"text": "now survey the right pliers and report status", "intent": "inspect", "template_id": 1}
+{"text": "麻烦拿一下左侧的滚柱，谢谢", "intent": "pick_up", "template_id": 0}
+{"text": "麻烦请把扳手搁到包装箱顶面，完成后报告状态", "intent": "transfer_on_top", "template_id": 0}
+{"text": "操作员要求：发现左侧的钳子没有放好，请纠正到包装箱第2格。", "intent": "recover_placement", "template_id": 0}
+{"text": "请请把右侧的螺母收纳至托盘的第2个位置。", "intent": "transfer_inside", "template_id": 0}
+{"text": "麻烦麻烦拿一下手电筒，完成后报告状态", "intent": "pick_up", "template_id": 0}
+{"text": "please leave the power drill atop the tray and report status", "intent": "transfer_on_top", "template_id": 1}
+{"text": "现在发现电钻没有放好，请纠正到工具箱第5格，完成后报告状态", "intent": "recover_placement", "template_id": 0}
+{"text": "现在请把右侧的螺丝刀收纳至工具箱的第4个位置。", "intent": "transfer_inside", "template_id": 0}
+{"text": "操作员要求：发现右侧的螺丝刀没有放好，请纠正到包装箱第6格", "intent": "recover_placement", "template_id": 0}
+{"text": "please correct the failed placement of the left wrench into number 1 of the tray.", "intent": "recover_placement", "template_id": 1}
+{"text": "请把最近的电钻收纳至料箱的第3个位置。", "intent": "transfer_inside", "template_id": 0}
+{"text": "操作员要求：确认滚柱在哪", "intent": "inspect", "template_id": 0}
+{"text": "please bring me the front pliers", "intent": "pick_up", "template_id": 1}
+{"text": "操作员要求：麻烦拿一下左侧的螺丝刀。", "intent": "pick_up", "template_id": 0}
+{"text": "现在前往前面的螺栓所在处。", "intent": "move_near", "template_id": 0}
+{"text": "前往右侧的螺母所在处", "intent": "move_near", "template_id": 0}
+{"text": "please survey the allen wrench", "intent": "inspect", "template_id": 1}
+{"text": "now leave the nearest wrench atop the packing box.", "intent": "transfer_on_top", "template_id": 1}
+{"text": "please proceed toward the nearest flashlight", "intent": "move_near", "template_id": 1}
+{"text": "please survey the bolt.", "intent": "inspect", "template_id": 1}
+{"text": "operator request: survey the roller and report status", "intent": "inspect", "template_id": 1}
+{"text": "operator request: correct the failed placement of the nearest nut into number 2 of the tray.", "intent": "recover_placement", "template_id": 1}
+{"text": "operator request: leave the wrench atop the toolbox.", "intent": "transfer_on_top", "template_id": 1}
+{"text": "now stow the right flashlight in number 6 of the toolbox", "intent": "transfer_inside", "template_id": 1}
+{"text": "leave the front pliers atop the packing box and report status", "intent": "transfer_on_top", "template_id": 1}
+{"text": "麻烦停止并保持不动，完成后报告状态", "intent": "stop", "template_id": 0}
+{"text": "operator request: stow the left power drill in number 6 of the tray", "intent": "transfer_inside", "template_id": 1}
+{"text": "现在停止并保持不动，完成后报告状态", "intent": "stop", "template_id": 0}
+{"text": "now correct the failed placement of the roller into number 2 of the toolbox", "intent": "recover_placement", "template_id": 1}
+{"text": "麻烦前往螺母所在处，谢谢", "intent": "move_near", "template_id": 0}
+{"text": "请把最近的手电筒搁到托盘顶面，完成后报告状态", "intent": "transfer_on_top", "template_id": 0}
+{"text": "now emergency halt.", "intent": "stop", "template_id": 1}
+{"text": "operator request: proceed toward the nearest wrench", "intent": "move_near", "template_id": 1}
+{"text": "请停止并保持不动，谢谢", "intent": "stop", "template_id": 0}
+{"text": "请请把最近的钳子搁到料箱顶面。", "intent": "transfer_on_top", "template_id": 0}
+{"text": "operator request: proceed toward the nearest power drill.", "intent": "move_near", "template_id": 1}
+{"text": "请把钳子收纳至托盘的第5个位置，完成后报告状态", "intent": "transfer_inside", "template_id": 0}
+{"text": "停止并保持不动。", "intent": "stop", "template_id": 0}
+{"text": "now stow the nearest allen wrench in number 2 of the parts bin.", "intent": "transfer_inside", "template_id": 1}
+{"text": "麻烦请把右侧的螺丝刀收纳至料箱的第2个位置。", "intent": "transfer_inside", "template_id": 0}
+{"text": "现在停止并保持不动，谢谢", "intent": "stop", "template_id": 0}
+{"text": "确认左侧的螺母在哪。", "intent": "inspect", "template_id": 0}
+{"text": "now stow the power drill in number 6 of the toolbox", "intent": "transfer_inside", "template_id": 1}
+{"text": "operator request: proceed toward the front bolt safely", "intent": "move_near", "template_id": 1}
+{"text": "please bring me the front wrench safely", "intent": "pick_up", "template_id": 1}
+{"text": "operator request: survey the front screwdriver and report status", "intent": "inspect", "template_id": 1}
+{"text": "operator request: stow the front allen wrench in number 3 of the parts bin and report status", "intent": "transfer_inside", "template_id": 1}
+{"text": "操作员要求：麻烦拿一下前面的螺栓，完成后报告状态", "intent": "pick_up", "template_id": 0}
+{"text": "操作员要求：请把左侧的扳手搁到托盘顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
+{"text": "请把最近的钳子收纳至托盘的第4个位置，谢谢", "intent": "transfer_inside", "template_id": 0}
+{"text": "麻烦拿一下右侧的扳手。", "intent": "pick_up", "template_id": 0}
+{"text": "now correct the failed placement of the bolt into number 2 of the toolbox and report status", "intent": "recover_placement", "template_id": 1}
+{"text": "now stow the nut in number 1 of the parts bin.", "intent": "transfer_inside", "template_id": 1}
+{"text": "麻烦前往右侧的钳子所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "操作员要求：发现螺栓没有放好，请纠正到工具箱第4格，完成后报告状态", "intent": "recover_placement", "template_id": 0}
+{"text": "现在停止并保持不动。", "intent": "stop", "template_id": 0}
+{"text": "now correct the failed placement of the right flashlight into number 6 of the parts bin safely", "intent": "recover_placement", "template_id": 1}
+{"text": "operator request: survey the right pliers.", "intent": "inspect", "template_id": 1}
+{"text": "now bring me the left power drill", "intent": "pick_up", "template_id": 1}
+{"text": "operator request: proceed toward the nearest power drill and report status", "intent": "move_near", "template_id": 1}
+{"text": "correct the failed placement of the wrench into number 5 of the packing box and report status", "intent": "recover_placement", "template_id": 1}
+{"text": "请麻烦拿一下左侧的滚柱。", "intent": "pick_up", "template_id": 0}
+{"text": "now emergency halt and report status", "intent": "stop", "template_id": 1}
+{"text": "please emergency halt.", "intent": "stop", "template_id": 1}
+{"text": "麻烦前往最近的螺母所在处，谢谢", "intent": "move_near", "template_id": 0}
+{"text": "现在麻烦拿一下前面的内六角扳手，完成后报告状态", "intent": "pick_up", "template_id": 0}
+{"text": "please correct the failed placement of the nearest screwdriver into number 5 of the tray and report status", "intent": "recover_placement", "template_id": 1}
+{"text": "操作员要求：请把前面的手电筒收纳至托盘的第5个位置", "intent": "transfer_inside", "template_id": 0}
+{"text": "correct the failed placement of the left roller into number 4 of the parts bin safely", "intent": "recover_placement", "template_id": 1}
+{"text": "please emergency halt and report status", "intent": "stop", "template_id": 1}
+{"text": "now stow the right pliers in number 1 of the packing box safely", "intent": "transfer_inside", "template_id": 1}
+{"text": "麻烦请把左侧的内六角扳手搁到料箱顶面，完成后报告状态", "intent": "transfer_on_top", "template_id": 0}
+{"text": "停止并保持不动，完成后报告状态", "intent": "stop", "template_id": 0}
+{"text": "operator request: emergency halt safely", "intent": "stop", "template_id": 1}
+{"text": "操作员要求：请把右侧的内六角扳手搁到工具箱顶面", "intent": "transfer_on_top", "template_id": 0}
+{"text": "现在前往右侧的电钻所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "please survey the front allen wrench and report status", "intent": "inspect", "template_id": 1}
+{"text": "please proceed toward the nearest pliers and report status", "intent": "move_near", "template_id": 1}
+{"text": "现在请把手电筒收纳至包装箱的第6个位置", "intent": "transfer_inside", "template_id": 0}
+{"text": "please correct the failed placement of the wrench into number 5 of the packing box and report status", "intent": "recover_placement", "template_id": 1}
+{"text": "please correct the failed placement of the left flashlight into number 1 of the tray safely", "intent": "recover_placement", "template_id": 1}
+{"text": "请把最近的钳子搁到托盘顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
+{"text": "停止并保持不动，谢谢", "intent": "stop", "template_id": 0}
+{"text": "请请把前面的钳子收纳至包装箱的第2个位置", "intent": "transfer_inside", "template_id": 0}
+{"text": "operator request: bring me the screwdriver", "intent": "pick_up", "template_id": 1}
+{"text": "现在请把左侧的钳子收纳至包装箱的第5个位置", "intent": "transfer_inside", "template_id": 0}
+{"text": "correct the failed placement of the front power drill into number 3 of the parts bin and report status", "intent": "recover_placement", "template_id": 1}
+{"text": "operator request: stow the left wrench in number 2 of the packing box.", "intent": "transfer_inside", "template_id": 1}
+{"text": "麻烦请把右侧的螺丝刀收纳至工具箱的第4个位置，谢谢", "intent": "transfer_inside", "template_id": 0}
+{"text": "proceed toward the front pliers safely", "intent": "move_near", "template_id": 1}
+{"text": "操作员要求：发现左侧的扳手没有放好，请纠正到托盘第3格。", "intent": "recover_placement", "template_id": 0}
+{"text": "现在麻烦拿一下前面的扳手", "intent": "pick_up", "template_id": 0}
+{"text": "correct the failed placement of the right allen wrench into number 2 of the packing box safely", "intent": "recover_placement", "template_id": 1}
+{"text": "麻烦发现螺丝刀没有放好，请纠正到料箱第6格", "intent": "recover_placement", "template_id": 0}
+{"text": "please emergency halt", "intent": "stop", "template_id": 1}
+{"text": "麻烦请把最近的扳手搁到料箱顶面", "intent": "transfer_on_top", "template_id": 0}
+{"text": "now survey the left flashlight", "intent": "inspect", "template_id": 1}
+{"text": "麻烦确认手电筒在哪。", "intent": "inspect", "template_id": 0}
+{"text": "survey the bolt and report status", "intent": "inspect", "template_id": 1}
+{"text": "please stow the right screwdriver in number 4 of the tray and report status", "intent": "transfer_inside", "template_id": 1}
+{"text": "operator request: proceed toward the left allen wrench safely", "intent": "move_near", "template_id": 1}
+{"text": "前往滚柱所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "correct the failed placement of the left flashlight into number 4 of the toolbox", "intent": "recover_placement", "template_id": 1}
+{"text": "现在请把前面的螺母收纳至托盘的第5个位置，谢谢", "intent": "transfer_inside", "template_id": 0}
+{"text": "麻烦请把前面的扳手搁到工具箱顶面，谢谢", "intent": "transfer_on_top", "template_id": 0}
+{"text": "survey the front power drill", "intent": "inspect", "template_id": 1}
+{"text": "bring me the front power drill and report status", "intent": "pick_up", "template_id": 1}
+{"text": "麻烦前往滚柱所在处", "intent": "move_near", "template_id": 0}
+{"text": "emergency halt and report status", "intent": "stop", "template_id": 1}
+{"text": "operator request: survey the front flashlight", "intent": "inspect", "template_id": 1}
+{"text": "please bring me the left roller", "intent": "pick_up", "template_id": 1}
+{"text": "现在前往最近的电钻所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "now emergency halt safely", "intent": "stop", "template_id": 1}
+{"text": "now correct the failed placement of the nearest flashlight into number 5 of the parts bin.", "intent": "recover_placement", "template_id": 1}
+{"text": "操作员要求：请把前面的扳手收纳至托盘的第5个位置，完成后报告状态", "intent": "transfer_inside", "template_id": 0}
+{"text": "操作员要求：麻烦拿一下右侧的电钻，谢谢", "intent": "pick_up", "template_id": 0}
+{"text": "请麻烦拿一下右侧的手电筒", "intent": "pick_up", "template_id": 0}
+{"text": "现在确认最近的钳子在哪。", "intent": "inspect", "template_id": 0}
+{"text": "now bring me the left screwdriver", "intent": "pick_up", "template_id": 1}
+{"text": "操作员要求：发现前面的手电筒没有放好，请纠正到包装箱第2格，完成后报告状态", "intent": "recover_placement", "template_id": 0}
+{"text": "现在请把左侧的内六角扳手收纳至料箱的第4个位置，谢谢", "intent": "transfer_inside", "template_id": 0}
+{"text": "麻烦发现手电筒没有放好，请纠正到托盘第4格", "intent": "recover_placement", "template_id": 0}
+{"text": "bring me the left roller safely", "intent": "pick_up", "template_id": 1}
+{"text": "now stow the nearest screwdriver in number 4 of the parts bin safely", "intent": "transfer_inside", "template_id": 1}
+{"text": "现在请把前面的螺栓搁到托盘顶面。", "intent": "transfer_on_top", "template_id": 0}
+{"text": "现在麻烦拿一下前面的螺栓，谢谢", "intent": "pick_up", "template_id": 0}
+{"text": "请请把前面的滚柱搁到托盘顶面。", "intent": "transfer_on_top", "template_id": 0}
+{"text": "leave the right screwdriver atop the packing box safely", "intent": "transfer_on_top", "template_id": 1}
+{"text": "请确认前面的螺母在哪", "intent": "inspect", "template_id": 0}
+{"text": "操作员要求：请把左侧的螺栓搁到料箱顶面。", "intent": "transfer_on_top", "template_id": 0}
+{"text": "操作员要求：麻烦拿一下钳子，谢谢", "intent": "pick_up", "template_id": 0}
+{"text": "现在确认左侧的内六角扳手在哪，谢谢", "intent": "inspect", "template_id": 0}
+{"text": "请请把右侧的手电筒收纳至料箱的第6个位置", "intent": "transfer_inside", "template_id": 0}
+{"text": "麻烦拿一下螺母，完成后报告状态", "intent": "pick_up", "template_id": 0}
+{"text": "麻烦停止并保持不动", "intent": "stop", "template_id": 0}
+{"text": "please proceed toward the flashlight", "intent": "move_near", "template_id": 1}
+{"text": "please stow the right pliers in number 2 of the toolbox safely", "intent": "transfer_inside", "template_id": 1}
+{"text": "now leave the nearest nut atop the toolbox safely", "intent": "transfer_on_top", "template_id": 1}
+{"text": "now stow the front roller in number 1 of the tray and report status", "intent": "transfer_inside", "template_id": 1}
+{"text": "请确认前面的电钻在哪", "intent": "inspect", "template_id": 0}
+{"text": "麻烦前往最近的手电筒所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "操作员要求：前往右侧的螺栓所在处，完成后报告状态", "intent": "move_near", "template_id": 0}
+{"text": "stow the front screwdriver in number 2 of the toolbox.", "intent": "transfer_inside", "template_id": 1}
+{"text": "leave the front allen wrench atop the packing box.", "intent": "transfer_on_top", "template_id": 1}
+{"text": "please proceed toward the nearest power drill", "intent": "move_near", "template_id": 1}
+{"text": "操作员要求：确认前面的内六角扳手在哪", "intent": "inspect", "template_id": 0}
+{"text": "please stow the front wrench in number 1 of the packing box safely", "intent": "transfer_inside", "template_id": 1}
+{"text": "麻烦前往最近的扳手所在处，谢谢", "intent": "move_near", "template_id": 0}
+{"text": "请停止并保持不动，完成后报告状态", "intent": "stop", "template_id": 0}
+{"text": "现在前往右侧的扳手所在处", "intent": "move_near", "template_id": 0}
+{"text": "please stow the nearest power drill in number 1 of the toolbox safely", "intent": "transfer_inside", "template_id": 1}
+{"text": "麻烦停止并保持不动，谢谢", "intent": "stop", "template_id": 0}
+{"text": "bring me the front nut safely", "intent": "pick_up", "template_id": 1}
+{"text": "麻烦前往左侧的螺母所在处，谢谢", "intent": "move_near", "template_id": 0}

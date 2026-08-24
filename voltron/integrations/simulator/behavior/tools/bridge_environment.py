@@ -75,12 +75,13 @@ def ensure_env(runtime: Any, *, runtime_bridge_file: str) -> Any:
 
 def apply_post_reset_state(runtime: Any, *, env: Any, obs: Any, info: Any) -> dict[str, Any]:
     env_kwargs = runtime.env_kwargs if isinstance(runtime.env_kwargs, dict) else {}
+    industrial_overlay = env_kwargs.get("industrial_visual_overlay")
     position = env_kwargs.get("post_reset_robot_position")
     orientation = env_kwargs.get("post_reset_robot_orientation")
     object_states = env_kwargs.get("post_reset_object_states")
     joint_positions = env_kwargs.get("post_reset_robot_joint_positions")
     joint_velocities = env_kwargs.get("post_reset_robot_joint_velocities")
-    if all(
+    state_override_requested = not all(
         value is None
         for value in (
             position,
@@ -89,17 +90,30 @@ def apply_post_reset_state(runtime: Any, *, env: Any, obs: Any, info: Any) -> di
             joint_positions,
             joint_velocities,
         )
-    ):
+    )
+    if not state_override_requested and industrial_overlay is None:
         return {"obs": obs, "info": info}
 
-    applied = _apply_post_reset_overrides(
-        env,
-        position=position,
-        orientation=orientation,
-        object_states=object_states,
-        joint_positions=joint_positions,
-        joint_velocities=joint_velocities,
+    applied = (
+        _apply_post_reset_overrides(
+            env,
+            position=position,
+            orientation=orientation,
+            object_states=object_states,
+            joint_positions=joint_positions,
+            joint_velocities=joint_velocities,
+        )
+        if state_override_requested
+        else {"robot": None, "objects": []}
     )
+    overlay_diagnostics = None
+    if industrial_overlay is not None:
+        from visiomind.simulation import install_industrial_workcell
+
+        overlay_diagnostics = install_industrial_workcell(
+            env,
+            industrial_overlay,
+        )
     settle_steps = _post_reset_settle_steps(runtime)
     last_obs, last_info = obs, info
     for _ in range(settle_steps):
@@ -132,6 +146,7 @@ def apply_post_reset_state(runtime: Any, *, env: Any, obs: Any, info: Any) -> di
             "settle_steps": settle_steps,
             "reapplied_after_settle": bool(settle_steps and exact_snapshot),
             "observation_refresh": refresh_diagnostics,
+            "industrial_visual_overlay": overlay_diagnostics,
             **applied,
         },
     }

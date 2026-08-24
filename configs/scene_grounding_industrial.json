@@ -1,0 +1,17 @@
+{
+  "objects": {
+    "screwdriver": "screwdriver_188",
+    "allen_wrench": "allen_wrench_189",
+    "wrench": "wrench_189",
+    "pliers": "plier_192",
+    "plier": "plier_192",
+    "flashlight": "flashlight_190",
+    "roller": "roller_195",
+    "bolt": "bolt_196",
+    "nut": "nut_197"
+  },
+  "containers": {
+    "toolbox": "toolbox_191",
+    "parts_bin": "parts_bin_198"
+  }
+}

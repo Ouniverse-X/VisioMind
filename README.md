@@ -36,13 +36,26 @@ VisioMind 是面向挑战杯 XH-202607 赛题的“感知—决策—执行—�
 
 ## 快速验收
 
-CPU 侧无需 Isaac Sim：
+### 1. CPU 侧轻量测试（无需 GPU 与 Isaac Sim）
+
+在您的 conda 或 Python 虚拟环境中，先激活环境：
 
 ```bash
-source /home/huangyixuan/miniconda3/etc/profile.d/conda.sh
-conda activate /mnt/data/huangyixuan/conda_envs/voltron
+# 激活您的 Conda 路径并激活 voltron 虚拟环境（以本地路径为准）
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate voltron
+
+# 运行单元与集成测试
 pytest -q tests
+
+# 运行 Dry Run 意图解析与任务生成（午餐盒场景）
 python run_instruction_demo.py "把半个苹果放进包装箱" --dry-run
+
+# 运行 Dry Run 意图解析与任务生成（工业工具格位场景，使用新增的工业场景映射）
+python run_instruction_demo.py "现在请把钳子收纳至料箱的第3格，完成后报告状态" \
+  --config voltron/configs/plier_to_toolbox_cell3_industrial_i00.json \
+  --grounding configs/scene_grounding_industrial.json \
+  --dry-run
 ```
 
 重新训练并复现实验指标：
@@ -56,11 +69,26 @@ python training/train_instruction_model.py \
   --metrics reports/instruction_model_metrics.json
 ```
 
-GPU/Isaac 主机上：
+### 2. GPU/Isaac 仿真环境下（完整闭环）
 
 ```bash
+# 启动 AnyGrasp 6-DoF 抓取几何感知服务
 ./scripts/start_anygrasp_service.sh
-./scripts/run_demo.sh "把半个苹果放进包装箱"
+
+# 运行工业场景的端到端闭环仿真并生成轨迹视频
+python run_instruction_demo.py "现在请把钳子收纳至料箱的第3格，完成后报告状态" \
+  --config voltron/configs/plier_to_toolbox_cell3_industrial_i00.json \
+  --grounding configs/scene_grounding_industrial.json
+```
+
+### 3. 真实物理机器人部署网桥（真机集成接口）
+
+```bash
+# 启动底盘及线性升降台 15 字节串口网桥节点
+python scripts/chassis_serial_bridge.py --port /dev/ttyUSB_chassis --baudrate 115200
+
+# 启动 4 相机系统（3x USB相机，1x Aurora 930深度相机及静态TF）集成驱动
+ros2 launch scripts/sensor_integration.launch.py
 ```
 
 完整环境、路径、模型授权和故障排查见 `docs/user_guide.md`。

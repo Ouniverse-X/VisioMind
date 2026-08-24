@@ -23,6 +23,7 @@ INTENTS = (
     "transfer_on_top",
     "inspect",
     "move_near",
+    "recover_placement",
     "stop",
 )
 
@@ -35,6 +36,8 @@ OBJECT_ALIASES = {
     "screw": ("screw", "螺钉", "螺丝"),
     "nut": ("nut", "螺母"),
     "flashlight": ("flashlight", "torch", "手电筒"),
+    "pliers": ("pliers", "plier", "钳子", "工业钳"),
+    "drill": ("drill", "power drill", "electric drill", "电钻", "手持钻"),
     "half_apple": ("half apple", "apple half", "半个苹果", "苹果"),
 }
 
@@ -183,11 +186,34 @@ class IndustrialInstructionModel:
             return grasp_steps, [
                 {"action": "pick_up", "target": {"object": target}}
             ]
-        if intent in {"transfer_inside", "transfer_on_top"}:
+        if intent in {"transfer_inside", "transfer_on_top", "recover_placement"}:
             if destination is None:
                 raise ValueError("placement instruction does not identify a destination")
-            relation = "place_inside" if intent == "transfer_inside" else "place_on_top"
-            task_sequence = grasp_steps + [
+            relation = (
+                "place_on_top" if intent == "transfer_on_top" else "place_inside"
+            )
+            recovery_requested = intent == "recover_placement"
+            recovery_prefix = []
+            if recovery_requested:
+                recovery_prefix = [
+                    {
+                        "step": "detect_failed_placement",
+                        "module": "perception",
+                        "inputs": {
+                            "object": target,
+                            "container": destination,
+                            "cell_index": slots.get("cell_index"),
+                        },
+                        "success_check": "object is outside the requested cell bounds",
+                    },
+                    {
+                        "step": "authorize_recovery",
+                        "module": "decision",
+                        "inputs": {"required_failure_evidence": True},
+                        "success_check": "typed geometric failure evidence is present",
+                    },
+                ]
+            task_sequence = recovery_prefix + grasp_steps + [
                 {
                     "step": "localize_destination",
                     "module": "perception",
@@ -220,14 +246,20 @@ class IndustrialInstructionModel:
                     "success_check": "verified success or typed terminal failure",
                 },
             ]
+            pick_target = {"object": target}
+            if recovery_requested:
+                pick_target["recovery"] = True
+                pick_target["container"] = destination
+                pick_target["cell_index"] = slots.get("cell_index")
             return task_sequence, [
-                {"action": "pick_up", "target": {"object": target}},
+                {"action": "pick_up", "target": pick_target},
                 {
                     "action": relation,
                     "target": {
                         "object": target,
                         "container": destination,
                         "cell_index": slots.get("cell_index"),
+                        "recovery": recovery_requested,
                     },
                 },
             ]

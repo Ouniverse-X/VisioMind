@@ -54,6 +54,7 @@ def ensure_env(
         "recording_third_person_local_offset",
         "recording_third_person_look_at_offset",
         "recording_third_person_prefer_live_capture",
+        "industrial_visual_overlay",
     ):
         env_make_kwargs.pop(runtime_only_key, None)
     return gym.make(env_id, **env_make_kwargs)
