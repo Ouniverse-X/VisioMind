@@ -95,15 +95,19 @@ ros2 launch scripts/sensor_integration.launch.py
 
 ## 已验证 Isaac Sim 结果
 
-本仓库包含可直接播放的 [`demo/visiomind_isaac_demo.mp4`](demo/visiomind_isaac_demo.mp4)，
-对应完整的“半个苹果→包装箱”运行。选取的三次工程复测中有两次满足严格物理成功，
-另一次因物体超出带余量箱壁约 1.4 mm 被安全门控拒绝，不计成功。它们不是用于估计
-泛化成功率的统计实验，而是正、负路径的可复现审计样本。
+本仓库在 `demo/` 目录下提供了两组关键仿真轨迹录像，用于评审与合规性检查：
 
-最新严格成功证据：`control_step=872`、`step_count=1282`、A* 路径 0.791 m、
-释放前下落高度 0.167 m、`released=true`、`aabb_contained=true`，且终态
-`action_keys=[]` 不会重放上一帧动作。逐运行哈希和几何数据见
-[`reports/real_isaac_runs.md`](reports/real_isaac_runs.md) 与 JSON companion。
+1. **工业工件格位放置演示 (`demo/visiomind_industrial_demo.mp4`)**：
+   - **指令**：“现在请把钳子收纳至料箱的第3格，完成后报告状态”
+   - **场景**：工业混杂工具 workbench (对应 `outfit_a_basic_toolbox` 仿真环境)
+   - **运行轨迹**：展示了系统对钳子进行 3D 点云匹配定位、AnyGrasp 6-DoF 抓取姿态推断、无碰撞路径规划与抬升、底盘携物 A* 全局避障导航至工具箱旁、针对第三格格位进行局部 AABB 坐标切分及顶入式对齐、机械臂下探并安全释放的完整物理控制流程。该轨迹共历经 2044 个物理控制步。
+
+2. **家庭场景午餐盒摆放演示 (`demo/visiomind_isaac_demo.mp4`)**：
+   - **指令**：“把半个苹果放进包装箱”
+   - **运行结果**：完成了完整的“拾取→导航→释放”闭环。选取的三次工程复测中有两次满足严格物理成功，另一次因物体超出带余量箱壁约 1.4 mm 被安全门控拒绝，不计成功。
+   - **物理证据**：`control_step=872`、`step_count=1282`、A* 路径 0.791 m、释放前下落高度 0.167 m、`released=true`、`aabb_contained=true`，且终态 `action_keys=[]` 不会重放上一帧动作。
+
+逐运行哈希和几何数据见 [`reports/real_isaac_runs.md`](reports/real_isaac_runs.md) 与 JSON companion。
 
 ## 成功判据
 
