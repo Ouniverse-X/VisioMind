@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "acceptance_criterion": "strict_guarded_physical_place_inside_v1",
-  "run_count": 3,
-  "strict_success_count": 2,
-  "strict_failure_count": 1,
+  "acceptance_criterion": "strict_guarded_physical_place_inside_cell_v2",
+  "run_count": 4,
+  "strict_success_count": 0,
+  "strict_failure_count": 4,
   "runs": [
     {
       "run_id": "half_apple_to_packing_box_place_inside_i10_20260823_190553",
-      "strict_physical_success": true,
+      "strict_physical_success": false,
       "started_at": "2026-08-23T19:05:53",
       "ended_at": "2026-08-23T19:13:50",
       "wall_clock_duration_s": 477.0,
@@ -30,6 +30,7 @@
         "placement_strategy": "guarded_gravity_drop",
         "released": true,
         "aabb_contained": true,
+        "cell_aabb_contained": null,
         "last_applied_action_keys": [
           "robot_r1"
         ]
@@ -68,7 +69,8 @@
             -1.670038104057312,
             1.0252774953842163
           ]
-        ]
+        ],
+        "target_cell_aabb_world": null
       },
       "environment_run_end": {
         "task_success": true,
@@ -103,6 +105,7 @@
         "placement_strategy": null,
         "released": null,
         "aabb_contained": null,
+        "cell_aabb_contained": null,
         "last_applied_action_keys": null
       },
       "physical_evidence": {
@@ -117,7 +120,8 @@
         "release_steps": null,
         "settle_steps": null,
         "object_aabb_world_after_settle": null,
-        "destination_aabb_world_after_settle": null
+        "destination_aabb_world_after_settle": null,
+        "target_cell_aabb_world": null
       },
       "environment_run_end": {
         "task_success": true,
@@ -136,7 +140,7 @@
     },
     {
       "run_id": "half_apple_to_packing_box_place_inside_i10_20260823_193048",
-      "strict_physical_success": true,
+      "strict_physical_success": false,
       "started_at": "2026-08-23T19:30:48",
       "ended_at": "2026-08-23T19:38:40",
       "wall_clock_duration_s": 472.0,
@@ -159,6 +163,7 @@
         "placement_strategy": "guarded_gravity_drop",
         "released": true,
         "aabb_contained": true,
+        "cell_aabb_contained": null,
         "last_applied_action_keys": [
           "robot_r1"
         ]
@@ -209,7 +214,8 @@
             -1.6696875095367432,
             1.0252801179885864
           ]
-        ]
+        ],
+        "target_cell_aabb_world": null
       },
       "environment_run_end": {
         "task_success": true,
@@ -217,6 +223,76 @@
         "step_count": 1282
       },
       "failure_results": [],
+      "forbidden_runtime_events": []
+    },
+    {
+      "run_id": "plier_to_toolbox_cell3_industrial_i00_20260824_200729",
+      "strict_physical_success": false,
+      "started_at": "2026-08-24T20:07:29",
+      "ended_at": "2026-08-24T20:27:08",
+      "wall_clock_duration_s": 1179.0,
+      "process_data": {
+        "bytes": 65473222,
+        "sha256": "1b427bc9a4e3a8426076edba3fe762be111ca581b462d44ca806ee5681dd97c6"
+      },
+      "video": {
+        "filename": "trajectory.mp4",
+        "bytes": 15308063,
+        "sha256": "2c786a0b48fac93d813779d98c7de7d1345ceef15d212cd664cb6d76e446aa64"
+      },
+      "terminal": {
+        "control_step": null,
+        "step_count": null,
+        "status": null,
+        "action_keys": null,
+        "placement_success": null,
+        "placement_verified": null,
+        "placement_strategy": null,
+        "released": null,
+        "aabb_contained": null,
+        "cell_aabb_contained": null,
+        "last_applied_action_keys": null
+      },
+      "physical_evidence": {
+        "pre_navigation_steps": null,
+        "pre_navigation_mode": null,
+        "pre_navigation_geodesic_distance_m": null,
+        "drop_alignment_steps": null,
+        "drop_alignment_attempts": null,
+        "drop_height_m": null,
+        "wall_margin_m": null,
+        "xy_contained_with_margin": null,
+        "release_steps": null,
+        "settle_steps": null,
+        "object_aabb_world_after_settle": null,
+        "destination_aabb_world_after_settle": null,
+        "target_cell_aabb_world": null
+      },
+      "environment_run_end": {
+        "task_success": false,
+        "task_progress": 28.57142857142857,
+        "step_count": 4764
+      },
+      "failure_results": [
+        {
+          "ts": "2026-08-24T20:16:39",
+          "subtask_id": "st_02",
+          "error_code": "PLACE_EXECUTION_FAILED",
+          "control_step": 667
+        },
+        {
+          "ts": "2026-08-24T20:19:48",
+          "subtask_id": "st_02",
+          "error_code": "PLACE_EXECUTION_FAILED",
+          "control_step": 1118
+        },
+        {
+          "ts": "2026-08-24T20:27:08",
+          "subtask_id": "st_02",
+          "error_code": "PLACE_EXECUTION_FAILED",
+          "control_step": 2307
+        }
+      ],
       "forbidden_runtime_events": []
     }
   ]

@@ -93,6 +93,7 @@ def summarize_run(run_dir: Path) -> dict[str, Any]:
         and terminal_payload.get("placement_strategy") == "guarded_gravity_drop"
         and terminal_payload.get("released") is True
         and terminal_payload.get("aabb_contained") is True
+        and terminal_payload.get("cell_aabb_contained") is True
         and terminal_payload.get("last_applied_action_keys") == ["robot_r1"]
         and not events["forbidden_events"]
     )
@@ -135,6 +136,7 @@ def summarize_run(run_dir: Path) -> dict[str, Any]:
             "placement_strategy": terminal_payload.get("placement_strategy"),
             "released": terminal_payload.get("released"),
             "aabb_contained": terminal_payload.get("aabb_contained"),
+            "cell_aabb_contained": terminal_payload.get("cell_aabb_contained"),
             "last_applied_action_keys": terminal_payload.get(
                 "last_applied_action_keys"
             ),
@@ -156,6 +158,7 @@ def summarize_run(run_dir: Path) -> dict[str, Any]:
             "destination_aabb_world_after_settle": physical.get(
                 "destination_aabb_world"
             ),
+            "target_cell_aabb_world": physical.get("target_cell_aabb_world"),
         },
         "environment_run_end": {
             "task_success": run_end_payload.get("task_success"),
@@ -175,7 +178,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         "# Real Isaac Sim run evidence",
         "",
         "Strict success requires a verified action-free terminal placement, "
-        "guarded release, and post-settle 3-D AABB containment. The broader "
+        "guarded release, post-settle container containment, and requested-cell "
+        "3-D AABB containment. The broader "
         "environment `task_success` flag is recorded but is not used as the "
         "acceptance criterion.",
         "",
@@ -233,7 +237,7 @@ def main() -> None:
     success_count = sum(run["strict_physical_success"] for run in runs)
     report = {
         "schema_version": 1,
-        "acceptance_criterion": "strict_guarded_physical_place_inside_v1",
+        "acceptance_criterion": "strict_guarded_physical_place_inside_cell_v2",
         "run_count": len(runs),
         "strict_success_count": success_count,
         "strict_failure_count": len(runs) - success_count,

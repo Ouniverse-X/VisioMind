@@ -8,6 +8,7 @@ observations, rewards, termination, recording, and telemetry.
 from __future__ import annotations
 
 import gc
+import inspect
 import json
 import logging
 import math
@@ -54,7 +55,11 @@ def _object_world_aabb(obj: Any) -> tuple[np.ndarray, np.ndarray] | None:
     return lower, upper
 
 
-def _aabb_contains(inner: tuple[np.ndarray, np.ndarray], outer: tuple[np.ndarray, np.ndarray], margin_m: float = 0.0) -> bool:
+def _aabb_contains(
+    inner: tuple[np.ndarray, np.ndarray],
+    outer: tuple[np.ndarray, np.ndarray],
+    margin_m: float = 0.0,
+) -> bool:
     """Return whether ``inner`` is fully contained by ``outer``."""
     inner_min, inner_max = inner
     outer_min, outer_max = outer
@@ -88,9 +93,7 @@ def _grid_cell_aabb(
     total_cells = rows * columns
     index = int(cell_index)
     if not 1 <= index <= total_cells:
-        raise ValueError(
-            f"cell_index must be in [1, {total_cells}], got {cell_index}"
-        )
+        raise ValueError(f"cell_index must be in [1, {total_cells}], got {cell_index}")
     margin = float(margin_m)
     if not np.isfinite(margin) or margin < 0.0:
         raise ValueError("cell margin must be finite and non-negative")
@@ -168,11 +171,13 @@ def _pose_to_matrix(pos: Any, quat: Any) -> np.ndarray:
         raise ValueError("quaternion has zero norm")
     x, y, z, w = np.array([x, y, z, w]) / norm
     matrix = np.eye(4, dtype=np.float64)
-    matrix[:3, :3] = np.array([
-        [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
-        [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
-        [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
-    ])
+    matrix[:3, :3] = np.array(
+        [
+            [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+            [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+            [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
+        ]
+    )
     matrix[:3, 3] = pos
     return matrix
 
@@ -245,6 +250,45 @@ def _quat_multiply_xyzw(left: Any, right: Any) -> np.ndarray:
     return (result / norm).astype(np.float32)
 
 
+def _quat_slerp_xyzw(start: Any, end: Any, fraction: float) -> np.ndarray:
+    """Interpolate unit XYZW quaternions along the shortest rotation arc."""
+
+    start_quat = np.asarray(start, dtype=np.float64).reshape(-1)[:4]
+    end_quat = np.asarray(end, dtype=np.float64).reshape(-1)[:4]
+    start_norm = float(np.linalg.norm(start_quat))
+    end_norm = float(np.linalg.norm(end_quat))
+    if start_norm <= 1e-12 or end_norm <= 1e-12:
+        raise ValueError("cannot interpolate a zero-norm quaternion")
+    start_quat /= start_norm
+    end_quat /= end_norm
+    dot = float(np.dot(start_quat, end_quat))
+    if dot < 0.0:
+        end_quat = -end_quat
+        dot = -dot
+    dot = float(np.clip(dot, -1.0, 1.0))
+    amount = float(np.clip(fraction, 0.0, 1.0))
+    if dot > 0.9995:
+        result = start_quat + amount * (end_quat - start_quat)
+    else:
+        angle = math.acos(dot)
+        sin_angle = math.sin(angle)
+        result = (
+            math.sin((1.0 - amount) * angle) / sin_angle * start_quat
+            + math.sin(amount * angle) / sin_angle * end_quat
+        )
+    return (result / np.linalg.norm(result)).astype(np.float32)
+
+
+def _quat_shortest_angle_rad_xyzw(start: Any, end: Any) -> float:
+    """Return the unsigned shortest rotation angle between two quaternions."""
+
+    start_quat = np.asarray(start, dtype=np.float64).reshape(-1)[:4]
+    end_quat = np.asarray(end, dtype=np.float64).reshape(-1)[:4]
+    start_quat /= max(float(np.linalg.norm(start_quat)), 1e-12)
+    end_quat /= max(float(np.linalg.norm(end_quat)), 1e-12)
+    return 2.0 * math.acos(float(np.clip(abs(np.dot(start_quat, end_quat)), 0.0, 1.0)))
+
+
 @dataclass(frozen=True)
 class GripperGeometryAdapter:
     """Map AnyGrasp's canonical parallel-jaw frame to an OmniGibson EEF frame."""
@@ -280,7 +324,9 @@ class GripperGeometryAdapter:
         values = np.asarray(list(lengths.values()), dtype=np.float64)
         values = values[np.isfinite(values) & (values > 0.0)]
         if values.size == 0:
-            raise ValueError(f"robot arm '{arm}' has no valid EEF-to-fingertip geometry")
+            raise ValueError(
+                f"robot arm '{arm}' has no valid EEF-to-fingertip geometry"
+            )
         approach_offset = float(eef_approach_offset_m)
         if not np.isfinite(approach_offset):
             raise ValueError("eef_approach_offset_m must be finite")
@@ -319,9 +365,7 @@ class GripperGeometryAdapter:
             raise ValueError(
                 f"AnyGrasp depth must be finite and non-negative, got {depth}"
             )
-        return float(
-            depth - self.fingertip_depth_m + self.eef_approach_offset_m
-        )
+        return float(depth - self.fingertip_depth_m + self.eef_approach_offset_m)
 
 
 @dataclass
@@ -486,7 +530,9 @@ class GraspExecutor:
             if not np.isfinite(value) or float(value) < 0.0:
                 raise ValueError(f"{name} must be finite and non-negative, got {value}")
         if float(whole_body_standoff_m) < float(pregrasp_offset_m):
-            raise ValueError("whole_body_standoff_m must not be smaller than pregrasp_offset_m")
+            raise ValueError(
+                "whole_body_standoff_m must not be smaller than pregrasp_offset_m"
+            )
         self._robot = robot
         self._arm = arm or str(getattr(robot, "default_arm", "right"))
         self._frame_adapter = AnyGraspFrameAdapter()
@@ -532,9 +578,7 @@ class GraspExecutor:
         self._approach_goal_position_tolerance_m = float(
             approach_goal_position_tolerance_m
         )
-        self._live_open_jaw_y_correction_max_m = float(
-            live_open_jaw_y_correction_max_m
-        )
+        self._live_open_jaw_y_correction_max_m = float(live_open_jaw_y_correction_max_m)
         if (
             self._live_open_jaw_y_correction_max_m
             > self._approach_target_displacement_tolerance_m
@@ -549,9 +593,7 @@ class GraspExecutor:
             else float(collision_workspace_radius_m)
         )
         self._verification_steps = int(verification_steps)
-        self._verification_min_target_z_rise_m = float(
-            verification_min_target_z_rise_m
-        )
+        self._verification_min_target_z_rise_m = float(verification_min_target_z_rise_m)
         self._verification_relative_offset_tolerance_m = float(
             verification_relative_offset_tolerance_m
         )
@@ -755,10 +797,16 @@ class GraspExecutor:
         try:
             margin = float(margin_m)
             if not np.isfinite(margin) or margin < 0.0:
-                raise ValueError("inner grasp-line margin must be finite and non-negative")
-            target_points = np.asarray(target_local_points, dtype=np.float64).reshape(-1, 3)
+                raise ValueError(
+                    "inner grasp-line margin must be finite and non-negative"
+                )
+            target_points = np.asarray(target_local_points, dtype=np.float64).reshape(
+                -1, 3
+            )
             if not len(target_points) or not np.isfinite(target_points).all():
-                raise ValueError("target candidate-frame points must be finite and non-empty")
+                raise ValueError(
+                    "target candidate-frame points must be finite and non-empty"
+                )
 
             geometry = GripperGeometryAdapter.from_robot(
                 self._robot,
@@ -779,13 +827,19 @@ class GraspExecutor:
                 ("end", "assisted_grasp_end_points"),
             ):
                 by_arm = getattr(self._robot, attribute, {})
-                grasp_points = by_arm.get(self._arm, []) if isinstance(by_arm, dict) else []
+                grasp_points = (
+                    by_arm.get(self._arm, []) if isinstance(by_arm, dict) else []
+                )
                 candidate_x_values: list[float] = []
                 candidate_y_values: list[float] = []
                 point_records: list[dict[str, Any]] = []
                 for grasp_point in grasp_points or []:
                     link_name = str(getattr(grasp_point, "link_name", ""))
-                    link = robot_links.get(link_name) if isinstance(robot_links, dict) else None
+                    link = (
+                        robot_links.get(link_name)
+                        if isinstance(robot_links, dict)
+                        else None
+                    )
                     get_pose = getattr(link, "get_position_orientation", None)
                     if not callable(get_pose):
                         continue
@@ -813,7 +867,9 @@ class GraspExecutor:
                         }
                     )
                 if len(candidate_x_values) < 2:
-                    raise ValueError(f"{attribute} did not resolve two inner-line points")
+                    raise ValueError(
+                        f"{attribute} did not resolve two inner-line points"
+                    )
                 if not candidate_y_values:
                     raise ValueError(f"{attribute} did not resolve an inner-surface Y")
                 line_intervals[label] = [
@@ -828,13 +884,14 @@ class GraspExecutor:
             effective_min = common_min + margin
             effective_max = common_max - margin
             if not common_min < common_max or not effective_min < effective_max:
-                raise ValueError("finger inner grasp-line intervals have no usable intersection")
+                raise ValueError(
+                    "finger inner grasp-line intervals have no usable intersection"
+                )
 
             width = max(0.0, float(candidate.width))
             height = max(0.0, float(candidate.height))
-            cross_section_mask = (
-                (np.abs(target_points[:, 1]) < width / 2.0)
-                & (np.abs(target_points[:, 2]) < height / 2.0)
+            cross_section_mask = (np.abs(target_points[:, 1]) < width / 2.0) & (
+                np.abs(target_points[:, 2]) < height / 2.0
             )
             cross_section_x = target_points[cross_section_mask, 0]
             if len(cross_section_x):
@@ -1015,16 +1072,16 @@ class GraspExecutor:
                     "target_point_count": int(len(target_points)),
                     "target_cross_section_point_count": int(cross_section_mask.sum()),
                     "target_cross_section_x_bounds_m": (
-                        None
-                        if target_x_min is None
-                        else [target_x_min, target_x_max]
+                        None if target_x_min is None else [target_x_min, target_x_max]
                     ),
                     "target_points_in_inner_line_count": int(inner_mask.sum()),
                     "target_points_in_inner_line_fraction": float(
                         inner_mask.sum() / len(target_points)
                     ),
                     "target_inner_line_overlap_m": overlap_m,
-                    "target_inner_line_overlap_fraction": float(overlap_m / effective_span),
+                    "target_inner_line_overlap_fraction": float(
+                        overlap_m / effective_span
+                    ),
                     "inner_line_center_x_m": line_center,
                     "inner_line_center_straddled": bool(
                         target_x_min is not None
@@ -1102,7 +1159,9 @@ class GraspExecutor:
                 if isinstance(robot_links, dict) and eef_link_name is not None
                 else None
             )
-            if eef_link is not None and all(eef_link is not link for link in finger_links):
+            if eef_link is not None and all(
+                eef_link is not link for link in finger_links
+            ):
                 collision_links.append(("palm_or_eef", eef_link))
 
             def to_numpy(value: Any) -> np.ndarray:
@@ -1186,9 +1245,7 @@ class GraspExecutor:
                     "non_target_point_count": int(len(scene_points)),
                     "component_count": len(available_components),
                     "components": component_records,
-                    "non_target_points_in_any_component_aabb": int(
-                        union_inside.sum()
-                    ),
+                    "non_target_points_in_any_component_aabb": int(union_inside.sum()),
                     "non_target_fraction_in_any_component_aabb": float(
                         union_inside.mean()
                     ),
@@ -1224,7 +1281,11 @@ class GraspExecutor:
         ignored: list[Any] = []
         ignored_meshes = 0
         for obj in self._robot.scene.objects:
-            if obj is self._robot or obj is target_obj or getattr(obj, "visual_only", False):
+            if (
+                obj is self._robot
+                or obj is target_obj
+                or getattr(obj, "visual_only", False)
+            ):
                 continue
             distance: float | None = None
             try:
@@ -1250,8 +1311,7 @@ class GraspExecutor:
                 )
 
         logger.warning(
-            "AnyGrasp local CuRobo workspace radius=%.2f m ignored_objects=%d "
-            "ignored_meshes=%d",
+            "AnyGrasp local CuRobo workspace radius=%.2f m ignored_objects=%d ignored_meshes=%d",
             radius,
             len(ignored),
             ignored_meshes,
@@ -1272,12 +1332,13 @@ class GraspExecutor:
                 dtype=q_tensor.dtype,
                 device=q_tensor.device,
             )
-            action = th.zeros(robot.action_dim, dtype=q_tensor.dtype, device=q_tensor.device)
+            action = th.zeros(
+                robot.action_dim, dtype=q_tensor.dtype, device=q_tensor.device
+            )
             for name, controller in robot.controllers.items():
                 controller_type = type(controller).__name__
-                is_absolute_joint = (
-                    controller_type == "JointController"
-                    and not bool(getattr(controller, "use_delta_commands", False))
+                is_absolute_joint = controller_type == "JointController" and not bool(
+                    getattr(controller, "use_delta_commands", False)
                 )
                 if is_absolute_joint:
                     command = q_tensor[controller.dof_idx]
@@ -1332,7 +1393,10 @@ class GraspExecutor:
                     action = primitives._empty_action(follow_arm_targets=False)
                     action[action_idx] = command
                     yield primitives._postprocess_action(action)
-                    if limit_type == "lower" and primitives._get_obj_in_hand() is not None:
+                    if (
+                        limit_type == "lower"
+                        and primitives._get_obj_in_hand() is not None
+                    ):
                         return
                 return
 
@@ -1351,7 +1415,9 @@ class GraspExecutor:
                     return
                 if limit_type == "lower" and primitives._get_obj_in_hand() is not None:
                     return
-                command = 1.0 if float(th.mean(target_qpos - current_qpos)) >= 0.0 else -1.0
+                command = (
+                    1.0 if float(th.mean(target_qpos - current_qpos)) >= 0.0 else -1.0
+                )
                 action = primitives._empty_action(follow_arm_targets=False)
                 action[action_idx] = command
                 yield primitives._postprocess_action(action)
@@ -1472,7 +1538,9 @@ class GraspExecutor:
     ) -> tuple[np.ndarray, np.ndarray]:
         """Transform an AnyGrasp pose using the capture-time optical pose."""
         if camera_pose_world is None:
-            position, orientation = self._get_camera_pose(camera_sensor_name or "head_cam")
+            position, orientation = self._get_camera_pose(
+                camera_sensor_name or "head_cam"
+            )
             world_from_camera = _pose_to_matrix(position, orientation)
         else:
             world_from_camera = np.asarray(camera_pose_world, dtype=np.float64)
@@ -1612,20 +1680,29 @@ class GraspExecutor:
         from omnigibson import object_states
         from omnigibson.action_primitives.curobo import CuRoboEmbodimentSelection
 
+        try:
+            execute_motion_parameters = inspect.signature(
+                primitives._execute_motion_plan
+            ).parameters
+            supports_cartesian_tail_audit = (
+                "ignore_failure" in execute_motion_parameters
+            )
+        except (TypeError, ValueError):
+            supports_cartesian_tail_audit = False
+
         steps = 0
         pre_navigation_steps = 0
+        pre_navigation_carry_steps = 0
         placement_steps = 0
         release_steps = 0
         settle_steps = 0
         destination_name = getattr(target_obj, "name", None)
-        # ``_navigate_to_pose_direct`` targets the R1 base-footprint frame,
-        # while ``robot.get_position_orientation`` reports a root frame that
-        # is roughly 0.20 m behind it in this deployment.  A 0.75 m footprint
-        # standoff therefore left the placement hand target about 0.95 m from
-        # the reported robot root and was unreachable even for DEFAULT
-        # whole-body CuRobo.  0.45 m yields an observed root-to-target range
-        # around 0.65 m, matching the range already proven by grasp execution.
-        navigation_standoff_m = 0.45
+        # Keep enough clearance for the R1 base to turn and settle without
+        # contacting the workbench.  In the industrial cell, 0.45 m left the
+        # commanded base pose inside the collision-limited region; 0.70 m is
+        # reachable while still keeping the placement hand target within the
+        # arm workspace.
+        navigation_standoff_m = 0.70
         navigation_base_pose_world = None
         navigation_path_world = None
         navigation_candidate_count = 0
@@ -1651,6 +1728,8 @@ class GraspExecutor:
         drop_alignment_steps = 0
         placement_phase = "precondition"
         planning_attempts: list[dict[str, Any]] = []
+        carry_planning_attempts: list[dict[str, Any]] = []
+        carry_waypoints_world: list[dict[str, Any]] = []
         target_cell_aabb = None
         target_cell_audit: dict[str, Any] | None = None
         cell_pose_audits: list[dict[str, Any]] = []
@@ -1680,6 +1759,284 @@ class GraspExecutor:
                     target_cell_aabb[0][:2] + target_cell_aabb[1][:2]
                 ) / 2.0
 
+            # The grasp finishes with the arm close to its maximum horizontal
+            # reach. Holding those joint targets throughout base navigation
+            # preserves the grasp, but leaves no IK margin for a vertical
+            # clearance move at the destination. Before leaving the pickup
+            # workcell, retract and lift diagonally into a compact carry pose.
+            # This is both safer for a long tool during navigation and gives
+            # the placement planner usable elbow margin at the toolbox.
+            eef_link = getattr(self._robot, "eef_links", {}).get(self._arm)
+            get_eef_pose = getattr(eef_link, "get_position_orientation", None)
+            if callable(get_eef_pose):
+                carry_eef_pose = get_eef_pose()
+                carry_eef_pos = _as_numpy_vector(carry_eef_pose[0])
+                carry_eef_quat = _as_numpy_vector(
+                    carry_eef_pose[1], expected_size=4
+                )
+                carry_base_pos = _as_numpy_vector(
+                    self._robot.get_position_orientation()[0]
+                )
+                carry_object_aabb = _object_world_aabb(held_before)
+                if (
+                    carry_eef_pos is not None
+                    and carry_eef_quat is not None
+                    and carry_base_pos is not None
+                    and carry_object_aabb is not None
+                ):
+                    carry_relative_xy = carry_eef_pos[:2] - carry_base_pos[:2]
+                    carry_radius_m = float(np.linalg.norm(carry_relative_xy))
+                    compact_radius_m = 0.75
+                    if carry_radius_m > 0.88:
+                        carry_target_pos = carry_eef_pose[0].clone()
+                        carry_scale = compact_radius_m / carry_radius_m
+                        carry_target_pos[:2] = th.as_tensor(
+                            carry_base_pos[:2] + carry_relative_xy * carry_scale,
+                            dtype=carry_target_pos.dtype,
+                            device=carry_target_pos.device,
+                        )
+                        hand_to_object_bottom_m = max(
+                            0.0,
+                            float(carry_eef_pos[2] - carry_object_aabb[0][2]),
+                        )
+                        carry_target_pos[2] = max(
+                            float(carry_target_pos[2]),
+                            float(destination_max[2])
+                            + hand_to_object_bottom_m
+                            + 0.10,
+                        )
+                        carry_delta = carry_target_pos - carry_eef_pose[0]
+                        carry_distance_m = float(th.linalg.vector_norm(carry_delta))
+                        carry_count = max(
+                            1, int(math.ceil(carry_distance_m / 0.05))
+                        )
+                        carry_local_ignores = self._local_collision_ignore_objects(
+                            held_before
+                        )
+                        for ignored_obj in (held_before, target_obj):
+                            if all(
+                                ignored_obj is not item
+                                for item in carry_local_ignores
+                            ):
+                                carry_local_ignores.append(ignored_obj)
+                        carry_semantic_ignores = [
+                            obj
+                            for obj in self._robot.scene.objects
+                            if obj is not self._robot
+                        ]
+                        carry_profiles = (
+                            (
+                                CuRoboEmbodimentSelection.ARM,
+                                carry_local_ignores,
+                                "local_obstacles",
+                            ),
+                            (
+                                CuRoboEmbodimentSelection.DEFAULT,
+                                carry_local_ignores,
+                                "local_obstacles",
+                            ),
+                            (
+                                CuRoboEmbodimentSelection.ARM,
+                                carry_semantic_ignores,
+                                "semantic_carry_recovery",
+                            ),
+                            (
+                                CuRoboEmbodimentSelection.DEFAULT,
+                                carry_semantic_ignores,
+                                "semantic_carry_recovery",
+                            ),
+                        )
+                        carry_obstacle_profile = None
+                        for index in range(1, carry_count + 1):
+                            placement_phase = (
+                                f"plan_arm_compact_carry_{index}_of_{carry_count}"
+                            )
+                            carry_pose_pos = (
+                                carry_eef_pose[0]
+                                + carry_delta * index / carry_count
+                            )
+                            carry_segment = (
+                                f"arm_compact_carry_{index}_of_{carry_count}"
+                            )
+                            carry_waypoint_record = {
+                                "segment": carry_segment,
+                                "position": _as_numpy_vector(
+                                    carry_pose_pos
+                                ).tolist(),
+                                "orientation_xyzw": carry_eef_quat.tolist(),
+                            }
+                            carry_waypoints_world.append(carry_waypoint_record)
+                            trajectory = None
+                            last_carry_error: Exception | None = None
+                            for (
+                                embodiment,
+                                ignore_objects,
+                                collision_profile,
+                            ) in carry_profiles:
+                                planner_get_obj_in_hand = primitives._get_obj_in_hand
+                                try:
+                                    primitives._get_obj_in_hand = lambda: None
+                                    trajectory = primitives._plan_joint_motion(
+                                        target_pos={
+                                            self._robot.eef_link_names[self._arm]: (
+                                                carry_pose_pos
+                                            )
+                                        },
+                                        target_quat={
+                                            self._robot.eef_link_names[self._arm]: (
+                                                carry_eef_pose[1]
+                                            )
+                                        },
+                                        embodiment_selection=embodiment,
+                                        ignore_objects=ignore_objects,
+                                        skip_obstacle_update=(
+                                            carry_obstacle_profile
+                                            == collision_profile
+                                        ),
+                                    )
+                                except Exception as exc:
+                                    last_carry_error = exc
+                                    carry_planning_attempts.append(
+                                        {
+                                            "segment": carry_segment,
+                                            "embodiment": str(
+                                                getattr(
+                                                    embodiment,
+                                                    "value",
+                                                    embodiment,
+                                                )
+                                            ),
+                                            "collision_profile": collision_profile,
+                                            "success": False,
+                                            "error": (
+                                                f"{type(exc).__name__}: {exc}"
+                                            ),
+                                        }
+                                    )
+                                else:
+                                    carry_planning_attempts.append(
+                                        {
+                                            "segment": carry_segment,
+                                            "embodiment": str(
+                                                getattr(
+                                                    embodiment,
+                                                    "value",
+                                                    embodiment,
+                                                )
+                                            ),
+                                            "collision_profile": collision_profile,
+                                            "success": True,
+                                            "trajectory_steps": len(trajectory),
+                                        }
+                                    )
+                                    break
+                                finally:
+                                    primitives._get_obj_in_hand = (
+                                        planner_get_obj_in_hand
+                                    )
+                                    carry_obstacle_profile = collision_profile
+                            if trajectory is None:
+                                if last_carry_error is None:
+                                    raise RuntimeError(
+                                        "no CuRobo embodiment configured for "
+                                        f"{carry_segment}"
+                                    )
+                                raise last_carry_error
+                            placement_phase = (
+                                f"execute_arm_compact_carry_{index}_of_{carry_count}"
+                            )
+                            carry_execution_kwargs = (
+                                {"ignore_failure": True}
+                                if supports_cartesian_tail_audit
+                                else {}
+                            )
+                            for action in primitives._execute_motion_plan(
+                                trajectory,
+                                **carry_execution_kwargs,
+                            ):
+                                if action is not None:
+                                    steps += 1
+                                    pre_navigation_carry_steps += 1
+                                    yield action
+                            attachment_same = (
+                                primitives._get_obj_in_hand() is held_before
+                            )
+                            if supports_cartesian_tail_audit:
+                                actual_carry_pose = get_eef_pose()
+                                actual_carry_pos = _as_numpy_vector(
+                                    actual_carry_pose[0]
+                                )
+                                actual_carry_quat = _as_numpy_vector(
+                                    actual_carry_pose[1], expected_size=4
+                                )
+                                target_carry_pos = _as_numpy_vector(carry_pose_pos)
+                                position_error_m = (
+                                    None
+                                    if actual_carry_pos is None
+                                    or target_carry_pos is None
+                                    else float(
+                                        np.linalg.norm(
+                                            actual_carry_pos - target_carry_pos
+                                        )
+                                    )
+                                )
+                                orientation_error_deg = (
+                                    None
+                                    if actual_carry_quat is None
+                                    else math.degrees(
+                                        _quat_shortest_angle_rad_xyzw(
+                                            actual_carry_quat,
+                                            carry_eef_quat,
+                                        )
+                                    )
+                                )
+                                carry_waypoint_record.update(
+                                    {
+                                        "actual_position": (
+                                            None
+                                            if actual_carry_pos is None
+                                            else actual_carry_pos.tolist()
+                                        ),
+                                        "actual_orientation_xyzw": (
+                                            None
+                                            if actual_carry_quat is None
+                                            else actual_carry_quat.tolist()
+                                        ),
+                                        "position_error_m": position_error_m,
+                                        "orientation_error_deg": (
+                                            orientation_error_deg
+                                        ),
+                                        "attachment_same": attachment_same,
+                                        "cartesian_tail_audit_passed": bool(
+                                            position_error_m is not None
+                                            and position_error_m <= 0.025
+                                            and orientation_error_deg is not None
+                                            and orientation_error_deg <= 6.0
+                                            and attachment_same
+                                        ),
+                                    }
+                                )
+                                if not carry_waypoint_record[
+                                    "cartesian_tail_audit_passed"
+                                ]:
+                                    raise RuntimeError(
+                                        "compact carry Cartesian tail audit failed: "
+                                        f"{carry_waypoint_record}"
+                                    )
+                            if not attachment_same:
+                                raise RuntimeError(
+                                    "held-object attachment changed during carry "
+                                    "posture transition"
+                                )
+                        logger.warning(
+                            "PLACE_INSIDE compact carry radius %.3f->%.3f m "
+                            "waypoints=%d target=%s",
+                            carry_radius_m,
+                            compact_radius_m,
+                            carry_count,
+                            carry_waypoints_world[-1],
+                        )
+
             def build_deterministic_cell_pose(phase: str) -> Any:
                 if target_cell_aabb is None:
                     raise RuntimeError("deterministic cell pose requires cell bounds")
@@ -1691,7 +2048,9 @@ class GraspExecutor:
                     current_quaternion, expected_size=4
                 )
                 if current_position_np is None or current_quaternion_np is None:
-                    raise RuntimeError("held-object pose is unavailable for cell alignment")
+                    raise RuntimeError(
+                        "held-object pose is unavailable for cell alignment"
+                    )
                 boundary_points = self.target_collision_boundary_points_world(
                     held_before
                 )
@@ -1701,9 +2060,7 @@ class GraspExecutor:
                 centered_xy = boundary_points[:, :2] - np.mean(
                     boundary_points[:, :2], axis=0
                 )
-                covariance = centered_xy.T @ centered_xy / max(
-                    1, len(centered_xy) - 1
-                )
+                covariance = centered_xy.T @ centered_xy / max(1, len(centered_xy) - 1)
                 eigenvalues, eigenvectors = np.linalg.eigh(covariance)
                 major_axis = eigenvectors[:, int(np.argmax(eigenvalues))]
                 current_major_angle = math.atan2(
@@ -1716,8 +2073,7 @@ class GraspExecutor:
                 # the smallest yaw that aligns the long tool with the long
                 # dimension of the requested cell.
                 yaw_delta = (
-                    (target_major_angle - current_major_angle + math.pi / 2.0)
-                    % math.pi
+                    (target_major_angle - current_major_angle + math.pi / 2.0) % math.pi
                 ) - math.pi / 2.0
                 cosine = math.cos(yaw_delta)
                 sine = math.sin(yaw_delta)
@@ -1744,9 +2100,7 @@ class GraspExecutor:
                 target_geometry_center = geometry_center.copy()
                 target_geometry_center[:2] = cell_center[:2]
                 target_geometry_center[2] = (
-                    target_cell_aabb[0][2]
-                    + predicted_span[2] / 2.0
-                    + 0.015
+                    target_cell_aabb[0][2] + predicted_span[2] / 2.0 + 0.015
                 )
                 origin_to_geometry_center = geometry_center - current_position_np
                 rotated_origin_offset = yaw_rotation @ origin_to_geometry_center
@@ -1810,9 +2164,7 @@ class GraspExecutor:
                 desired_object_pose[1], expected_size=4
             )
             desired_hand_pos = _as_numpy_vector(desired_hand_pose[0])
-            desired_hand_quat = _as_numpy_vector(
-                desired_hand_pose[1], expected_size=4
-            )
+            desired_hand_quat = _as_numpy_vector(desired_hand_pose[1], expected_size=4)
             if any(
                 value is None
                 for value in (
@@ -1837,15 +2189,15 @@ class GraspExecutor:
                 placement_hand_pose_world,
             )
             preplace_pos = desired_hand_pose[0].clone()
-            object_aabb_for_clearance = _object_world_aabb(held_before)
-            if object_aabb_for_clearance is not None:
-                object_height = float(object_aabb_for_clearance[1][2] - object_aabb_for_clearance[0][2])
-                clearance_offset = max(0.10, object_height + 0.05)
-            else:
-                clearance_offset = 0.30
+            hand_offset_z = float(
+                desired_hand_pose[0][2] - desired_object_pose[0][2]
+            )
+            clearance_offset_z = (
+                hand_offset_z + 0.10 if target_cell_aabb is not None else 0.10
+            )
             preplace_pos[2] = max(
                 float(preplace_pos[2]),
-                float(destination_max[2]) + clearance_offset,
+                float(destination_max[2]) + clearance_offset_z,
             )
             preplace_pose = (preplace_pos, desired_hand_pose[1])
             preplace_hand_pose_world = {
@@ -1861,9 +2213,7 @@ class GraspExecutor:
             # its radial standoff is correct.  A* selects a collision-free
             # side and supplies waypoints around the worktop without a global
             # CuRobo obstacle rebuild.
-            base_position = _as_numpy_vector(
-                self._robot.get_position_orientation()[0]
-            )
+            base_position = _as_numpy_vector(self._robot.get_position_orientation()[0])
             if base_position is None:
                 raise RuntimeError("robot base position is unavailable")
             approach_direction = base_position[:2] - destination_center_xy
@@ -1872,7 +2222,9 @@ class GraspExecutor:
                 approach_direction = np.array([1.0, 0.0], dtype=np.float64)
             else:
                 approach_direction /= approach_norm
-            navigation_xy = destination_center_xy + approach_direction * navigation_standoff_m
+            navigation_xy = (
+                destination_center_xy + approach_direction * navigation_standoff_m
+            )
             scene = getattr(self._robot, "scene", None)
             get_shortest_path = getattr(scene, "get_shortest_path", None)
             best_navigation = None
@@ -1896,9 +2248,7 @@ class GraspExecutor:
                 map_to_world = getattr(trav_map, "map_to_world", None)
                 raw_map_available = False
                 raw_clearance_map = None
-                trav_map_resolution_m = float(
-                    getattr(trav_map, "map_resolution", 0.1)
-                )
+                trav_map_resolution_m = float(getattr(trav_map, "map_resolution", 0.1))
                 if (
                     floor_maps is not None
                     and callable(world_to_map)
@@ -1915,11 +2265,14 @@ class GraspExecutor:
                         cpu = getattr(floor_map_tensor, "cpu", None)
                         floor_map_cpu = cpu() if callable(cpu) else floor_map_tensor
                         floor_map = np.asarray(floor_map_cpu)
-                        raw_clearance_map = cv2.distanceTransform(
-                            (floor_map == 255).astype(np.uint8),
-                            cv2.DIST_L2,
-                            5,
-                        ) * trav_map_resolution_m
+                        raw_clearance_map = (
+                            cv2.distanceTransform(
+                                (floor_map == 255).astype(np.uint8),
+                                cv2.DIST_L2,
+                                5,
+                            )
+                            * trav_map_resolution_m
+                        )
                         # The raw map's shortest path can skim worktop corners.
                         # A 7x7 kernel still admitted an approximately 0.30 m
                         # clearance turn where the R1 stalled while sweeping a
@@ -1957,9 +2310,13 @@ class GraspExecutor:
                         )
                         for radius in raw_candidate_radii:
                             for angle in raw_candidate_angles:
-                                candidate_xy = destination_center_xy + radius * np.array(
-                                    [math.cos(angle), math.sin(angle)],
-                                    dtype=np.float64,
+                                candidate_xy = (
+                                    destination_center_xy
+                                    + radius
+                                    * np.array(
+                                        [math.cos(angle), math.sin(angle)],
+                                        dtype=np.float64,
+                                    )
                                 )
                                 navigation_candidate_count += 1
                                 map_point = np.asarray(
@@ -1998,7 +2355,9 @@ class GraspExecutor:
                                 path_world = map_to_world(path_map)
                                 path_np = np.asarray(path_world, dtype=np.float64)
                                 distance_value = float(
-                                    np.linalg.norm(path_np[1:] - path_np[:-1], axis=1).sum()
+                                    np.linalg.norm(
+                                        path_np[1:] - path_np[:-1], axis=1
+                                    ).sum()
                                 )
                                 best_navigation = (
                                     raw_candidate[0],
@@ -2045,12 +2404,15 @@ class GraspExecutor:
                                         row, col = int(map_point[0]), int(map_point[1])
                                         clearance_cells = 2
                                         patch = floor_map[
-                                            row - clearance_cells : row + clearance_cells + 1,
-                                            col - clearance_cells : col + clearance_cells + 1,
+                                            row - clearance_cells : row
+                                            + clearance_cells
+                                            + 1,
+                                            col - clearance_cells : col
+                                            + clearance_cells
+                                            + 1,
                                         ]
-                                        clearance_ok = (
-                                            patch.shape == (5, 5)
-                                            and bool(np.all(patch == 255))
+                                        clearance_ok = patch.shape == (5, 5) and bool(
+                                            np.all(patch == 255)
                                         )
                                     except Exception:
                                         clearance_ok = False
@@ -2076,7 +2438,9 @@ class GraspExecutor:
                                 geodesic_distance = None
                             if path is not None:
                                 break
-                        path_np = None if path is None else np.asarray(path, dtype=np.float64)
+                        path_np = (
+                            None if path is None else np.asarray(path, dtype=np.float64)
+                        )
                         if path_np is None or path_np.ndim != 2 or len(path_np) == 0:
                             continue
                         distance_value = float(geodesic_distance)
@@ -2104,13 +2468,13 @@ class GraspExecutor:
                 if (
                     raw_clearance_map is not None
                     and callable(world_to_map)
-                    and navigation_standoff_m > 0.65
+                    and navigation_standoff_m > 0.70
                 ):
                     terminal_direction = navigation_xy - destination_center_xy
                     terminal_norm = float(np.linalg.norm(terminal_direction))
                     if terminal_norm > 1e-6:
                         terminal_xy = destination_center_xy + (
-                            terminal_direction / terminal_norm * 0.65
+                            terminal_direction / terminal_norm * 0.70
                         )
                         terminal_map = np.asarray(
                             world_to_map(terminal_xy), dtype=np.int64
@@ -2128,7 +2492,7 @@ class GraspExecutor:
                                     np.linalg.norm(terminal_xy - navigation_xy)
                                 )
                                 navigation_xy = terminal_xy
-                                navigation_standoff_m = 0.65
+                                navigation_standoff_m = 0.70
                                 navigation_mode += "_terminal_approach"
                 navigation_geodesic_distance_m = distance_value
                 # ``_navigate_to_pose_direct`` is a straight-line velocity
@@ -2146,9 +2510,15 @@ class GraspExecutor:
                         and float(np.linalg.norm(point_xy - base_position[:2])) < 0.15
                     ):
                         continue
-                    if not sparse_path or float(np.linalg.norm(point_xy - sparse_path[-1])) >= 1e-4:
+                    if (
+                        not sparse_path
+                        or float(np.linalg.norm(point_xy - sparse_path[-1])) >= 1e-4
+                    ):
                         sparse_path.append(point_xy)
-                if not sparse_path or float(np.linalg.norm(navigation_xy - sparse_path[-1])) > 1e-4:
+                if (
+                    not sparse_path
+                    or float(np.linalg.norm(navigation_xy - sparse_path[-1])) > 1e-4
+                ):
                     sparse_path.append(np.asarray(navigation_xy, dtype=np.float64))
                 navigation_path_world = [point.tolist() for point in sparse_path]
             else:
@@ -2222,15 +2592,15 @@ class GraspExecutor:
                 "orientation_xyzw": desired_hand_quat.tolist(),
             }
             preplace_pos = desired_hand_pose[0].clone()
-            object_aabb_for_clearance = _object_world_aabb(held_before)
-            if object_aabb_for_clearance is not None:
-                object_height = float(object_aabb_for_clearance[1][2] - object_aabb_for_clearance[0][2])
-                clearance_offset = max(0.10, object_height + 0.05)
-            else:
-                clearance_offset = 0.30
+            hand_offset_z = float(
+                desired_hand_pose[0][2] - desired_object_pose[0][2]
+            )
+            clearance_offset_z = (
+                hand_offset_z + 0.10 if target_cell_aabb is not None else 0.10
+            )
             preplace_pos[2] = max(
                 float(preplace_pos[2]),
-                float(destination_max[2]) + clearance_offset,
+                float(destination_max[2]) + clearance_offset_z,
             )
             preplace_pose = (preplace_pos, desired_hand_pose[1])
             preplace_hand_pose_world = {
@@ -2238,8 +2608,7 @@ class GraspExecutor:
                 "orientation_xyzw": desired_hand_quat.tolist(),
             }
             logger.warning(
-                "PLACE_INSIDE selected object_pose=%s hand_pose=%s "
-                "approach_hand_xy_m=%.4f",
+                "PLACE_INSIDE selected object_pose=%s hand_pose=%s approach_hand_xy_m=%.4f",
                 sampled_object_pose_world,
                 placement_hand_pose_world,
                 best_pose_distance,
@@ -2278,8 +2647,8 @@ class GraspExecutor:
             # ask every non-base controller for its true current-state no-op.
             original_empty_action = getattr(primitives, "_empty_action", None)
             if callable(original_empty_action):
-                primitives._empty_action = lambda *args, **kwargs: original_empty_action(
-                    follow_arm_targets=False
+                primitives._empty_action = lambda *args, **kwargs: (
+                    original_empty_action(follow_arm_targets=False)
                 )
                 navigation_arm_hold_mode = "current_joint_no_op"
 
@@ -2300,19 +2669,22 @@ class GraspExecutor:
             )
             postprocess_action = getattr(primitives, "_postprocess_action", None)
             rotate_in_place = getattr(primitives, "_rotate_in_place", None)
-            base_action_index = getattr(
-                self._robot, "controller_action_idx", {}
-            ).get("base")
-            use_holonomic_carry_navigation = all(
-                callable(value)
-                for value in (
-                    get_robot_pose_from_2d,
-                    world_pose_to_robot_pose,
-                    postprocess_action,
-                    rotate_in_place,
-                    original_empty_action,
+            base_action_index = getattr(self._robot, "controller_action_idx", {}).get(
+                "base"
+            )
+            use_holonomic_carry_navigation = (
+                all(
+                    callable(value)
+                    for value in (
+                        get_robot_pose_from_2d,
+                        world_pose_to_robot_pose,
+                        postprocess_action,
+                        rotate_in_place,
+                        original_empty_action,
+                    )
                 )
-            ) and base_action_index is not None
+                and base_action_index is not None
+            )
 
             def navigate_holonomic_carry_pose(
                 pose_2d: Any,
@@ -2320,9 +2692,7 @@ class GraspExecutor:
                 final_waypoint: bool,
             ) -> Generator[Any, None, None]:
                 current_pose = self._robot.get_position_orientation()
-                current_quat = _as_numpy_vector(
-                    current_pose[1], expected_size=4
-                )
+                current_quat = _as_numpy_vector(current_pose[1], expected_size=4)
                 if current_quat is None:
                     raise RuntimeError(
                         "robot orientation unavailable during carry navigation"
@@ -2354,9 +2724,7 @@ class GraspExecutor:
                         raise RuntimeError(
                             "holonomic carry navigation requires a 3-DoF base action"
                         )
-                    speed_mps = float(
-                        np.clip(1.2 * distance_m, 0.08, 0.25)
-                    )
+                    speed_mps = float(np.clip(1.2 * distance_m, 0.08, 0.25))
                     direction = local_delta[:2] / max(distance_m, 1e-9)
                     base_action[0] = float(direction[0] * speed_mps)
                     base_action[1] = float(direction[1] * speed_mps)
@@ -2427,10 +2795,7 @@ class GraspExecutor:
             for alignment_index in range(2):
                 current_object_aabb = _object_world_aabb(held_before)
                 current_destination_aabb = _object_world_aabb(target_obj)
-                if (
-                    current_object_aabb is None
-                    or current_destination_aabb is None
-                ):
+                if current_object_aabb is None or current_destination_aabb is None:
                     break
                 alignment_target_aabb = (
                     target_cell_aabb
@@ -2455,9 +2820,7 @@ class GraspExecutor:
                 if not can_fit or correction_norm_m <= 0.002:
                     break
                 if correction_norm_m > maximum_alignment_m:
-                    attempt_evidence["refused_reason"] = (
-                        "correction_exceeds_safe_limit"
-                    )
+                    attempt_evidence["refused_reason"] = "correction_exceeds_safe_limit"
                     break
 
                 robot_pose_before_alignment = self._robot.get_position_orientation()
@@ -2478,10 +2841,8 @@ class GraspExecutor:
                 attempt_evidence["target_base_pose_xyyaw"] = alignment_pose.tolist()
                 original_empty_action = getattr(primitives, "_empty_action", None)
                 if callable(original_empty_action):
-                    primitives._empty_action = (
-                        lambda *args, **kwargs: original_empty_action(
-                            follow_arm_targets=False
-                        )
+                    primitives._empty_action = lambda *args, **kwargs: (
+                        original_empty_action(follow_arm_targets=False)
                     )
                 try:
                     for action in navigate_direct(alignment_pose, low_precision=False):
@@ -2513,14 +2874,10 @@ class GraspExecutor:
             # semantic Inside predicate and final AABB containment remains the
             # hard acceptance criterion.
             if target_cell_aabb is not None:
-                desired_object_pose = build_deterministic_cell_pose(
-                    "post_navigation"
-                )
+                desired_object_pose = build_deterministic_cell_pose("post_navigation")
                 placement_orientation_mode = "cell_principal_axis_alignment"
             else:
-                get_held_pose = getattr(
-                    held_before, "get_position_orientation", None
-                )
+                get_held_pose = getattr(held_before, "get_position_orientation", None)
                 if callable(get_held_pose):
                     held_pose_after_navigation = get_held_pose()
                     desired_object_pose = (
@@ -2546,9 +2903,7 @@ class GraspExecutor:
                 desired_object_pose[1], expected_size=4
             )
             desired_hand_pos = _as_numpy_vector(desired_hand_pose[0])
-            desired_hand_quat = _as_numpy_vector(
-                desired_hand_pose[1], expected_size=4
-            )
+            desired_hand_quat = _as_numpy_vector(desired_hand_pose[1], expected_size=4)
             if any(
                 value is None
                 for value in (
@@ -2568,15 +2923,15 @@ class GraspExecutor:
                 "orientation_xyzw": desired_hand_quat.tolist(),
             }
             preplace_pos = desired_hand_pose[0].clone()
-            object_aabb_for_clearance = _object_world_aabb(held_before)
-            if object_aabb_for_clearance is not None:
-                object_height = float(object_aabb_for_clearance[1][2] - object_aabb_for_clearance[0][2])
-                clearance_offset = max(0.10, object_height + 0.05)
-            else:
-                clearance_offset = 0.30
+            hand_offset_z = float(
+                desired_hand_pose[0][2] - desired_object_pose[0][2]
+            )
+            clearance_offset_z = (
+                hand_offset_z + 0.10 if target_cell_aabb is not None else 0.10
+            )
             preplace_pos[2] = max(
                 float(preplace_pos[2]),
-                float(destination_max[2]) + clearance_offset,
+                float(destination_max[2]) + clearance_offset_z,
             )
             preplace_pose = (preplace_pos, desired_hand_pose[1])
             preplace_hand_pose_world = {
@@ -2628,9 +2983,27 @@ class GraspExecutor:
                         else eef_quat_before_plan.tolist()
                     ),
                 }
+            object_aabb_for_clearance = _object_world_aabb(held_before)
+            if (
+                target_cell_aabb is not None
+                and eef_pose_before_plan is not None
+                and eef_pos_before_plan is not None
+                and object_aabb_for_clearance is not None
+            ):
+                hand_to_object_bottom_m = max(
+                    0.0,
+                    float(eef_pos_before_plan[2] - object_aabb_for_clearance[0][2]),
+                )
+                preplace_pos[2] = max(
+                    float(preplace_pos[2]),
+                    float(destination_max[2]) + hand_to_object_bottom_m + 0.10,
+                )
+                preplace_pose = (preplace_pos, desired_hand_pose[1])
+                preplace_hand_pose_world["position"] = _as_numpy_vector(
+                    preplace_pos
+                ).tolist()
             logger.warning(
-                "PLACE_INSIDE preplace_pose=%s base_to_hand_xy_m=%s "
-                "base_pose=%s eef_pose=%s",
+                "PLACE_INSIDE preplace_pose=%s base_to_hand_xy_m=%s base_pose=%s eef_pose=%s",
                 preplace_hand_pose_world,
                 (
                     None
@@ -2657,10 +3030,7 @@ class GraspExecutor:
                 obj for obj in self._robot.scene.objects if obj is not self._robot
             ]
             for ignored_obj in (held_before, target_obj):
-                if all(
-                    ignored_obj is not item
-                    for item in semantic_top_entry_ignores
-                ):
+                if all(ignored_obj is not item for item in semantic_top_entry_ignores):
                     semantic_top_entry_ignores.append(ignored_obj)
 
             # If base navigation has already carried the object directly over
@@ -2678,29 +3048,21 @@ class GraspExecutor:
                 else destination_aabb_before_drop
             )
             gravity_drop_ready = False
-            if (
-                object_aabb_before_drop is not None
-                and drop_target_aabb is not None
-            ):
+            if object_aabb_before_drop is not None and drop_target_aabb is not None:
                 object_min_drop, object_max_drop = object_aabb_before_drop
                 destination_min_drop, destination_max_drop = drop_target_aabb
                 wall_margin_m = 0.005
                 xy_contained_before_drop = bool(
                     np.all(
-                        object_min_drop[:2]
-                        >= destination_min_drop[:2] + wall_margin_m
+                        object_min_drop[:2] >= destination_min_drop[:2] + wall_margin_m
                     )
                     and np.all(
-                        object_max_drop[:2]
-                        <= destination_max_drop[:2] - wall_margin_m
+                        object_max_drop[:2] <= destination_max_drop[:2] - wall_margin_m
                     )
                 )
-                drop_height_m = float(
-                    object_min_drop[2] - destination_max_drop[2]
-                )
+                drop_height_m = float(object_min_drop[2] - destination_max_drop[2])
                 gravity_drop_ready = bool(
-                    xy_contained_before_drop
-                    and -0.02 <= drop_height_m <= 0.35
+                    xy_contained_before_drop and -0.02 <= drop_height_m <= 0.35
                 )
                 pre_release_drop_evidence = {
                     "xy_contained_with_margin": xy_contained_before_drop,
@@ -2755,50 +3117,88 @@ class GraspExecutor:
             # A single 0.4--0.6 m Cartesian displacement can have a valid
             # endpoint IK solution yet fail CuRobo's trajectory search from
             # the post-navigation joint state.  Build short, auditable
-            # waypoints instead: lift in place to clear the worktop, translate
-            # over the opening, then descend in small increments.  All poses
-            # retain the exact post-navigation grasp orientation.
+            # waypoints instead: retract and lift together while retaining
+            # the current grasp orientation, reorient only after leaving the
+            # near-maximum-reach posture, then descend in small increments.
+            # Changing the wrist orientation or requesting a pure vertical
+            # move at maximum reach failed IK in real Isaac / CuRobo runs.
             placement_segments: list[tuple[str, Any, Any]] = []
             current_pos = (
                 eef_pose_before_plan[0].clone()
                 if eef_pose_before_plan is not None
                 else preplace_pose[0].clone()
             )
-            waypoint_quat = desired_hand_pose[1].clone()
-            clearance_z = float(preplace_pose[0][2])
-            lift_delta = max(0.0, clearance_z - float(current_pos[2]))
-            lift_count = (
-                max(1, int(math.ceil(lift_delta / 0.18)))
-                if lift_delta > 1e-4
-                else 0
+            current_waypoint_quat = (
+                eef_pose_before_plan[1].clone()
+                if eef_pose_before_plan is not None
+                else desired_hand_pose[1].clone()
             )
-            for index in range(1, lift_count + 1):
-                pose_pos = current_pos.clone()
-                pose_pos[2] = float(current_pos[2]) + lift_delta * index / lift_count
-                placement_segments.append(
-                    (
-                        f"arm_lift_clearance_{index}_of_{lift_count}",
-                        (pose_pos, waypoint_quat.clone()),
-                        standard_profiles,
-                    )
+            desired_waypoint_quat = desired_hand_pose[1].clone()
+            # At a stretched posture, a pure vertical request can be outside
+            # the arm's instantaneous reachable direction even when both the
+            # start and final poses are valid. Retract toward the opening and
+            # lift at the same time, giving the elbow margin on every short
+            # Cartesian segment. Grid-cell placement uses finer segments
+            # because a long industrial tool is close to the bin wall.
+            clearance_delta = preplace_pose[0] - current_pos
+            clearance_distance = float(th.linalg.vector_norm(clearance_delta))
+            clearance_segment_max_m = (
+                0.05 if target_cell_aabb is not None else 0.18
+            )
+            clearance_count = max(
+                1,
+                int(math.ceil(clearance_distance / clearance_segment_max_m)),
+            )
+            for index in range(1, clearance_count + 1):
+                pose_pos = (
+                    current_pos + clearance_delta * index / clearance_count
                 )
-
-            translate_start = current_pos.clone()
-            translate_start[2] = clearance_z
-            translate_delta = preplace_pose[0] - translate_start
-            translate_distance = float(th.linalg.vector_norm(translate_delta[:2]))
-            translate_count = max(1, int(math.ceil(translate_distance / 0.18)))
-            for index in range(1, translate_count + 1):
-                pose_pos = translate_start + translate_delta * index / translate_count
                 segment_name = (
                     "arm_above_opening"
-                    if index == translate_count
-                    else f"arm_translate_clearance_{index}_of_{translate_count}"
+                    if index == clearance_count
+                    else (
+                        f"arm_retract_lift_clearance_{index}_of_"
+                        f"{clearance_count}"
+                    )
                 )
                 placement_segments.append(
                     (
                         segment_name,
-                        (pose_pos, waypoint_quat.clone()),
+                        (pose_pos, current_waypoint_quat.clone()),
+                        standard_profiles,
+                    )
+                )
+
+            reorient_position = preplace_pose[0].clone()
+            current_quat_np = _as_numpy_vector(current_waypoint_quat, expected_size=4)
+            desired_quat_np = _as_numpy_vector(desired_waypoint_quat, expected_size=4)
+            reorient_angle_rad = _quat_shortest_angle_rad_xyzw(
+                current_quat_np, desired_quat_np
+            )
+            reorient_count = (
+                max(
+                    1,
+                    int(math.ceil(reorient_angle_rad / math.radians(25.0))),
+                )
+                if reorient_angle_rad > math.radians(2.0)
+                else 0
+            )
+            for index in range(1, reorient_count + 1):
+                interpolated_quat = _quat_slerp_xyzw(
+                    current_quat_np,
+                    desired_quat_np,
+                    index / reorient_count,
+                )
+                pose_quat = desired_waypoint_quat.clone()
+                pose_quat[:] = th.as_tensor(
+                    interpolated_quat,
+                    dtype=pose_quat.dtype,
+                    device=pose_quat.device,
+                )
+                placement_segments.append(
+                    (
+                        f"arm_reorient_clearance_{index}_of_{reorient_count}",
+                        (reorient_position.clone(), pose_quat),
                         standard_profiles,
                     )
                 )
@@ -2820,7 +3220,7 @@ class GraspExecutor:
                 placement_segments.append(
                     (
                         segment_name,
-                        (pose_pos, waypoint_quat.clone()),
+                        (pose_pos, desired_waypoint_quat.clone()),
                         descend_profiles,
                     )
                 )
@@ -2835,6 +3235,10 @@ class GraspExecutor:
                 }
                 for segment_name, pose, _ in placement_segments
             ]
+            placement_waypoint_records = {
+                record["segment"]: record
+                for record in placement_waypoints_world
+            }
             if gravity_drop_ready:
                 placement_strategy = "guarded_gravity_drop"
                 placement_segments = []
@@ -2855,7 +3259,9 @@ class GraspExecutor:
                         primitives._get_obj_in_hand = lambda: None
                         trajectory = primitives._plan_joint_motion(
                             target_pos={self._robot.eef_link_names[self._arm]: pose[0]},
-                            target_quat={self._robot.eef_link_names[self._arm]: pose[1]},
+                            target_quat={
+                                self._robot.eef_link_names[self._arm]: pose[1]
+                            },
                             embodiment_selection=embodiment,
                             ignore_objects=ignore_objects,
                             skip_obstacle_update=(
@@ -2898,13 +3304,89 @@ class GraspExecutor:
                         )
                     raise last_planning_error
                 if primitives._get_obj_in_hand() is not held_before:
-                    raise RuntimeError("held-object attachment changed during placement")
+                    raise RuntimeError(
+                        "held-object attachment changed during placement"
+                    )
                 placement_phase = f"execute_{segment_name}"
-                for action in primitives._execute_motion_plan(trajectory):
+                placement_execution_kwargs = (
+                    {"ignore_failure": True}
+                    if supports_cartesian_tail_audit
+                    else {}
+                )
+                for action in primitives._execute_motion_plan(
+                    trajectory,
+                    **placement_execution_kwargs,
+                ):
                     if action is not None:
                         steps += 1
                         placement_steps += 1
                         yield action
+                if supports_cartesian_tail_audit:
+                    actual_segment_pose = get_eef_pose()
+                    actual_segment_pos = _as_numpy_vector(
+                        actual_segment_pose[0]
+                    )
+                    actual_segment_quat = _as_numpy_vector(
+                        actual_segment_pose[1], expected_size=4
+                    )
+                    target_segment_pos = _as_numpy_vector(pose[0])
+                    target_segment_quat = _as_numpy_vector(
+                        pose[1], expected_size=4
+                    )
+                    position_error_m = (
+                        None
+                        if actual_segment_pos is None
+                        or target_segment_pos is None
+                        else float(
+                            np.linalg.norm(
+                                actual_segment_pos - target_segment_pos
+                            )
+                        )
+                    )
+                    orientation_error_deg = (
+                        None
+                        if actual_segment_quat is None
+                        or target_segment_quat is None
+                        else math.degrees(
+                            _quat_shortest_angle_rad_xyzw(
+                                actual_segment_quat,
+                                target_segment_quat,
+                            )
+                        )
+                    )
+                    segment_attachment_same = (
+                        primitives._get_obj_in_hand() is held_before
+                    )
+                    segment_record = placement_waypoint_records[segment_name]
+                    segment_record.update(
+                        {
+                            "actual_position": (
+                                None
+                                if actual_segment_pos is None
+                                else actual_segment_pos.tolist()
+                            ),
+                            "actual_orientation_xyzw": (
+                                None
+                                if actual_segment_quat is None
+                                else actual_segment_quat.tolist()
+                            ),
+                            "position_error_m": position_error_m,
+                            "orientation_error_deg": orientation_error_deg,
+                            "attachment_same": segment_attachment_same,
+                            "cartesian_tail_audit_passed": bool(
+                                position_error_m is not None
+                                and position_error_m <= 0.025
+                                and orientation_error_deg is not None
+                                and orientation_error_deg <= 5.0
+                                and segment_attachment_same
+                            ),
+                        }
+                    )
+                    if not segment_record["cartesian_tail_audit_passed"]:
+                        raise RuntimeError(
+                            "placement Cartesian tail audit failed: "
+                            f"{segment_record}"
+                        )
 
             placement_phase = "release"
             for action in primitives._execute_release():
@@ -2923,7 +3405,9 @@ class GraspExecutor:
             released = remaining is None
             object_aabb = _object_world_aabb(held_before)
             destination_aabb = _object_world_aabb(target_obj)
-            containment_available = object_aabb is not None and destination_aabb is not None
+            containment_available = (
+                object_aabb is not None and destination_aabb is not None
+            )
             aabb_contained = (
                 _aabb_contains(object_aabb, destination_aabb, margin_m=0.001)
                 if containment_available
@@ -2937,23 +3421,24 @@ class GraspExecutor:
                 if cell_containment_available
                 else None
             )
-            placement_verified = released and (
-                not containment_available or bool(aabb_contained)
-            ) and (
-                not cell_containment_available or bool(cell_aabb_contained)
+            placement_verified = (
+                released
+                and (not containment_available or bool(aabb_contained))
+                and (not cell_containment_available or bool(cell_aabb_contained))
             )
             evidence = {
                 "placement_mode": "place_inside",
                 "destination_object": destination_name,
+                "pre_navigation_carry_steps": pre_navigation_carry_steps,
+                "carry_planning_attempts": carry_planning_attempts,
+                "carry_waypoints_world": carry_waypoints_world,
                 "pre_navigation_steps": pre_navigation_steps,
                 "pre_navigation_mode": navigation_mode,
                 "pre_navigation_base_pose_world": navigation_base_pose_world,
                 "pre_navigation_standoff_m": navigation_standoff_m,
                 "pre_navigation_path_world": navigation_path_world,
                 "pre_navigation_candidate_count": navigation_candidate_count,
-                "pre_navigation_geodesic_distance_m": (
-                    navigation_geodesic_distance_m
-                ),
+                "pre_navigation_geodesic_distance_m": (navigation_geodesic_distance_m),
                 "pre_navigation_last_waypoint_index": navigation_waypoint_index,
                 "pre_navigation_last_waypoint_pose_world": (
                     navigation_waypoint_pose_world
@@ -3001,9 +3486,7 @@ class GraspExecutor:
                 "cell_axis_convention": (
                     {
                         "indexing": target_cell_audit["indexing"],
-                        "column_axis_world": target_cell_audit[
-                            "column_axis_world"
-                        ],
+                        "column_axis_world": target_cell_audit["column_axis_world"],
                         "row_axis_world": target_cell_audit["row_axis_world"],
                         "cell_margin_m": target_cell_audit["cell_margin_m"],
                     }
@@ -3039,8 +3522,7 @@ class GraspExecutor:
                         if not released
                         else (
                             "object AABB is not contained by requested grid cell"
-                            if cell_containment_available
-                            and not cell_aabb_contained
+                            if cell_containment_available and not cell_aabb_contained
                             else "object AABB is not contained by destination AABB"
                         )
                     )
@@ -3075,15 +3557,16 @@ class GraspExecutor:
                 "placement_mode": "place_inside",
                 "destination_object": destination_name,
                 "failure_phase": placement_phase,
+                "pre_navigation_carry_steps": pre_navigation_carry_steps,
+                "carry_planning_attempts": carry_planning_attempts,
+                "carry_waypoints_world": carry_waypoints_world,
                 "pre_navigation_steps": pre_navigation_steps,
                 "pre_navigation_mode": navigation_mode,
                 "pre_navigation_base_pose_world": navigation_base_pose_world,
                 "pre_navigation_standoff_m": navigation_standoff_m,
                 "pre_navigation_path_world": navigation_path_world,
                 "pre_navigation_candidate_count": navigation_candidate_count,
-                "pre_navigation_geodesic_distance_m": (
-                    navigation_geodesic_distance_m
-                ),
+                "pre_navigation_geodesic_distance_m": (navigation_geodesic_distance_m),
                 "pre_navigation_last_waypoint_index": navigation_waypoint_index,
                 "pre_navigation_last_waypoint_pose_world": (
                     navigation_waypoint_pose_world
@@ -3158,7 +3641,6 @@ class GraspExecutor:
             )
         )
 
-
     def _grasp_generator(
         self,
         primitives: Any,
@@ -3203,7 +3685,9 @@ class GraspExecutor:
             ),
             "detector_recentered_camera_translation": np.asarray(
                 candidate.translation, dtype=np.float64
-            ).reshape(3).tolist(),
+            )
+            .reshape(3)
+            .tolist(),
             "world_canonical_origin": np.asarray(grasp_pos, dtype=float).tolist(),
             "world_approach": np.asarray(approach, dtype=float).tolist(),
             "detector_original_canonical_depth": float(
@@ -3224,15 +3708,25 @@ class GraspExecutor:
             json.dumps(execution_pose_audit, sort_keys=True, separators=(",", ":")),
         )
         grasp_pose = (th.as_tensor(grasp_eef_pos, dtype=th.float32), grasp_quat_t)
-        pregrasp_pos = grasp_eef_pos - approach.astype(np.float32) * self._pregrasp_offset_m
-        pregrasp_pose = (th.as_tensor(pregrasp_pos, dtype=th.float32), grasp_quat_t.clone())
+        pregrasp_pos = (
+            grasp_eef_pos - approach.astype(np.float32) * self._pregrasp_offset_m
+        )
+        pregrasp_pose = (
+            th.as_tensor(pregrasp_pos, dtype=th.float32),
+            grasp_quat_t.clone(),
+        )
         standoff_pos = (
             grasp_eef_pos - approach.astype(np.float32) * self._whole_body_standoff_m
         )
-        standoff_pose = (th.as_tensor(standoff_pos, dtype=th.float32), grasp_quat_t.clone())
+        standoff_pose = (
+            th.as_tensor(standoff_pos, dtype=th.float32),
+            grasp_quat_t.clone(),
+        )
         local_collision_ignores = self._local_collision_ignore_objects(target_obj)
 
-        def planning_ignore_objects(additional: list[Any] | None = None) -> list[Any] | None:
+        def planning_ignore_objects(
+            additional: list[Any] | None = None,
+        ) -> list[Any] | None:
             ignored = list(local_collision_ignores)
             for obj in additional or []:
                 if all(obj is not item for item in ignored):
@@ -3248,6 +3742,7 @@ class GraspExecutor:
         close_target_origin: np.ndarray | None = None
         lift_started = False
         lift_completed = False
+        lift_joint_tail_tolerance_enabled = False
 
         def actions(
             generator: Any,
@@ -3304,6 +3799,8 @@ class GraspExecutor:
         def move_sticky_attached_pose(
             pose: tuple[Any, Any],
             held_obj: Any,
+            *,
+            tolerate_joint_tail: bool = False,
         ) -> Generator[Any, None, None]:
             """Plan held-object motion without asking CuRobo to mesh the object.
 
@@ -3316,7 +3813,9 @@ class GraspExecutor:
                 not isinstance(objects_in_hand, dict)
                 or objects_in_hand.get(self._arm) is not held_obj
             ):
-                raise RuntimeError("sticky motion requires the expected attached object")
+                raise RuntimeError(
+                    "sticky motion requires the expected attached object"
+                )
 
             eef_name = self._robot.eef_link_names[self._arm]
             planner_get_obj_in_hand = primitives._get_obj_in_hand
@@ -3333,7 +3832,17 @@ class GraspExecutor:
 
             if primitives._get_obj_in_hand() is not held_obj:
                 raise RuntimeError("sticky attachment changed during motion planning")
-            yield from primitives._execute_motion_plan(trajectory)
+            execute_kwargs: dict[str, Any] = {}
+            if tolerate_joint_tail:
+                try:
+                    execute_parameters = inspect.signature(
+                        primitives._execute_motion_plan
+                    ).parameters
+                except (TypeError, ValueError):
+                    execute_parameters = {}
+                if "ignore_failure" in execute_parameters:
+                    execute_kwargs["ignore_failure"] = True
+            yield from primitives._execute_motion_plan(trajectory, **execute_kwargs)
 
         def target_pose_array() -> tuple[np.ndarray, np.ndarray] | None:
             if target_obj is None:
@@ -3374,7 +3883,9 @@ class GraspExecutor:
                 "sticky",
             }
             constraints = getattr(self._robot, "_ag_obj_constraints", None)
-            attachment = constraints.get(self._arm) if isinstance(constraints, dict) else None
+            attachment = (
+                constraints.get(self._arm) if isinstance(constraints, dict) else None
+            )
             present = attachment is not None
             valid: bool | None = None
             enabled: bool | None = None
@@ -3397,7 +3908,9 @@ class GraspExecutor:
             if mode == "physical":
                 passed = not present
             else:
-                passed = not required or (present and valid is True and enabled is not False)
+                passed = not required or (
+                    present and valid is True and enabled is not False
+                )
             return {
                 "attachment_required": required,
                 "attachment_expected_absent": mode == "physical",
@@ -3451,7 +3964,9 @@ class GraspExecutor:
                     arm=self._arm,
                     return_contact_positions=True,
                 )
-                raw_contact_paths = sorted({prim_path(contact[0]) for contact in contacts})
+                raw_contact_paths = sorted(
+                    {prim_path(contact[0]) for contact in contacts}
+                )
                 raw_contact_finger_paths = {
                     prim_path(other_path): sorted(prim_path(link) for link in links)
                     for other_path, links in contact_links.items()
@@ -3545,13 +4060,17 @@ class GraspExecutor:
                 get_pose = getattr(link, "get_position_orientation", None)
                 if callable(get_pose):
                     link_pose = get_pose()
-                    link_position = np.asarray(link_pose[0], dtype=np.float64).reshape(3)
+                    link_position = np.asarray(link_pose[0], dtype=np.float64).reshape(
+                        3
+                    )
                     finger_positions.append(link_position)
                     detail["position"] = link_position.tolist()
                     detail["eef_local_position"] = (
                         world_to_eef @ np.append(link_position, 1.0)
                     )[:3].tolist()
-                collision_points = getattr(link, "collision_boundary_points_world", None)
+                collision_points = getattr(
+                    link, "collision_boundary_points_world", None
+                )
                 if collision_points is not None:
                     points = to_numpy(collision_points).astype(float).reshape(-1, 3)
                     if len(points):
@@ -3578,7 +4097,10 @@ class GraspExecutor:
                             candidate_bounds.tolist()
                         )
                         if target_boundary_points_world is not None:
-                            target_to_finger = target_boundary_points_world[:, None, :] - points[None, :, :]
+                            target_to_finger = (
+                                target_boundary_points_world[:, None, :]
+                                - points[None, :, :]
+                            )
                             detail["minimum_target_boundary_distance_m"] = float(
                                 np.linalg.norm(target_to_finger, axis=2).min()
                             )
@@ -3586,7 +4108,8 @@ class GraspExecutor:
                             detail["minimum_boundary_distance_to_target_m"] = float(
                                 np.min(
                                     np.linalg.norm(
-                                        points - target_position_now.reshape(1, 3), axis=1
+                                        points - target_position_now.reshape(1, 3),
+                                        axis=1,
                                     )
                                 )
                             )
@@ -3608,16 +4131,26 @@ class GraspExecutor:
 
             def assisted_points(attribute: str) -> list[dict[str, Any]]:
                 by_arm = getattr(self._robot, attribute, {})
-                grasp_points = by_arm.get(self._arm, []) if isinstance(by_arm, dict) else []
+                grasp_points = (
+                    by_arm.get(self._arm, []) if isinstance(by_arm, dict) else []
+                )
                 robot_links = getattr(self._robot, "links", {})
                 result: list[dict[str, Any]] = []
                 for grasp_point in grasp_points or []:
                     link_name = str(getattr(grasp_point, "link_name", ""))
-                    link = robot_links.get(link_name) if isinstance(robot_links, dict) else None
+                    link = (
+                        robot_links.get(link_name)
+                        if isinstance(robot_links, dict)
+                        else None
+                    )
                     get_pose = getattr(link, "get_position_orientation", None)
                     if not callable(get_pose):
                         continue
-                    local = to_numpy(getattr(grasp_point, "position")).astype(float).reshape(3)
+                    local = (
+                        to_numpy(getattr(grasp_point, "position"))
+                        .astype(float)
+                        .reshape(3)
+                    )
                     world = _pose_to_matrix(*get_pose()) @ np.append(local, 1.0)
                     candidate_point = world_to_candidate_points(world[:3])[0]
                     result.append(
@@ -3656,7 +4189,9 @@ class GraspExecutor:
                     finger_candidate_bounds[0][1], finger_candidate_bounds[1][1]
                 )
                 common_collision_bounds = [common_min.tolist(), common_max.tolist()]
-                if target_candidate_points is not None and np.all(common_min <= common_max):
+                if target_candidate_points is not None and np.all(
+                    common_min <= common_max
+                ):
                     in_common = np.all(
                         (target_candidate_points >= common_min)
                         & (target_candidate_points <= common_max),
@@ -3689,7 +4224,9 @@ class GraspExecutor:
             jaw_link_midpoint = (
                 np.mean(finger_positions, axis=0) if finger_positions else None
             )
-            contacted_finger_paths = sorted(target_finger_paths.intersection(finger_paths))
+            contacted_finger_paths = sorted(
+                target_finger_paths.intersection(finger_paths)
+            )
             required_finger_contacts = min(2, len(finger_paths))
             bilateral_contact = bool(
                 required_finger_contacts == 2
@@ -3707,7 +4244,9 @@ class GraspExecutor:
                     target_in_common_collision_count
                 ),
                 "target_collision_point_count": (
-                    None if target_candidate_points is None else len(target_candidate_points)
+                    None
+                    if target_candidate_points is None
+                    else len(target_candidate_points)
                 ),
                 "current_finger_inner_surface_y_interval_m": current_inner_y_interval,
                 "target_current_candidate_y_bounds_m": target_current_y_bounds,
@@ -3736,7 +4275,9 @@ class GraspExecutor:
                 ),
                 "eef_position": eef_position.tolist(),
                 "target_position": (
-                    None if target_position_now is None else target_position_now.tolist()
+                    None
+                    if target_position_now is None
+                    else target_position_now.tolist()
                 ),
                 "target_collision_aabb": target_collision_aabb,
                 "raw_contact_paths": raw_contact_paths,
@@ -3926,7 +4467,10 @@ class GraspExecutor:
 
             sample_count_ok = len(samples) == self._verification_steps
             rises = (
-                [sample["target_position"][2] - initial_target_position[2] for sample in samples]
+                [
+                    sample["target_position"][2] - initial_target_position[2]
+                    for sample in samples
+                ]
                 if initial_target_position is not None
                 else []
             )
@@ -3940,8 +4484,12 @@ class GraspExecutor:
             relative_position_drift = None
             relative_orientation_drift_deg = None
             if samples:
-                reference_position = np.asarray(samples[0]["relative_position"], dtype=float)
-                reference_rotation = np.asarray(samples[0]["relative_rotation"], dtype=float)
+                reference_position = np.asarray(
+                    samples[0]["relative_position"], dtype=float
+                )
+                reference_rotation = np.asarray(
+                    samples[0]["relative_rotation"], dtype=float
+                )
                 relative_position_drift = max(
                     float(
                         np.linalg.norm(
@@ -4015,7 +4563,9 @@ class GraspExecutor:
                     )
                 )
                 object_name = expected_name if physical_contact_passed else None
-                object_identity_matches = bool(expected_name and physical_contact_passed)
+                object_identity_matches = bool(
+                    expected_name and physical_contact_passed
+                )
             else:
                 contact_samples = []
                 physical_contact_passed = None
@@ -4072,6 +4622,10 @@ class GraspExecutor:
                 "lift_motion_passed": lift_motion_passed,
                 "lift_started": lift_started,
                 "lift_completed": lift_completed,
+                "lift_joint_tail_tolerance_enabled": (
+                    lift_joint_tail_tolerance_enabled
+                ),
+                "lift_success_decided_by_physical_verification": True,
                 "phase_contact_evidence": phase_contact_evidence,
                 "approach_segment_audit": approach_segment_audit,
                 "physical_contact_required": physical_mode,
@@ -4177,7 +4731,8 @@ class GraspExecutor:
                 target_position_now = target_position_array()
                 target_displacement = (
                     float(np.linalg.norm(target_position_now - target_guard_origin))
-                    if target_position_now is not None and target_guard_origin is not None
+                    if target_position_now is not None
+                    and target_guard_origin is not None
                     else 0.0
                 )
                 if (
@@ -4201,7 +4756,9 @@ class GraspExecutor:
                 "AnyGrasp phase=%s eef_pos=%s base_pos=%s target_pos=%s",
                 label,
                 np.round(np.asarray(current_eef[0]), 4).tolist(),
-                np.round(np.asarray(self._robot.get_position_orientation()[0]), 4).tolist(),
+                np.round(
+                    np.asarray(self._robot.get_position_orientation()[0]), 4
+                ).tolist(),
                 target_position(),
             )
 
@@ -4247,14 +4804,20 @@ class GraspExecutor:
         phase = "release"
         try:
             yield from actions(primitives._execute_release())
-            current_eef_pos = np.asarray(self._robot.get_eef_pose(self._arm)[0], dtype=float)
+            current_eef_pos = np.asarray(
+                self._robot.get_eef_pose(self._arm)[0], dtype=float
+            )
             pregrasp_distance = float(np.linalg.norm(current_eef_pos - pregrasp_pos))
             if pregrasp_distance > self._skip_standoff_if_within_m:
                 phase = "whole_body_standoff"
-                yield from actions(move_to_pose_whole_body(standoff_pose, low_precision=True))
+                yield from actions(
+                    move_to_pose_whole_body(standoff_pose, low_precision=True)
+                )
                 log_state("after_whole_body_standoff")
                 if target_has_moved():
-                    raise RuntimeError("target moved during collision-aware whole-body standoff")
+                    raise RuntimeError(
+                        "target moved during collision-aware whole-body standoff"
+                    )
             else:
                 logger.warning(
                     "AnyGrasp skipping whole-body standoff: EEF is %.3f m from pregrasp "
@@ -4275,7 +4838,9 @@ class GraspExecutor:
             )
             log_state("after_precise_pregrasp")
             if target_has_moved():
-                raise RuntimeError("target moved during contact-guarded precise pregrasp")
+                raise RuntimeError(
+                    "target moved during contact-guarded precise pregrasp"
+                )
 
             if getattr(self._robot, "grasping_mode", None) == "sticky":
                 phase = "close_before_sticky_approach"
@@ -4313,9 +4878,8 @@ class GraspExecutor:
                             approach_target_origin,
                         )
                     except Exception as constrained_error:
-                        if (
-                            not self._retry_unconstrained_approach
-                            or target_has_moved(approach_tolerance)
+                        if not self._retry_unconstrained_approach or target_has_moved(
+                            approach_tolerance
                         ):
                             raise
                         logger.warning(
@@ -4356,12 +4920,8 @@ class GraspExecutor:
                         goal_error = float(
                             np.linalg.norm(current_position - expected_eef_position)
                         )
-                        frame_geometry = evidence.get(
-                            "candidate_frame_geometry", {}
-                        )
-                        open_jaw = frame_geometry.get(
-                            "actual_open_jaw_containment", {}
-                        )
+                        frame_geometry = evidence.get("candidate_frame_geometry", {})
+                        open_jaw = frame_geometry.get("actual_open_jaw_containment", {})
                         evidence.update(
                             {
                                 "approach_baseline_target_position": (
@@ -4508,9 +5068,7 @@ class GraspExecutor:
                                 )
                                 phase = "live_open_jaw_y_correction"
                                 corrected_pose = (
-                                    th.as_tensor(
-                                        corrected_eef_pos, dtype=th.float32
-                                    ),
+                                    th.as_tensor(corrected_eef_pos, dtype=th.float32),
                                     th.as_tensor(
                                         current_eef_pose[1], dtype=th.float32
                                     ).clone(),
@@ -4543,16 +5101,16 @@ class GraspExecutor:
                                         ),
                                     }
                                 )
-                                corrected_evidence[
-                                    "live_open_jaw_y_correction"
-                                ] = correction_audit
+                                corrected_evidence["live_open_jaw_y_correction"] = (
+                                    correction_audit
+                                )
                                 phase_contact_evidence[
                                     "after_live_open_jaw_y_correction"
                                 ] = corrected_evidence
                                 after_approach = corrected_evidence
-                                phase_contact_evidence[
-                                    "after_approach"
-                                ] = after_approach
+                                phase_contact_evidence["after_approach"] = (
+                                    after_approach
+                                )
                                 approach_displacement = correction_displacement
                                 approach_goal_error = correction_goal_error
                                 logger.warning(
@@ -4612,7 +5170,9 @@ class GraspExecutor:
                     )
             log_state("after_grasp_close")
             if getattr(self._robot, "grasping_mode", None) == "physical":
-                phase_contact_evidence["after_grasp_close"] = physical_contact_evidence()
+                phase_contact_evidence["after_grasp_close"] = (
+                    physical_contact_evidence()
+                )
                 logger.warning(
                     "AnyGrasp physical contact phase=after_grasp_close evidence=%s",
                     phase_contact_evidence["after_grasp_close"],
@@ -4633,12 +5193,10 @@ class GraspExecutor:
                 )
                 if (
                     close_displacement is not None
-                    and close_displacement
-                    > self._close_target_displacement_tolerance_m
+                    and close_displacement > self._close_target_displacement_tolerance_m
                 ):
                     raise RuntimeError(
-                        "target moved during gripper close/settle by "
-                        f"{close_displacement:.4f} m"
+                        f"target moved during gripper close/settle by {close_displacement:.4f} m"
                     )
             if getattr(self._robot, "grasping_mode", None) == "physical":
                 phase_contact_evidence["after_settle"] = physical_contact_evidence()
@@ -4678,7 +5236,22 @@ class GraspExecutor:
                 logger.warning(
                     "AnyGrasp executing sticky lift without attached-mesh collision planning"
                 )
-                yield from actions(move_sticky_attached_pose(lift_pose, object_in_hand))
+                try:
+                    execute_parameters = inspect.signature(
+                        primitives._execute_motion_plan
+                    ).parameters
+                except (TypeError, ValueError):
+                    execute_parameters = {}
+                lift_joint_tail_tolerance_enabled = (
+                    "ignore_failure" in execute_parameters
+                )
+                yield from actions(
+                    move_sticky_attached_pose(
+                        lift_pose,
+                        object_in_hand,
+                        tolerate_joint_tail=True,
+                    )
+                )
             else:
                 lift_kwargs: dict[str, Any] = {}
                 # At lift time the target is already enclosed by / touching the
@@ -4738,11 +5311,15 @@ class GraspExecutor:
                         yaw_kwargs: dict[str, Any] = {}
                         if attached_ignore_objects is not None:
                             yaw_kwargs["ignore_objects"] = attached_ignore_objects
-                        yield from actions(primitives._move_hand(yaw_pose, **yaw_kwargs))
+                        yield from actions(
+                            primitives._move_hand(yaw_pose, **yaw_kwargs)
+                        )
                     log_state(f"after_stability_yaw_{index}")
             phase = "physical_verification"
             physical_evidence = yield from verify_physical_grasp()
-            logger.warning("AnyGrasp physical verification evidence=%s", physical_evidence)
+            logger.warning(
+                "AnyGrasp physical verification evidence=%s", physical_evidence
+            )
             if self._post_lift_place_back:
                 phase = "place_back_lower"
                 place_pos = np.asarray(grasp_eef_pos, dtype=np.float32).copy()
@@ -4756,12 +5333,16 @@ class GraspExecutor:
                     np.round(place_pos, 4).tolist(),
                 )
                 if getattr(self._robot, "grasping_mode", None) == "sticky":
-                    yield from actions(move_sticky_attached_pose(place_pose, object_in_hand))
+                    yield from actions(
+                        move_sticky_attached_pose(place_pose, object_in_hand)
+                    )
                 else:
                     place_kwargs: dict[str, Any] = {}
                     if attached_ignore_objects is not None:
                         place_kwargs["ignore_objects"] = attached_ignore_objects
-                    yield from actions(primitives._move_hand(place_pose, **place_kwargs))
+                    yield from actions(
+                        primitives._move_hand(place_pose, **place_kwargs)
+                    )
                 log_state("after_place_back_lower")
 
                 phase = "place_back_release"
@@ -4785,7 +5366,9 @@ class GraspExecutor:
                     "clearance_m": self._place_back_clearance_m,
                 }
                 if not release_passed:
-                    raise RuntimeError("object remained attached after place-back release")
+                    raise RuntimeError(
+                        "object remained attached after place-back release"
+                    )
 
                 phase = "place_back_retreat"
                 retreat_pos = place_pos.copy()
@@ -4887,8 +5470,7 @@ class GraspExecutor:
                 anygrasp_score=float(candidate.score),
                 total_sim_steps=steps,
                 error=(
-                    f"grasp execution failed during {phase}: "
-                    f"{type(exc).__name__}: {exc}"
+                    f"grasp execution failed during {phase}: {type(exc).__name__}: {exc}"
                 ),
                 failure_phase=phase,
                 scene_changed=(
@@ -4970,7 +5552,9 @@ class GraspExecutor:
 
         steps = 0
         try:
-            for action in primitives.apply_ref(StarterSemanticActionPrimitiveSet.GRASP, target_obj):
+            for action in primitives.apply_ref(
+                StarterSemanticActionPrimitiveSet.GRASP, target_obj
+            ):
                 if action is not None:
                     steps += 1
                     yield action
@@ -4995,5 +5579,7 @@ class GraspExecutor:
             grasp_quat_world=np.array([0, 0, 0, 1], dtype=np.float32),
             anygrasp_score=0.0,
             total_sim_steps=steps,
-            error=None if success else f"object in hand is {object_name}, expected {expected}",
+            error=None
+            if success
+            else f"object in hand is {object_name}, expected {expected}",
         )
