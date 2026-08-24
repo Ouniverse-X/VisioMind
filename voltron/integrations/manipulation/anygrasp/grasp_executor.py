@@ -1837,9 +1837,15 @@ class GraspExecutor:
                 placement_hand_pose_world,
             )
             preplace_pos = desired_hand_pose[0].clone()
+            object_aabb_for_clearance = _object_world_aabb(held_before)
+            if object_aabb_for_clearance is not None:
+                object_height = float(object_aabb_for_clearance[1][2] - object_aabb_for_clearance[0][2])
+                clearance_offset = max(0.10, object_height + 0.05)
+            else:
+                clearance_offset = 0.30
             preplace_pos[2] = max(
                 float(preplace_pos[2]),
-                float(destination_max[2]) + 0.10,
+                float(destination_max[2]) + clearance_offset,
             )
             preplace_pose = (preplace_pos, desired_hand_pose[1])
             preplace_hand_pose_world = {
@@ -2098,13 +2104,13 @@ class GraspExecutor:
                 if (
                     raw_clearance_map is not None
                     and callable(world_to_map)
-                    and navigation_standoff_m > 0.75
+                    and navigation_standoff_m > 0.65
                 ):
                     terminal_direction = navigation_xy - destination_center_xy
                     terminal_norm = float(np.linalg.norm(terminal_direction))
                     if terminal_norm > 1e-6:
                         terminal_xy = destination_center_xy + (
-                            terminal_direction / terminal_norm * 0.75
+                            terminal_direction / terminal_norm * 0.65
                         )
                         terminal_map = np.asarray(
                             world_to_map(terminal_xy), dtype=np.int64
@@ -2122,7 +2128,7 @@ class GraspExecutor:
                                     np.linalg.norm(terminal_xy - navigation_xy)
                                 )
                                 navigation_xy = terminal_xy
-                                navigation_standoff_m = 0.75
+                                navigation_standoff_m = 0.65
                                 navigation_mode += "_terminal_approach"
                 navigation_geodesic_distance_m = distance_value
                 # ``_navigate_to_pose_direct`` is a straight-line velocity
@@ -2216,9 +2222,15 @@ class GraspExecutor:
                 "orientation_xyzw": desired_hand_quat.tolist(),
             }
             preplace_pos = desired_hand_pose[0].clone()
+            object_aabb_for_clearance = _object_world_aabb(held_before)
+            if object_aabb_for_clearance is not None:
+                object_height = float(object_aabb_for_clearance[1][2] - object_aabb_for_clearance[0][2])
+                clearance_offset = max(0.10, object_height + 0.05)
+            else:
+                clearance_offset = 0.30
             preplace_pos[2] = max(
                 float(preplace_pos[2]),
-                float(destination_max[2]) + 0.10,
+                float(destination_max[2]) + clearance_offset,
             )
             preplace_pose = (preplace_pos, desired_hand_pose[1])
             preplace_hand_pose_world = {
@@ -2556,9 +2568,15 @@ class GraspExecutor:
                 "orientation_xyzw": desired_hand_quat.tolist(),
             }
             preplace_pos = desired_hand_pose[0].clone()
+            object_aabb_for_clearance = _object_world_aabb(held_before)
+            if object_aabb_for_clearance is not None:
+                object_height = float(object_aabb_for_clearance[1][2] - object_aabb_for_clearance[0][2])
+                clearance_offset = max(0.10, object_height + 0.05)
+            else:
+                clearance_offset = 0.30
             preplace_pos[2] = max(
                 float(preplace_pos[2]),
-                float(destination_max[2]) + 0.10,
+                float(destination_max[2]) + clearance_offset,
             )
             preplace_pose = (preplace_pos, desired_hand_pose[1])
             preplace_hand_pose_world = {

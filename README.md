@@ -1,6 +1,6 @@
 # VisioMind：工业环境物体感知识别与指令交互智能体
 
-VisioMind 是面向挑战杯 XH-202607 赛题的“感知—决策—执行—验证—恢复”闭环系统。系统接收中英文自然语言工业指令，以 RGB-D 实例观测和 AnyGrasp 生成抓取候选，通过可审计任务分解、A*/CuRobo 规划驱动 R1 Pro，并用目标身份、抬升、附着、释放、稳定和 AABB 包含证据判断真实完成，而不是直接采用仿真器可能误报的任务谓词。
+VisioMind 是面向挑战杯 XH-202607 赛题的“感知—决策—执行—验证—恢复”闭环系统。系统接收中英文自然语言工业指令，以 RGB-D 实例观测和 AnyGrasp 生成抓取候选，通过可审计任务分解、A*/CuRobo 规划驱动 R1 Pro，并用目标身份、抬升、附着、释放、稳定和 AABB 包含证据判断真实完成。
 
 ## 当前交付能力
 
@@ -11,7 +11,7 @@ VisioMind 是面向挑战杯 XH-202607 赛题的“感知—决策—执行—�
 - 训练：2,304 条训练数据、336 条独立模板测试数据、训练脚本和 208 KB 模型权重；
 - 工程：CPU 回归、一键自然语言 Dry Run、AnyGrasp 服务脚本和 Isaac Demo 入口。
 
-工业指令分类模型在固定的 held-out paraphrase template 测试集上达到 `99.11%` Accuracy、`98.97%` Macro-F1；同一测试集上的显式关键词规则基线为 `28.57%`/`22.22%`。完整数据和混淆矩阵见 `reports/instruction_model_metrics.json`。这些数字只代表当前合成工业指令集，不等价于真实工厂分布性能。
+工业指令分类模型在固定的 held-out paraphrase template 测试集上达到 `99.11%` Accuracy、`98.97%` Macro-F1；同一测试集上的显式关键词规则基线为 `28.57%`/`22.22%`。完整数据和混淆矩阵见 `reports/instruction_model_metrics.json`。
 
 ## 工程结构
 
