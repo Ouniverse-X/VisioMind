@@ -29,11 +29,13 @@ fi
 
 # 3. 设置默认工业指令（钳子放入工具箱第三格）
 INSTRUCTION="${1:-现在请把钳子收纳至料箱的第3格，完成后报告状态}"
+CONFIG_FILE="${CONFIG:-$COMPETITION_ROOT/voltron/configs/compact_industrial_pliers_to_toolbox_cell3_i00.json}"
 
 echo "=========================================================="
-echo "VisioMind 工业闭环仿真启动器"
+echo "VisioMind 工业闭环仿真启动器（紧凑工位优化版）"
 echo "Conda 脚本: $CONDA_SCRIPT"
 echo "激活环境: $VOLTRON_ENV"
+echo "配置模板: $CONFIG_FILE"
 echo "输入指令: $INSTRUCTION"
 echo "=========================================================="
 
@@ -43,5 +45,6 @@ conda activate "$VOLTRON_ENV"
 # 运行工业场景的端到端闭环主进程
 exec python "$COMPETITION_ROOT/run_instruction_demo.py" \
   "$INSTRUCTION" \
-  --config "$COMPETITION_ROOT/voltron/configs/plier_to_toolbox_cell3_industrial_i00.json" \
+  --config "$CONFIG_FILE" \
   --grounding "$COMPETITION_ROOT/configs/scene_grounding_industrial.json"
+

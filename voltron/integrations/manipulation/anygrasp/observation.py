@@ -92,6 +92,64 @@ def target_mask_from_segmentation(
     return np.isin(seg, matching_ids)
 
 
+def target_mask_from_industrial_detector(
+    rgb: Any,
+    target_name: str,
+    detector: Any | None = None,
+    conf_threshold: float = 0.35,
+) -> np.ndarray | None:
+    """Extract a target instance segmentation mask using the industrial vision model."""
+    if rgb is None or not str(target_name).strip():
+        return None
+
+    rgb_array = to_numpy(rgb)
+    if rgb_array.size == 0 or rgb_array.ndim < 3:
+        return None
+    if rgb_array.dtype != np.uint8 and float(np.nanmax(rgb_array)) <= 1.0:
+        rgb_array = (rgb_array * 255.0).astype(np.uint8)
+
+    if detector is None:
+        try:
+            from visiomind.perception import IndustrialPartDetector
+
+            detector_weights = (
+                Path(__file__).resolve().parents[4]
+                / "models"
+                / "industrial_part_detector.pt"
+            )
+            detector = IndustrialPartDetector(
+                weights_path=detector_weights if detector_weights.exists() else None,
+                conf_threshold=conf_threshold,
+            )
+        except Exception as exc:
+            logger.warning("Industrial detector initialization skipped: %s", exc)
+            return None
+
+    wanted = _normalize_name(target_name)
+    wanted_prefix = _identity_prefix(target_name)
+    matched_class = None
+    for cls in getattr(detector, "classes", ()):
+        if cls == "background":
+            continue
+        c_norm = _normalize_name(cls)
+        if c_norm in wanted or wanted in c_norm or _identity_prefix(cls) == wanted_prefix:
+            matched_class = cls
+            break
+
+    if not matched_class:
+        matched_class = wanted_prefix or wanted
+
+    try:
+        res = detector.detect(rgb_array, conf_threshold=conf_threshold)
+        det = res.get_highest_confidence(matched_class) or res.get_highest_confidence()
+        if det and det.mask is not None and np.any(det.mask):
+            return det.mask
+    except Exception as exc:
+        logger.warning("Industrial detection inference error: %s", exc)
+
+    return None
+
+
 def dilate_mask(mask: np.ndarray, radius_px: int) -> np.ndarray:
     """Small dependency-free binary dilation used to tolerate mask edges."""
     result = np.asarray(mask, dtype=bool)
@@ -401,6 +459,8 @@ def capture_grasp_observation(
     instance = sensor_obs.get("seg_instance")
     labels = sensor_info.get("seg_instance", {}) if isinstance(sensor_info, dict) else {}
     target_mask = target_mask_from_segmentation(instance, labels, target_name)
+    if target_mask is None:
+        target_mask = target_mask_from_industrial_detector(rgb, target_name)
     if target_mask is not None and mask_dilation_px:
         target_mask = dilate_mask(target_mask, mask_dilation_px)
     if target_mask is None and require_target_mask:

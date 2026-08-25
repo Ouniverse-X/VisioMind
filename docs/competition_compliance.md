@@ -12,7 +12,7 @@
 | 工业场景模型训练/微调 | `training/`、`models/` | 权重、哈希、99.11%/98.97% | 已实现语言意图模型 |
 | 感知精度与效率 | AnyGrasp 审计 | 候选数和运行耗时 | 真实工业标注集 mAP 尚待补测 |
 | 执行成功率 | structured physical evidence | `reports/real_isaac_runs.*`：2 次严格成功 + 1 次安全拒绝 | 已有工程回归证据；正式统计集待扩充 |
-| 仿真验证视频 | 轨迹录制器、`demo/` | 52.7 秒 H.264 字幕版 Demo | 已完成 |
+| 仿真验证视频 | 轨迹录制器、`demo/` | 包含 180s 工业评审 Demo、52.7s 家庭基线 Demo 及 VLA/导航/长程协作等 7 组 H.264 验证视频 | 已完成 |
 | 技术报告 | `docs/technical_report.md` | 本文件映射 | 已实现初版 |
 | 使用说明 | `docs/user_guide.md` | CPU/GPU/训练/运行命令 | 已实现 |
 | 真实机械臂案例 | 真实接口建议 | ROS 2/相机接口说明 | 未完成，不宣称 |

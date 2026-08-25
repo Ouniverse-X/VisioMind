@@ -298,6 +298,23 @@ def test_runtime_accepts_verified_action_free_placement_terminal() -> None:
     assert "action_keys=[]" in progress[0]
 
 
+def test_compact_industrial_workstation_configs() -> None:
+    config_path = ROOT / "configs" / "compact_industrial_pliers_to_toolbox_cell3_i00.json"
+    assert config_path.exists()
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
+    assert payload["task"]["task_id"] == "compact_industrial_pliers_to_toolbox_cell3_i00"
+    assert payload["action_target_object"] == "plier_192"
+    assert payload["action_sequence"][0]["target"]["object"] == "plier_192"
+    assert payload["action_sequence"][1]["target"]["cell_index"] == 3
+    env_cfg = payload["environment"]
+    assert "post_reset_object_states" in env_cfg
+    assert "plier_192" in env_cfg["post_reset_object_states"]
+    assert "toolbox_191" in env_cfg["post_reset_object_states"]
+    assert env_cfg["industrial_visual_overlay"]["enabled"] is True
+    assert env_cfg["industrial_visual_overlay"]["highlighted_cell"] == 3
+
+
+
 def test_runtime_accepts_verified_action_free_grasp_terminal() -> None:
     """A fully audited AnyGrasp pick completes before the later place goal."""
     from voltron.shared.enums import AgentName, AgentStatus

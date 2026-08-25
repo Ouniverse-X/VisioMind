@@ -221,6 +221,39 @@ def _add_cell_rims(
     return created
 
 
+def _add_physical_dividers(
+    stage: Any,
+    root_path: str,
+    *,
+    container_aabb: tuple[np.ndarray, np.ndarray],
+    grid_shape: tuple[int, int],
+    divider_thickness: float = 0.008,
+) -> list[str]:
+    """Add 3D physical internal divider partition plates to the container."""
+    from voltron.shared.compartment_geometry import MultiCompartmentBinGeometry
+
+    geom = MultiCompartmentBinGeometry(
+        container_aabb=container_aabb,
+        grid_shape=grid_shape,
+        divider_thickness_m=divider_thickness,
+    )
+    steel = np.array([0.45, 0.48, 0.52], dtype=np.float64)
+    created: list[str] = []
+    for div in geom.get_all_dividers():
+        path = f"{root_path}/divider_{_safe_name(div.divider_id)}"
+        _define_cube(
+            stage,
+            path,
+            position=np.asarray(div.center_world, dtype=np.float64),
+            orientation_xyzw=np.array([0.0, 0.0, 0.0, 1.0]),
+            dimensions=np.asarray(div.dimensions_world, dtype=np.float64),
+            color=steel,
+            opacity=1.0,
+        )
+        created.append(path)
+    return created
+
+
 def install_industrial_workcell(env: Any, config: dict[str, Any]) -> dict[str, Any]:
     """Create visual workcell geometry and return auditable diagnostics."""
 
@@ -283,6 +316,7 @@ def install_industrial_workcell(env: Any, config: dict[str, Any]) -> dict[str, A
     container_name = config.get("cell_container")
     container = _find_object(env, str(container_name) if container_name else None)
     cell_rim_paths: list[str] = []
+    divider_paths: list[str] = []
     container_aabb = _world_aabb(container) if container is not None else None
     if container_name and container_aabb is None:
         raise RuntimeError(
@@ -293,6 +327,18 @@ def install_industrial_workcell(env: Any, config: dict[str, Any]) -> dict[str, A
         shape = tuple(int(value) for value in raw_shape)
         if len(shape) != 2 or any(value < 1 for value in shape):
             raise ValueError("industrial grid_shape must contain two positive integers")
+        try:
+            divider_paths = _add_physical_dividers(
+                stage,
+                root_path,
+                container_aabb=container_aabb,
+                grid_shape=shape,
+                divider_thickness=float(config.get("divider_thickness_m", 0.008)),
+            )
+            created_paths.extend(divider_paths)
+        except Exception as exc:
+            logger.warning("Industrial divider generation skipped: %s", exc)
+
         cell_rim_paths = _add_cell_rims(
             stage,
             root_path,
@@ -318,4 +364,6 @@ def install_industrial_workcell(env: Any, config: dict[str, Any]) -> dict[str, A
             else None
         ),
         "cell_rim_count": len(cell_rim_paths),
+        "physical_divider_count": len(divider_paths),
+        "physical_divider_paths": divider_paths,
     }

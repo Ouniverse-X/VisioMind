@@ -15,7 +15,9 @@ export JAX_PLATFORMS=cpu
 export MPLCONFIGDIR="${repo_root}/logs/matplotlib"
 
 instruction="${1:-请把混杂工位上的钳子放进工具箱第三格}"
+config_file="${CONFIG:-voltron/configs/compact_industrial_pliers_to_toolbox_cell3_i00.json}"
 
 exec python run_instruction_demo.py "${instruction}" \
-  --config voltron/configs/plier_to_toolbox_cell3_industrial_i00.json \
+  --config "${config_file}" \
   --grounding configs/scene_grounding_industrial.json
+

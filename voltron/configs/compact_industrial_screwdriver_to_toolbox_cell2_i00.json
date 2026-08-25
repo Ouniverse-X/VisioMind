@@ -1,0 +1,93 @@
+{
+  "action_subtask_action": "pick_up",
+  "action_target_object": "screwdriver_188",
+  "action_instruction": "识别工作台上的螺丝刀，抓取并放入工具料箱第2格。",
+  "metadata": {
+    "summary": "Compact industrial screwdriver placement: screwdriver and toolbox in robot's initial view on same workbench.",
+    "variant": "compact_industrial_anygrasp_cell2_closed_loop",
+    "source": "xh/competition_code"
+  },
+  "task": {
+    "task_id": "compact_industrial_screwdriver_to_toolbox_cell2_i00",
+    "task_desc": "Identify the screwdriver on the compact workbench and place it into cell 2 of the adjacent parts toolbox.",
+    "task_type": "manipulation",
+    "planner_mode": "auto"
+  },
+  "environment": {
+    "env_id": "sim_behavior_r1_pro/outfit_a_basic_toolbox",
+    "env_idx": 0,
+    "total_n_envs": 1,
+    "behavior_task_instance_id": 0,
+    "behavior_scene_file": "/mnt/data/huangyixuan/isaac/BEHAVIOR-1K/joylo/sampled_task/outfit_a_basic_toolbox/house_single_floor_task_outfit_a_basic_toolbox_0_0_template.json",
+    "behavior_tro_state_file": "/mnt/data/huangyixuan/isaac/BEHAVIOR-1K/joylo/sampled_task/outfit_a_basic_toolbox/house_single_floor_task_outfit_a_basic_toolbox_instances/house_single_floor_task_outfit_a_basic_toolbox_0_0_template-tro_state.json",
+    "post_reset_robot_position": [22.45, -0.05, 0.003],
+    "post_reset_robot_orientation": [0.0, 0.0, 1.0, 0.0],
+    "post_reset_object_states": {
+      "screwdriver_188": {
+        "position": [22.05, -0.18, 0.927],
+        "orientation": [0.0, 0.0, 0.0, 1.0]
+      },
+      "toolbox_191": {
+        "position": [22.00, 0.15, 0.995],
+        "orientation": [0.0, 0.0, 0.7071, 0.7071]
+      }
+    },
+    "post_reset_settle_steps": 2,
+    "recording_third_person_local_offset": [-1.15, -0.45, 1.45],
+    "recording_third_person_look_at_offset": [0.40, 0.0, 0.95],
+    "recording_third_person_prefer_live_capture": true,
+    "industrial_visual_overlay": {
+      "enabled": true,
+      "cell_container": "toolbox_191",
+      "grid_shape": [1, 3],
+      "highlighted_cell": 2,
+      "divider_thickness_m": 0.008
+    },
+    "scene_state_include_aabb": true,
+    "auto_register": true
+  },
+  "runtime": {
+    "embodiment": "behavior_r1_pro",
+    "max_retries": 2,
+    "max_control_steps": 3000,
+    "progress_log_every": 10
+  },
+  "memory": {"mode": "local"},
+  "brain": {"planner": "rule"},
+  "action": {
+    "selector": "heuristic",
+    "control_mode": "whole_body_local",
+    "allow_base_motion": true
+  },
+  "action_sequence": [
+    {
+      "action": "pick_up",
+      "target": {"object": "screwdriver_188"},
+      "instruction": "Pick up the screwdriver from the front workbench."
+    },
+    {
+      "action": "place_inside",
+      "target": {
+        "object": "screwdriver_188",
+        "container": "toolbox_191",
+        "cell_index": 2
+      },
+      "instruction": "Place the held screwdriver inside cell 2 of the adjacent parts toolbox."
+    }
+  ],
+  "anygrasp": {
+    "endpoint": "http://127.0.0.1:18090",
+    "top_down_grasp": true,
+    "camera_sensor": "robot_r1:zed_link:Camera:0",
+    "lift_height_m": 0.28,
+    "verification_steps": 5,
+    "verification_min_target_z_rise_m": 0.03,
+    "verification_relative_offset_tolerance_m": 0.01,
+    "verification_relative_orientation_tolerance_deg": 10.0,
+    "verification_require_attachment_valid": true,
+    "skip_standoff_if_within_m": 0.85,
+    "grasping_mode_override": "sticky",
+    "place_inside_grid_shape": [1, 3],
+    "place_inside_cell_margin_m": 0.002
+  }
+}

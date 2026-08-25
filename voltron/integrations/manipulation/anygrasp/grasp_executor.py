@@ -128,6 +128,26 @@ def _grid_cell_aabb(
         "cell_margin_m": margin,
         "target_cell_aabb_world": [cell_min.tolist(), cell_max.tolist()],
     }
+
+    try:
+        from voltron.shared.compartment_geometry import MultiCompartmentBinGeometry
+
+        fine_geom = MultiCompartmentBinGeometry(
+            container_aabb=container_aabb,
+            grid_shape=shape,
+            cell_margin_m=margin,
+        )
+        slot = fine_geom.get_slot(index)
+        audit["multi_compartment_geometry"] = fine_geom.export_audit()
+        audit["slot_inner_aabb_world"] = slot.inner_aabb_world
+        audit["bounding_divider_ids"] = slot.bounding_divider_ids
+        audit["preplace_entry_pose_world"] = slot.preplace_entry_pose_world
+        audit["divider_collision_aabbs"] = [
+            [d.aabb_world[0], d.aabb_world[1]] for d in fine_geom.get_all_dividers()
+        ]
+    except Exception as exc:
+        audit["fine_geometry_error"] = str(exc)
+
     return (cell_min, cell_max), audit
 
 
@@ -1335,12 +1355,31 @@ class GraspExecutor:
             action = th.zeros(
                 robot.action_dim, dtype=q_tensor.dtype, device=q_tensor.device
             )
+            inactive_arm = "left" if self._arm == "right" else "right"
+            default_q = getattr(robot, "default_joint_positions", None)
+            if default_q is None:
+                default_q = getattr(robot, "_default_joint_positions", None)
+            default_q_tensor = (
+                th.as_tensor(default_q, dtype=q_tensor.dtype, device=q_tensor.device)
+                if default_q is not None
+                else None
+            )
+
             for name, controller in robot.controllers.items():
                 controller_type = type(controller).__name__
                 is_absolute_joint = controller_type == "JointController" and not bool(
                     getattr(controller, "use_delta_commands", False)
                 )
-                if is_absolute_joint:
+                is_inactive_arm = (
+                    name in {f"arm_{inactive_arm}", f"{inactive_arm}_arm", f"gripper_{inactive_arm}", f"{inactive_arm}_gripper"}
+                    or f"arm_{inactive_arm}" in name.lower()
+                    or f"{inactive_arm}_arm" in name.lower()
+                )
+                if is_inactive_arm and default_q_tensor is not None and is_absolute_joint:
+                    # Firmly lock inactive arm at its resting tucked home pose to prevent flailing
+                    command = default_q_tensor[controller.dof_idx]
+                    partial_action = controller._reverse_preprocess_command(command)
+                elif is_absolute_joint:
                     command = q_tensor[controller.dof_idx]
                     partial_action = controller._reverse_preprocess_command(command)
                 elif controller_type == "HolonomicBaseJointController":
@@ -1389,7 +1428,8 @@ class GraspExecutor:
                 # Lightweight test doubles do not expose physical joint limits.
                 command = -1.0 if limit_type == "lower" else 1.0
                 action_idx = robot.controller_action_idx[f"gripper_{self._arm}"]
-                for _ in range(30):
+                close_steps_after_attachment = 0
+                for _ in range(35):
                     action = primitives._empty_action(follow_arm_targets=False)
                     action[action_idx] = command
                     yield primitives._postprocess_action(action)
@@ -1397,13 +1437,16 @@ class GraspExecutor:
                         limit_type == "lower"
                         and primitives._get_obj_in_hand() is not None
                     ):
-                        return
+                        close_steps_after_attachment += 1
+                        if close_steps_after_attachment >= 15:
+                            return
                 return
 
             target_joint_positions = th.as_tensor(target_builder(limit_type))
             joint_idx = gripper_control_idx[self._arm]
             target_qpos = target_joint_positions[joint_idx]
             action_idx = robot.controller_action_idx[f"gripper_{self._arm}"]
+            close_steps_after_attachment = 0
             for _ in range(250):
                 current_joint_positions = th.as_tensor(
                     robot.get_joint_positions(),
@@ -1414,7 +1457,10 @@ class GraspExecutor:
                 if th.allclose(current_qpos, target_qpos, atol=0.005):
                     return
                 if limit_type == "lower" and primitives._get_obj_in_hand() is not None:
-                    return
+                    close_steps_after_attachment += 1
+                    # Ensure fingers physically continue closing to clamp tightly across both sides
+                    if close_steps_after_attachment >= 25:
+                        return
                 command = (
                     1.0 if float(th.mean(target_qpos - current_qpos)) >= 0.0 else -1.0
                 )
@@ -3143,11 +3189,14 @@ class GraspExecutor:
             clearance_delta = preplace_pose[0] - current_pos
             clearance_distance = float(th.linalg.vector_norm(clearance_delta))
             clearance_segment_max_m = (
-                0.05 if target_cell_aabb is not None else 0.18
+                0.10 if target_cell_aabb is not None else 0.18
             )
-            clearance_count = max(
-                1,
-                int(math.ceil(clearance_distance / clearance_segment_max_m)),
+            clearance_count = min(
+                6,
+                max(
+                    1,
+                    int(math.ceil(clearance_distance / clearance_segment_max_m)),
+                ),
             )
             for index in range(1, clearance_count + 1):
                 pose_pos = (
