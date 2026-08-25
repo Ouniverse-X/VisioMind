@@ -139,7 +139,7 @@
     "target_anchor_tolerance_m": 0.04,
     "pregrasp_offset_m": 0.06,
     "whole_body_standoff_m": 0.30,
-    "skip_standoff_if_within_m": 0.85,
+    "skip_standoff_if_within_m": 0.20,
     "constrained_approach": false,
     "retry_unconstrained_approach": true,
     "approach_segment_max_m": 0.01,
