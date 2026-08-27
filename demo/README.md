@@ -2,6 +2,15 @@
 
 本目录提供了用于评审、合规性检查与算法能力验证的 Isaac Sim / BEHAVIOR 仿真运行轨迹视频集，涵盖工业工具收纳、家庭食品操作、具身 VLA 大模型端到端控制、3D 语义导航及长程跨房间协作：
 
+## 工业场景建模展示图
+
+- [工业工作站三维总览](industrial_workcell_3d_overview.png)：钢结构安全框架、混杂工具工作台、三格料箱和第三格高亮。
+- [动态注入工业构件组装/分解图](industrial_workcell_injected_components_3d.png)：工业安全地垫、立柱、背板、顶部横梁、黄色地面安全边界和状态灯，尺寸与 `industrial_workcell.py` 一致。
+- [工具箱第三格参数化几何](industrial_toolbox_cell3_geometry.png)：外壁/底板厚度、8 mm 隔板、5 mm 安全余量及 AABB 验收区域。
+- [工业零件 3D 目录](industrial_parts_catalog_3d.png)：钳子、螺丝刀、扳手、内六角扳手、螺栓、螺母、滚柱和手电筒。
+
+上述图片由 `scripts/render_industrial_workcell_3d.py` 按仓库中的参数化几何确定性生成，适合用于技术报告和答辩展板；Isaac Sim 视频仍是最终动态物理验证证据。
+
 ## 目录清单
 
 ### 1. 核心评审演示（工业与家庭基准）
