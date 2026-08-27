@@ -9,7 +9,7 @@
 | 智能体集成 | ACTION skill、overlay runner | 单条指令驱动两步运行 | 已实现 |
 | 抓取和指定格位放置 | AnyGrasp skill、place executor | 身份/抬升/attachment/释放/AABB | 单容器严格闭环已验证；多格几何待完成 |
 | 失败感知与重新摆放 | typed failure evidence、recover step | failure phase 与 retry 决策 | 框架已实现，需完成多轮统计 |
-| 工业场景模型训练/微调 | `training/`、`models/` | 权重、哈希、99.11%/98.97% | 已实现语言意图模型 |
+| 工业场景模型训练/微调 | `training/`、`models/` | 权重、哈希、held-out 模板 100.00%/100.00% | 已实现工业视觉模型和轻量语言意图模型；尚未提交工业大模型 LoRA/全参微调权重 |
 | 感知精度与效率 | AnyGrasp 审计 | 候选数和运行耗时 | 真实工业标注集 mAP 尚待补测 |
 | 执行成功率 | structured physical evidence | `reports/real_isaac_runs.*`：2 次严格成功 + 1 次安全拒绝 | 已有工程回归证据；正式统计集待扩充 |
 | 仿真验证视频 | 轨迹录制器、`demo/` | 包含 180s 工业评审 Demo、52.7s 家庭基线 Demo 及 VLA/导航/长程协作等 7 组 H.264 验证视频 | 已完成 |

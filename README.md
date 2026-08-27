@@ -9,10 +9,10 @@ VisioMind 是面向挑战杯 XH-202607 赛题的“感知—决策—执行—�
 - 决策：中英双语工业指令模型、物体/容器/格位/空间关系抽取、详细任务序列和可执行 ACTION 序列；
 - 执行：CuRobo 全身与机械臂规划、sticky/assisted 抓取、携物 A* 导航、容器顶入放置和释放；
 - 验证：对象身份、连续 5 帧抬升与相对位姿、attachment、释放状态、AABB 包含及阶段化错误证据；
-- 训练：工业视觉微调数据生成与训练流、2,304 条指令训练数据、336 条独立模板测试数据、训练脚本和模型权重（`models/industrial_part_detector.pt`，`models/industrial_instruction.joblib`）；
+- 训练：工业视觉微调数据生成与训练流、2,864 条指令训练数据、396 条独立模板测试数据、训练脚本和模型权重（`models/industrial_part_detector.pt`，`models/industrial_instruction.joblib`）；
 - 工程：CPU 回归、一键自然语言 Dry Run、AnyGrasp 服务脚本和 Isaac Demo 入口。
 
-工业指令分类模型在固定的 held-out paraphrase template 测试集上达到 `99.11%` Accuracy、`98.97%` Macro-F1；同一测试集上的显式关键词规则基线为 `28.57%`/`22.22%`。完整数据和混淆矩阵见 `reports/instruction_model_metrics.json`。
+工业指令分类模型在固定的 held-out paraphrase template 测试集上达到 `100.00%` Accuracy、`100.00%` Macro-F1；同一测试集上的显式关键词规则基线为 `31.82%`/`28.21%`。该结果来自程序化模板数据，不代表真实工厂口语泛化性能；完整数据和混淆矩阵见 `reports/instruction_model_metrics.json`。
 
 ## 工程结构
 

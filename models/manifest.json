@@ -10,7 +10,7 @@
   {
     "path": "industrial_part_detector.pt",
     "sha256": "dba82a9086708558c3e21c1fe9b22dbaec97b7dc18db8e36e7ce0421f68b6857",
-    "bytes": 6393437,
+    "bytes": 6323155,
     "format": "pytorch",
     "license": "project-generated",
     "description": "Fine-tuned lightweight multi-task FPN/ConvNet for 2D/3D industrial part detection, instance segmentation, and point-cloud lifting (bolts, wrenches, rollers, pliers, screwdrivers, parts bins, toolboxes)."

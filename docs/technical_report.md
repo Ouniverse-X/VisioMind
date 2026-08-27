@@ -26,7 +26,7 @@ AnyGrasp 服务与 Isaac 主进程隔离，避免 MinkowskiEngine/SDK 依赖污�
 
 ### 4.1 轻量工业指令模型
 
-当前模型以字符 1–5 gram TF-IDF 编码中英文文本，并微调带类别平衡的 Logistic Regression 分类头。字符建模能处理中文无空格、英文拼写变化及工业缩写，208 KB 权重适合离线部署。模型覆盖 `pick_up`、`transfer_inside`、`transfer_on_top`、`inspect`、`move_near` 和 `stop` 六类意图。
+当前模型以字符 1–5 gram TF-IDF 编码中英文文本，并训练带类别平衡的 Logistic Regression 分类头。字符建模能处理中文无空格、英文拼写变化及工业缩写，约 320 KB 权重适合离线部署。模型覆盖 `pick_up`、`transfer_inside`、`transfer_on_top`、`inspect`、`move_near`、`recover_placement` 和 `stop` 七类意图。
 
 训练数据由固定种子生成，包含工具、零件、容器、空间限定、礼貌前后缀和中英模板；测试模板在结构上与训练模板隔离。槽位不由闭集分类头硬编码，而由场景本体解析后再映射到仿真实例，未知或缺失目标会显式拒绝执行。低于置信度阈值的指令不进入机器人。
 
@@ -64,7 +64,7 @@ AnyGrasp 服务与 Isaac 主进程隔离，避免 MinkowskiEngine/SDK 依赖污�
 
 硬件为 RTX 3090 24 GB、Intel i5-12600KF、32 GB RAM；软件栈为 Ubuntu 22.04、Python 3.10、Isaac Sim 4.5、OmniGibson/BEHAVIOR-1K、CuRobo 和 AnyGrasp。AnyGrasp 常驻约 0.5 GB 显存，Isaac+CuRobo 峰值约 15.5 GB。
 
-工业指令实验含 2,304 个训练样本和 336 个 held-out template 样本，模型 Accuracy 99.11%、Macro-F1 98.97%。物理抓取已多轮复现：常见检测 2 个候选、2 个锚定候选，目标为 `half_apple_213`，抬升约 0.27–0.30 m，连续相对位姿和 attachment 稳定。端到端放置以结构化 `released/aabb_contained/placement_verified` 为最终统计单位；任何仅环境谓词成功的运行均计为失败。
+工业指令实验含 2,864 个训练样本和 396 个 held-out template 样本，模型 Accuracy 100.00%、Macro-F1 100.00%；结果仅代表程序化未见模板测试集，不外推为真实工厂口语性能。物理抓取已多轮复现：常见检测 2 个候选、2 个锚定候选，目标为 `half_apple_213`，抬升约 0.27–0.30 m，连续相对位姿和 attachment 稳定。端到端放置以结构化 `released/aabb_contained/placement_verified` 为最终统计单位；任何仅环境谓词成功的运行均计为失败。
 
 2026-08-23 的三次选定工程复测包含两次严格成功和一次安全拒绝。两次成功的 A* 地理
 路径均为 0.791 m，终态分别在 control step 873/872 完成，下落高度 0.190/0.167 m，
