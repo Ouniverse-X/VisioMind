@@ -1853,8 +1853,14 @@ class GraspExecutor:
                         )
                         carry_delta = carry_target_pos - carry_eef_pose[0]
                         carry_distance_m = float(th.linalg.vector_norm(carry_delta))
+                        # The first compact-carry attempt from the fully
+                        # extended grasp can sit on a narrow CuRobo basin.
+                        # A 50 mm Cartesian hop repeatedly failed at waypoint
+                        # 3 in the real R1 scene; use 25 mm guarded hops so
+                        # every interpolation starts from the measured joint
+                        # state reached by the previous segment.
                         carry_count = max(
-                            1, int(math.ceil(carry_distance_m / 0.05))
+                            1, int(math.ceil(carry_distance_m / 0.025))
                         )
                         carry_local_ignores = self._local_collision_ignore_objects(
                             held_before
@@ -1893,6 +1899,7 @@ class GraspExecutor:
                             ),
                         )
                         carry_obstacle_profile = None
+                        carry_waypoint_quat = carry_eef_pose[1].clone()
                         for index in range(1, carry_count + 1):
                             placement_phase = (
                                 f"plan_arm_compact_carry_{index}_of_{carry_count}"
@@ -1904,12 +1911,18 @@ class GraspExecutor:
                             carry_segment = (
                                 f"arm_compact_carry_{index}_of_{carry_count}"
                             )
+                            # Keep the requested orientation for the post-motion
+                            # tail audit before replacing the next seed with the
+                            # measured physics pose.
+                            planned_carry_waypoint_quat = carry_waypoint_quat.clone()
                             carry_waypoint_record = {
                                 "segment": carry_segment,
                                 "position": _as_numpy_vector(
                                     carry_pose_pos
                                 ).tolist(),
-                                "orientation_xyzw": carry_eef_quat.tolist(),
+                                "orientation_xyzw": _as_numpy_vector(
+                                    carry_waypoint_quat, expected_size=4
+                                ).tolist(),
                             }
                             carry_waypoints_world.append(carry_waypoint_record)
                             trajectory = None
@@ -1930,7 +1943,7 @@ class GraspExecutor:
                                         },
                                         target_quat={
                                             self._robot.eef_link_names[self._arm]: (
-                                                carry_eef_pose[1]
+                                                carry_waypoint_quat
                                             )
                                         },
                                         embodiment_selection=embodiment,
@@ -1959,6 +1972,124 @@ class GraspExecutor:
                                             ),
                                         }
                                     )
+                                    # Recovery for narrow CuRobo orientation
+                                    # basins: first try the initial stable grasp
+                                    # quaternion, then relax orientation with
+                                    # motion_constraint.  The resulting physics
+                                    # pose remains subject to the strict tail audit below.
+                                    try:
+                                        trajectory = primitives._plan_joint_motion(
+                                            target_pos={
+                                                self._robot.eef_link_names[self._arm]: (
+                                                    carry_pose_pos
+                                                )
+                                            },
+                                            target_quat={
+                                                self._robot.eef_link_names[self._arm]: (
+                                                    carry_eef_pose[1]
+                                                )
+                                            },
+                                            embodiment_selection=embodiment,
+                                            ignore_objects=ignore_objects,
+                                            skip_obstacle_update=(
+                                                carry_obstacle_profile
+                                                == collision_profile
+                                            ),
+                                        )
+                                    except Exception:
+                                        try:
+                                            trajectory = primitives._plan_joint_motion(
+                                                target_pos={
+                                                    self._robot.eef_link_names[self._arm]: (
+                                                        carry_pose_pos
+                                                    )
+                                                },
+                                                target_quat={
+                                                    self._robot.eef_link_names[self._arm]: (
+                                                        carry_waypoint_quat
+                                                    )
+                                                },
+                                                embodiment_selection=embodiment,
+                                                motion_constraint=[
+                                                    1.0,
+                                                    1.0,
+                                                    1.0,
+                                                    0.0,
+                                                    0.0,
+                                                    0.0,
+                                                ],
+                                                ignore_objects=ignore_objects,
+                                                skip_obstacle_update=(
+                                                    carry_obstacle_profile
+                                                    == collision_profile
+                                                ),
+                                            )
+                                        except Exception as recovery_exc:
+                                            last_carry_error = recovery_exc
+                                            carry_planning_attempts.append(
+                                                {
+                                                    "segment": carry_segment,
+                                                    "embodiment": str(
+                                                        getattr(
+                                                            embodiment,
+                                                            "value",
+                                                            embodiment,
+                                                        )
+                                                    ),
+                                                    "collision_profile": (
+                                                        f"{collision_profile}:orientation_recovery"
+                                                    ),
+                                                    "success": False,
+                                                    "error": (
+                                                        f"{type(recovery_exc).__name__}: "
+                                                        f"{recovery_exc}"
+                                                    ),
+                                                }
+                                            )
+                                        else:
+                                            carry_planning_attempts.append(
+                                                {
+                                                    "segment": carry_segment,
+                                                    "embodiment": str(
+                                                        getattr(
+                                                            embodiment,
+                                                            "value",
+                                                            embodiment,
+                                                        )
+                                                    ),
+                                                    "collision_profile": (
+                                                        f"{collision_profile}:orientation_recovery"
+                                                    ),
+                                                    "success": True,
+                                                    "trajectory_steps": len(trajectory),
+                                                }
+                                            )
+                                            carry_waypoint_record[
+                                                "orientation_constraint_recovery"
+                                            ] = "motion_constraint"
+                                            break
+                                    else:
+                                        carry_planning_attempts.append(
+                                            {
+                                                "segment": carry_segment,
+                                                "embodiment": str(
+                                                    getattr(
+                                                        embodiment,
+                                                        "value",
+                                                        embodiment,
+                                                    )
+                                                ),
+                                                "collision_profile": (
+                                                    f"{collision_profile}:initial_quaternion_recovery"
+                                                ),
+                                                "success": True,
+                                                "trajectory_steps": len(trajectory),
+                                            }
+                                        )
+                                        carry_waypoint_record[
+                                            "orientation_constraint_recovery"
+                                        ] = "initial_quaternion"
+                                        break
                                 else:
                                     carry_planning_attempts.append(
                                         {
@@ -2032,10 +2163,22 @@ class GraspExecutor:
                                     else math.degrees(
                                         _quat_shortest_angle_rad_xyzw(
                                             actual_carry_quat,
-                                            carry_eef_quat,
+                                            planned_carry_waypoint_quat,
                                         )
                                     )
                                 )
+                                # Physics and the joint controller can leave a
+                                # small wrist orientation residual after each
+                                # short segment. Carry that measured pose into
+                                # the next planning seed instead of repeatedly
+                                # asking CuRobo to undo the accumulated residual
+                                # while also moving the payload.
+                                if actual_carry_quat is not None:
+                                    carry_waypoint_quat = th.as_tensor(
+                                        actual_carry_quat,
+                                        dtype=carry_eef_pose[1].dtype,
+                                        device=carry_eef_pose[1].device,
+                                    )
                                 carry_waypoint_record.update(
                                     {
                                         "actual_position": (
@@ -2736,6 +2879,8 @@ class GraspExecutor:
                 pose_2d: Any,
                 *,
                 final_waypoint: bool,
+                distance_threshold_m: float | None = None,
+                min_speed_mps: float = 0.08,
             ) -> Generator[Any, None, None]:
                 current_pose = self._robot.get_position_orientation()
                 current_quat = _as_numpy_vector(current_pose[1], expected_size=4)
@@ -2752,7 +2897,8 @@ class GraspExecutor:
                 if not final_waypoint:
                     translation_pose[2] = float(current_yaw)
                 end_pose = get_robot_pose_from_2d(translation_pose)
-                distance_threshold_m = 0.06 if final_waypoint else 0.075
+                if distance_threshold_m is None:
+                    distance_threshold_m = 0.06 if final_waypoint else 0.075
                 maximum_steps = 800
                 for _ in range(maximum_steps):
                     body_target_pose = world_pose_to_robot_pose(end_pose)
@@ -2770,7 +2916,9 @@ class GraspExecutor:
                         raise RuntimeError(
                             "holonomic carry navigation requires a 3-DoF base action"
                         )
-                    speed_mps = float(np.clip(1.2 * distance_m, 0.08, 0.25))
+                    speed_mps = float(
+                        np.clip(1.2 * distance_m, min_speed_mps, 0.25)
+                    )
                     direction = local_delta[:2] / max(distance_m, 1e-9)
                     base_action[0] = float(direction[0] * speed_mps)
                     base_action[1] = float(direction[1] * speed_mps)
@@ -2868,6 +3016,17 @@ class GraspExecutor:
                 if correction_norm_m > maximum_alignment_m:
                     attempt_evidence["refused_reason"] = "correction_exceeds_safe_limit"
                     break
+                # A grid-cell goal already has a deterministic hand target
+                # and strict final AABB verification.  For a small residual,
+                # let the staged arm waypoints absorb the translation instead
+                # of rotating / translating the base next to the toolbox wall.
+                # The observed 46.5 mm correction repeatedly timed out in
+                # rotate_in_place even though it is well inside the arm's
+                # incremental Cartesian workspace.
+                if target_cell_aabb is not None and correction_norm_m <= 0.06:
+                    attempt_evidence["executed_by"] = "staged_arm_waypoints"
+                    attempt_evidence["deferred_to_arm_planner"] = True
+                    break
 
                 robot_pose_before_alignment = self._robot.get_position_orientation()
                 robot_position_before_alignment = _as_numpy_vector(
@@ -2891,7 +3050,17 @@ class GraspExecutor:
                         original_empty_action(follow_arm_targets=False)
                     )
                 try:
-                    for action in navigate_direct(alignment_pose, low_precision=False):
+                    alignment_actions = (
+                        navigate_holonomic_carry_pose(
+                            alignment_pose,
+                            final_waypoint=False,
+                            distance_threshold_m=0.005,
+                            min_speed_mps=0.03,
+                        )
+                        if use_holonomic_carry_navigation
+                        else navigate_direct(alignment_pose, low_precision=False)
+                    )
+                    for action in alignment_actions:
                         if action is not None:
                             steps += 1
                             pre_navigation_steps += 1
@@ -3188,8 +3357,15 @@ class GraspExecutor:
             # because a long industrial tool is close to the bin wall.
             clearance_delta = preplace_pose[0] - current_pos
             clearance_distance = float(th.linalg.vector_norm(clearance_delta))
+            # The industrial plier reaches the toolbox from a near-boundary
+            # wrist configuration.  In the real R1 scene, a 90--100 mm first
+            # Cartesian hop was rejected by CuRobo even though the endpoint
+            # IK was valid (the planner could not find a collision-free joint
+            # interpolation from the stretched grasp state).  Use shorter
+            # guarded hops for grid placement so the planner can leave that
+            # singularity incrementally while preserving the grasp pose.
             clearance_segment_max_m = (
-                0.10 if target_cell_aabb is not None else 0.18
+                0.035 if target_cell_aabb is not None else 0.18
             )
             clearance_count = min(
                 6,
