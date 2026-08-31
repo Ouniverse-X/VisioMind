@@ -15,14 +15,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from visiomind.decision.instruction_model import (
+from visiomind.plan.instruction_model import (
     CONTAINER_ALIASES,
     OBJECT_ALIASES,
     SPATIAL_ALIASES,
     _extract_cell_index,
     _find_alias,
 )
-from visiomind.decision.qwen_plan_schema import (
+from visiomind.plan.qwen_plan_schema import (
     SYSTEM_PROMPT,
     build_plan,
     compact_json,

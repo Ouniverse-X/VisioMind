@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from visiomind.decision.qwen_plan_schema import (
+from visiomind.plan.qwen_plan_schema import (
     SYSTEM_PROMPT,
     extract_json_object,
     validate_plan,

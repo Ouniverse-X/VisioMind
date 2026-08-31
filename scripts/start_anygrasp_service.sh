@@ -11,7 +11,7 @@ ANYGRASP_GRIPPER_HEIGHT="${ANYGRASP_GRIPPER_HEIGHT:-0.03}"
 ANYGRASP_TOP_DOWN="${ANYGRASP_TOP_DOWN:-1}"
 
 ARGS=(
-  "$REPO_ROOT/voltron/integrations/manipulation/anygrasp/server.py"
+  "$REPO_ROOT/visiomind/action/integrations/manipulation/anygrasp/server.py"
   --sdk-root "$ANYGRASP_SDK_ROOT"
   --host "$ANYGRASP_HOST"
   --port "$ANYGRASP_PORT"

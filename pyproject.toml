@@ -18,7 +18,8 @@ vision = ["torch>=2.2"]
 llm = ["torch>=2.2", "transformers>=4.45", "peft>=0.13"]
 
 [project.scripts]
-visiomind-plan = "visiomind.decision.cli:main"
+visiomind-plan = "visiomind.plan.cli:main"
+visiomind-action = "visiomind.action.entrypoints.examples.closed_loop.action_only:main"
 
 [tool.setuptools.packages.find]
 include = ["visiomind*"]
@@ -33,4 +34,4 @@ target-version = "py310"
 "training/evaluate_qwen_industrial_planner.py" = ["E402"]
 "training/generate_qwen_lora_dataset.py" = ["E402"]
 "training/train_industrial_vision_model.py" = ["E402"]
-"voltron/integrations/simulator/behavior/artifacts/process_logger.py" = ["F401"]
+"visiomind/action/integrations/simulator/behavior/artifacts/process_logger.py" = ["F401"]

@@ -8,11 +8,11 @@ htmlcov/
 logs/
 artifacts/raw/
 demo/raw/
-voltron/integrations/simulator/runs/
+visiomind/action/integrations/simulator/runs/
 .env
 *.avi
 *.tmp
-voltron/integrations/memory/data/
+visiomind/action/integrations/memory/data/
 models/base/
 data/
 reports/

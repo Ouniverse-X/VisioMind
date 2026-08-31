@@ -218,7 +218,7 @@ def _add_physical_dividers(
     grid_shape: tuple[int, int],
     divider_thickness: float = 0.008,
 ) -> list[str]:
-    from voltron.shared.compartment_geometry import MultiCompartmentBinGeometry
+    from visiomind.action.shared.compartment_geometry import MultiCompartmentBinGeometry
 
     geom = MultiCompartmentBinGeometry(
         container_aabb=container_aabb,
