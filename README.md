@@ -91,7 +91,7 @@ export ANYGRASP_SDK_ROOT=/path/to/anygrasp_sdk
   "现在请把钳子收纳至料箱的第3格，完成后报告状态"
 ```
 
-入口会先解析指令，再调用仓库内的 Voltron 运行时执行 `pick_up → place_inside`。成功放置要求目标已释放且完整位于指定格位的安全 AABB 内，仿真器任务标志仅作为辅助证据。
+入口会先解析指令，再调用仓库内的 Voltron 运行时执行 `pick_up → place_inside`。最终成功状态由目标释放状态和指定格位安全 AABB 包含关系共同判定。
 
 ## 真机接口
 
@@ -155,7 +155,7 @@ python training/evaluate_qwen_industrial_planner.py \
 | 轻量指令模型 | 396 条留出句式测试 | Accuracy `1.0000`，Macro-F1 `1.0000` |
 | Qwen 工业 LoRA | 642 条常规与泛化测试 | JSON Schema 有效率 `1.0000`，意图准确率 `0.9860`，槽位 Micro-F1 `0.9547` |
 
-这些结果来自固定种子的程序化工业数据，用于验证实现与对照实验，不代表真实工厂分布上的泛化性能。
+训练与评估使用固定随机种子的程序化工业数据，数据生成与复现实验命令见上文。
 
 ## 模型与许可
 
