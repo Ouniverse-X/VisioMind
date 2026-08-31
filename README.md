@@ -6,13 +6,19 @@ VisioMind 是面向挑战杯 XH-202607 赛题的“感知—决策—执行—�
 
 - 感知：**工业专用微调视觉检测与分割模型（`IndustrialPartDetector`，覆盖螺栓/扳手/滚柱/螺丝刀/钳子等，mAP@0.5 ≥ 0.85，3D 误差 < 2.5cm）**、RGB-D/实例分割目标条件点云、AnyGrasp 6D 抓取、机器人真实夹爪几何适配、非目标碰撞审计；
 - 几何：**多格料箱内部物理隔板的独立 3D 几何精细划分（`MultiCompartmentBinGeometry`）**，精确计算隔板厚度/高度/碰撞边界与槽位可用安全下探容积；
-- 决策：中英双语工业指令模型、物体/容器/格位/空间关系抽取、详细任务序列和可执行 ACTION 序列；
+- 决策：**Qwen2.5-3B 工业任务规划 LoRA**、固定 JSON Schema、物体/容器/格位/空间关系抽取、详细任务序列和可执行 ACTION 序列；
 - 执行：CuRobo 全身与机械臂规划、sticky/assisted 抓取、携物 A* 导航、容器顶入放置和释放；
 - 验证：对象身份、连续 5 帧抬升与相对位姿、attachment、释放状态、AABB 包含及阶段化错误证据；
-- 训练：工业视觉微调数据生成与训练流、2,864 条指令训练数据、396 条独立模板测试数据、训练脚本和模型权重（`models/industrial_part_detector.pt`，`models/industrial_instruction.joblib`）；
+- 训练：工业视觉和语言微调训练流、Qwen LoRA Adapter、958/276 条 SFT 训练/验证数据及 642 条常规与泛化测试数据、Prompt-only 对照和逐样本预测证据；
 - 工程：CPU 回归、一键自然语言 Dry Run、AnyGrasp 服务脚本和 Isaac Demo 入口。
 
 工业指令分类模型在固定的 held-out paraphrase template 测试集上达到 `100.00%` Accuracy、`100.00%` Macro-F1；同一测试集上的显式关键词规则基线为 `31.82%`/`28.21%`。该结果来自程序化模板数据，不代表真实工厂口语泛化性能；完整数据和混淆矩阵见 `reports/instruction_model_metrics.json`。
+
+Qwen2.5-3B Prompt-only 与工业 LoRA 在相同 642 条测试上的对照为：固定 JSON Schema
+有效率 `0.00% → 100.00%`、意图准确率 `80.06% → 98.60%`、槽位 Micro-F1
+`39.44% → 95.47%`、任务序列精确匹配 `0.62% → 98.60%`。未见工具槽位 F1 为
+`83.29%`，未见句式意图准确率/槽位 F1 为 `92.86%/95.03%`。数据均为程序化模板，
+不外推为真实工厂口语性能；详见 `docs/qwen25_industrial_lora_model_card.md`。
 
 ## 工程结构
 
@@ -71,6 +77,18 @@ python training/train_instruction_model.py \
   --test data/instructions/test.jsonl \
   --output models/industrial_instruction.joblib \
   --metrics reports/instruction_model_metrics.json
+
+# 复现工业大模型 LoRA 数据、训练与完整评估
+python training/generate_qwen_lora_dataset.py
+python training/train_qwen_industrial_lora.py
+python training/evaluate_qwen_industrial_planner.py \
+  --adapter models/qwen25_3b_industrial_lora \
+  --output reports/qwen25_lora_metrics.json \
+  --predictions reports/qwen25_lora_predictions.jsonl
+
+# 单条自然语言指令生成固定 JSON 任务序列
+python scripts/run_qwen_industrial_planner.py \
+  "现在请把钳子收纳至料箱的第3格，完成后报告状态"
 ```
 
 ### 2. GPU/Isaac 仿真环境下（完整闭环）
@@ -144,7 +162,11 @@ ros2 launch scripts/sensor_integration.launch.py
 
 ## 模型与授权
 
-本仓库包含项目自行训练的 `models/industrial_instruction.joblib`。AnyGrasp SDK、机器绑定许可证及 296 MB 官方检测权重不在仓库中分发；请按 AnyGrasp 官方流程申请，并用 `models/third_party_models.json` 中的 SHA-256 核验本地文件。详见 `models/MODELS.md` 和 `THIRD_PARTY_NOTICES.md`。
+本仓库包含项目自行训练的轻量工业指令模型和 Qwen2.5-3B 工业规划 LoRA Adapter。
+Qwen 基础权重不分发；3B 版本及衍生 Adapter 受 Qwen Research License 约束，仅限
+非商业研究/评估，协议和 NOTICE 已随 Adapter 提交。AnyGrasp SDK、机器绑定许可证及
+296 MB 官方检测权重同样不在仓库中分发；请按官方流程申请。详见 `models/MODELS.md`
+和 `THIRD_PARTY_NOTICES.md`。
 
 比赛所需 Voltron Python 运行时代码已复制到本仓库，并由入口强制优先加载；Isaac
 Sim、OmniGibson/BEHAVIOR-1K、CuRobo 与 AnyGrasp 仍是需独立安装或授权的外部依赖。
@@ -155,5 +177,6 @@ Sim、OmniGibson/BEHAVIOR-1K、CuRobo 与 AnyGrasp 仍是需独立安装或授�
 - `docs/user_guide.md`：环境、安装、训练、运行、接口与排障；
 - `docs/competition_compliance.md`：赛题条款到代码/证据的逐项映射；
 - `docs/model_card.md`：工业指令模型数据、指标和适用边界。
+- `docs/qwen25_industrial_lora_model_card.md`：工业大模型 LoRA、数据、基线、泛化实验与许可。
 
 本项目当前以 Ubuntu 22.04、Python 3.10、RTX 3090 24 GB、Isaac Sim 4.5/OmniGibson、R1 Pro 和 AnyGrasp 服务为已验证运行栈。

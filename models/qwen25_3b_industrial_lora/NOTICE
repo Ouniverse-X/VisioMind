@@ -1,0 +1,8 @@
+Improved using Qwen.
+
+Qwen is licensed under the Qwen RESEARCH LICENSE AGREEMENT,
+Copyright (c) Alibaba Cloud. All Rights Reserved.
+
+VisioMind modification notice: this directory contains a project-generated
+LoRA adapter trained on the industrial task-planning data documented in
+training_manifest.json. The Qwen base-model weights are not redistributed.

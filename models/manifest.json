@@ -14,5 +14,15 @@
     "format": "pytorch",
     "license": "project-generated",
     "description": "Fine-tuned lightweight multi-task FPN/ConvNet for 2D/3D industrial part detection, instance segmentation, and point-cloud lifting (bolts, wrenches, rollers, pliers, screwdrivers, parts bins, toolboxes)."
+  },
+  {
+    "path": "qwen25_3b_industrial_lora/adapter_model.safetensors",
+    "sha256": "ec723139fd6443c625f7886eb9efb63960eaf2051c20f87010ace06606906726",
+    "bytes": 59933632,
+    "format": "safetensors-peft-lora",
+    "license": "Qwen Research License (non-commercial research/evaluation only)",
+    "base_model": "Qwen/Qwen2.5-3B-Instruct",
+    "base_model_distributed": false,
+    "description": "Project-trained Qwen2.5-3B LoRA for fixed-schema bilingual industrial task planning. Improved using Qwen."
   }
 ]

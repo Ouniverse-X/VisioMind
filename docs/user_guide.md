@@ -203,6 +203,24 @@ AnyGrasp 属于类别无关的 6-DoF 抓取姿态估计系统，通过独立的 
    # 或者测试更复杂的工件交互指令：
    python -m visiomind.decision.cli "帮我把左侧的滚柱放到料箱第三格"
    ```
+3. **运行工业大模型 LoRA**：
+   从上游按 Qwen Research License 取得 `Qwen/Qwen2.5-3B-Instruct`，置于
+   `models/base/Qwen2.5-3B-Instruct`。基础权重不随仓库分发；当前 3B 版本仅限
+   非商业研究/评估。RTX 3090 上运行：
+   ```bash
+   python scripts/run_qwen_industrial_planner.py \
+     "现在请把钳子收纳至料箱的第3格，完成后报告状态"
+
+   # 复现数据、LoRA 训练和完整指标
+   python training/generate_qwen_lora_dataset.py
+   python training/train_qwen_industrial_lora.py
+   python training/evaluate_qwen_industrial_planner.py \
+     --adapter models/qwen25_3b_industrial_lora \
+     --output reports/qwen25_lora_metrics.json \
+     --predictions reports/qwen25_lora_predictions.jsonl
+   ```
+   输出必须通过 `visiomind-industrial-plan-v1` Schema，且仍须经场景 grounding、
+   可达性、碰撞与物理成功验证后才能交给执行层。
 
 ### 4.2 仿真闭环系统运行 (Isaac Sim + OmniGibson)
 在测试仿真场景时，请按照以下步骤分别开启后端服务和闭环智能体主进程：

@@ -1,0 +1,118 @@
+{
+  "evaluation_version": "qwen25-industrial-plan-eval-v2-label-audit",
+  "mode": "prompt_only",
+  "base_model": "Qwen/Qwen2.5-3B-Instruct",
+  "adapter": null,
+  "generation": {
+    "do_sample": false,
+    "max_new_tokens": 700,
+    "batch_size": 6
+  },
+  "splits": {
+    "test": {
+      "records": 396,
+      "json_parse_rate": 1.0,
+      "json_object_rate": 1.0,
+      "json_schema_valid_rate": 0.0,
+      "intent_accuracy": 0.8383838383838383,
+      "slot_micro_precision": 0.3825966850828729,
+      "slot_micro_recall": 0.30240174672489084,
+      "slot_micro_f1": 0.3378048780487805,
+      "task_sequence_exact_match": 0.010101010101010102,
+      "action_sequence_exact_match": 0.0,
+      "full_plan_exact_match": 0.0,
+      "schema_error_counts": {
+        "invalid schema_version": 395,
+        "invalid slot keys/order": 313,
+        "action_sequence must be a non-empty list": 208,
+        "invalid action_sequence item": 188,
+        "invalid task_sequence item": 26,
+        "top-level keys/order do not match schema": 21,
+        "task_sequence must be a non-empty list": 17,
+        "task_sequence values must be strings": 10
+      },
+      "elapsed_seconds": 470.9572570323944
+    },
+    "test_unseen_tools": {
+      "records": 120,
+      "json_parse_rate": 1.0,
+      "json_object_rate": 1.0,
+      "json_schema_valid_rate": 0.0,
+      "intent_accuracy": 0.75,
+      "slot_micro_precision": 0.5439560439560439,
+      "slot_micro_recall": 0.55,
+      "slot_micro_f1": 0.5469613259668508,
+      "task_sequence_exact_match": 0.0,
+      "action_sequence_exact_match": 0.0,
+      "full_plan_exact_match": 0.0,
+      "schema_error_counts": {
+        "invalid schema_version": 120,
+        "invalid slot keys/order": 90,
+        "action_sequence must be a non-empty list": 63,
+        "invalid action_sequence item": 57,
+        "invalid task_sequence item": 17,
+        "invalid intent": 15,
+        "task_sequence values must be strings": 13
+      },
+      "elapsed_seconds": 95.11045503616333
+    },
+    "test_unseen_paraphrases": {
+      "records": 126,
+      "json_parse_rate": 1.0,
+      "json_object_rate": 1.0,
+      "json_schema_valid_rate": 0.0,
+      "intent_accuracy": 0.7301587301587301,
+      "slot_micro_precision": 0.5441860465116279,
+      "slot_micro_recall": 0.4134275618374558,
+      "slot_micro_f1": 0.46987951807228917,
+      "task_sequence_exact_match": 0.0,
+      "action_sequence_exact_match": 0.0,
+      "full_plan_exact_match": 0.0,
+      "schema_error_counts": {
+        "invalid schema_version": 126,
+        "invalid slot keys/order": 101,
+        "action_sequence must be a non-empty list": 82,
+        "invalid action_sequence item": 44,
+        "invalid task_sequence item": 21,
+        "top-level keys/order do not match schema": 9,
+        "task_sequence must be a non-empty list": 9
+      },
+      "elapsed_seconds": 107.71967649459839
+    }
+  },
+  "combined": {
+    "records": 642,
+    "json_parse_rate": 1.0,
+    "json_object_rate": 1.0,
+    "json_schema_valid_rate": 0.0,
+    "intent_accuracy": 0.8006230529595015,
+    "slot_micro_precision": 0.43978590544157004,
+    "slot_micro_recall": 0.3575054387237128,
+    "slot_micro_f1": 0.3943999999999999,
+    "task_sequence_exact_match": 0.006230529595015576,
+    "action_sequence_exact_match": 0.0,
+    "full_plan_exact_match": 0.0,
+    "schema_error_counts": {
+      "invalid schema_version": 641,
+      "invalid slot keys/order": 504,
+      "action_sequence must be a non-empty list": 353,
+      "invalid action_sequence item": 289,
+      "invalid task_sequence item": 64,
+      "top-level keys/order do not match schema": 30,
+      "task_sequence must be a non-empty list": 26,
+      "task_sequence values must be strings": 23,
+      "invalid intent": 15
+    }
+  },
+  "runtime": {
+    "elapsed_seconds": 673.891975402832,
+    "generated_token_tensor_elements": 185466,
+    "peak_gpu_memory_bytes": 6486809088
+  },
+  "scoring": {
+    "source": "saved deterministic model generations",
+    "gold_labels": "data/qwen25_industrial/dataset_manifest.json",
+    "dataset_manifest_sha256": "04b603be4c0807a107b654b06159f32547bb410cf3c42d17acbe1ff568ba08c7",
+    "note": "Metrics recomputed without regeneration after fixing the gold-label parser for explicit English 'number N' cell references."
+  }
+}

@@ -30,7 +30,21 @@ AnyGrasp 服务与 Isaac 主进程隔离，避免 MinkowskiEngine/SDK 依赖污�
 
 训练数据由固定种子生成，包含工具、零件、容器、空间限定、礼貌前后缀和中英模板；测试模板在结构上与训练模板隔离。槽位不由闭集分类头硬编码，而由场景本体解析后再映射到仿真实例，未知或缺失目标会显式拒绝执行。低于置信度阈值的指令不进入机器人。
 
-### 4.2 可审计任务序列
+### 4.2 Qwen2.5-3B 工业任务规划 LoRA
+
+为满足工业大模型微调加分项，系统进一步冻结 Qwen2.5-3B-Instruct 基础模型，对
+Attention 和 MLP 的全部 projection 训练 rank-8 LoRA。输入为单条中英操作员指令，
+输出严格遵循 `visiomind-industrial-plan-v1`：七类意图、四个固定槽位、带模块和成功
+条件的审计任务序列，以及可执行 ACTION 序列。LoRA 仅负责语义解析和任务分解；实例
+grounding、碰撞检查和运动许可仍由确定性运行时承担。
+
+数据含 958 条训练、276 条验证、396 条未见原模板测试、120 条未见工具测试和 126 条
+未见句式测试，任意 split 间精确指令重合为 0。基础权重不随项目分发，59,933,632
+bytes Adapter、训练脚本、五个 split、Prompt-only 基线、完整报告和逐样本原始输出均
+随仓库交付。Qwen2.5-3B 受 Qwen Research License 而非 Apache-2.0 约束，仅限非商业
+研究/评估。
+
+### 4.3 可审计任务序列
 
 例如“帮我把左侧的滚柱放到料箱第三格”分解为：目标选择、抓取规划、抓取与物理验证、目的地定位、携物导航、格位内放置、失败恢复。执行计划压缩为 `pick_up(roller)` 和 `place_inside(roller, parts_bin, cell=3)`，每个动作仍保留细粒度物理阶段。这样语言模块不直接产生关节值，执行技能也不需要猜测语言含义。
 
@@ -65,6 +79,13 @@ AnyGrasp 服务与 Isaac 主进程隔离，避免 MinkowskiEngine/SDK 依赖污�
 硬件为 RTX 3090 24 GB、Intel i5-12600KF、32 GB RAM；软件栈为 Ubuntu 22.04、Python 3.10、Isaac Sim 4.5、OmniGibson/BEHAVIOR-1K、CuRobo 和 AnyGrasp。AnyGrasp 常驻约 0.5 GB 显存，Isaac+CuRobo 峰值约 15.5 GB。
 
 工业指令实验含 2,864 个训练样本和 396 个 held-out template 样本，模型 Accuracy 100.00%、Macro-F1 100.00%；结果仅代表程序化未见模板测试集，不外推为真实工厂口语性能。物理抓取已多轮复现：常见检测 2 个候选、2 个锚定候选，目标为 `half_apple_213`，抬升约 0.27–0.30 m，连续相对位姿和 attachment 稳定。端到端放置以结构化 `released/aabb_contained/placement_verified` 为最终统计单位；任何仅环境谓词成功的运行均计为失败。
+
+Qwen 完整 642 条评估中，Prompt-only 到 LoRA 的固定 Schema 有效率由 0.00% 提升至
+100.00%，意图准确率由 80.06% 提升至 98.60%，槽位 Micro-F1 由 39.44% 提升至
+95.47%，任务序列精确匹配由 0.62% 提升至 98.60%。未见工具的意图准确率/槽位 F1
+为 100.00%/83.29%，未见句式为 92.86%/95.03%。以上均为程序化模板实验；评估器
+提交每条 raw output，并在发现英文 `number N` 标签漏标后以独立规则修复金标准、对
+已保存确定性输出重新计分，provenance 和 manifest 哈希保存在 JSON 报告中。
 
 2026-08-23 的三次选定工程复测包含两次严格成功和一次安全拒绝。两次成功的 A* 地理
 路径均为 0.791 m，终态分别在 control step 873/872 完成，下落高度 0.190/0.167 m，

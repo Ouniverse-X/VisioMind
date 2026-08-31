@@ -1,0 +1,46 @@
+{
+  "model": "Qwen2.5-3B-Instruct industrial task planner LoRA",
+  "base_model": "Qwen/Qwen2.5-3B-Instruct",
+  "base_model_local_path": "models/base/Qwen2.5-3B-Instruct",
+  "adapter_path": "adapter_model.safetensors",
+  "adapter_sha256": "ec723139fd6443c625f7886eb9efb63960eaf2051c20f87010ace06606906726",
+  "adapter_bytes": 59933632,
+  "tokenizer": "inherited unchanged from Qwen/Qwen2.5-3B-Instruct",
+  "training": {
+    "method": "BF16 LoRA",
+    "epochs": 2.0,
+    "learning_rate": 0.0002,
+    "max_length": 1024,
+    "batch_size": 1,
+    "gradient_accumulation": 8,
+    "lora_r": 8,
+    "lora_alpha": 16,
+    "seed": 20262504,
+    "train_records": 958,
+    "validation_records": 276,
+    "train_truncated_examples": 0,
+    "validation_truncated_examples": 0,
+    "trainable_parameters": 14966784,
+    "total_parameters": 3100905472,
+    "trainable_fraction": 0.0048265850523804684,
+    "elapsed_seconds": 596.3355338573456,
+    "final_validation_elapsed_seconds": 21.86223292350769,
+    "peak_gpu_memory_bytes": 7603795968,
+    "train_metrics": {
+      "train_runtime": 574.0689,
+      "train_samples_per_second": 3.338,
+      "train_steps_per_second": 0.415,
+      "total_flos": 1.2871595054923776e+16,
+      "train_loss": 0.09684973280923832,
+      "epoch": 1.9853862212943634
+    },
+    "validation_metrics": {
+      "eval_loss": 0.0002438976662233472,
+      "eval_runtime": 21.8616,
+      "eval_samples_per_second": 12.625,
+      "eval_steps_per_second": 12.625,
+      "epoch": 1.9853862212943634
+    }
+  },
+  "license": "project-generated adapter derived from Qwen2.5-3B-Instruct; Qwen Research License (non-commercial research/evaluation only)"
+}
