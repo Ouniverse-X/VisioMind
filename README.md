@@ -205,4 +205,4 @@ python training/evaluate_qwen_industrial_planner.py \
 - `models/qwen25_3b_industrial_lora/adapter_model.safetensors`：基于 Qwen2.5-3B-Instruct 的工业规划 LoRA。
 - `models/manifest.json`：模型大小、SHA-256、格式与来源。
 
-Qwen Adapter 受目录内 `QWEN_RESEARCH_LICENSE.txt` 约束，仅用于非商业研究与评估。其他第三方组件及权重说明见 `THIRD_PARTY_NOTICES.md`。
+Qwen Adapter 受目录内 `QWEN_RESEARCH_LICENSE.txt` 约束，仅用于非商业研究与评估。相关署名信息见 `THIRD_PARTY_NOTICES.md`。
