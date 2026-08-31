@@ -37,8 +37,6 @@
 └── pyproject.toml
 ```
 
-仓库只保留运行与复现实验所需的核心内容。训练数据和评估报告由 `training/` 中的脚本生成，不重复提交生成物。
-
 ## 快速开始
 
 推荐环境为 Ubuntu 22.04、Python 3.10 和 NVIDIA GPU。

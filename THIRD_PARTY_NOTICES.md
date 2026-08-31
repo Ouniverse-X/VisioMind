@@ -7,6 +7,7 @@
 - Qwen2.5-3B-Instruct is an Alibaba Cloud model governed by the Qwen Research
   License Agreement, not Apache-2.0. The base weights are not redistributed.
   The project LoRA is a derivative limited to non-commercial research or
-  evaluation; its directory includes the upstream agreement, required
-  attribution, and modification notice. Improved using Qwen.
-- The competition overlay was derived from the team's existing Voltron research runtime. No general open-source license is asserted for that pre-existing code in this submission; copyright remains with its respective owners.
+  evaluation. `models/qwen25_3b_industrial_lora/adapter_model.safetensors` is
+  a project-trained modification for industrial task planning. Qwen is
+  licensed under the Qwen RESEARCH LICENSE AGREEMENT, Copyright (c) Alibaba
+  Cloud. All Rights Reserved. Improved using Qwen.
