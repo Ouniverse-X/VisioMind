@@ -1,4 +1,4 @@
-# VisioMind
+# 灵眸智控
 
 面向挑战杯赛题 **XH-202607「工业环境下物体感知识别与指令交互型智能体研发」** 的交互式机器人智能体。系统接收中英文自然语言指令，完成工业工具感知、指令理解、任务分解、抓取放置、结果验证与失败恢复，形成“感知—决策—执行—验证”闭环。
 
@@ -22,7 +22,7 @@
 ## 项目结构
 
 ```text
-VisioMind/
+灵眸智控/
 ├── visiomind/
 │   ├── decision/             # 指令解析、任务分解与 Qwen 计划约束
 │   ├── perception/           # 工业目标检测、分割、三维定位与评估
@@ -44,8 +44,8 @@ VisioMind/
 推荐环境为 Ubuntu 22.04、Python 3.10 和 NVIDIA GPU。
 
 ```bash
-git clone https://github.com/Ouniverse-X/VisioMind.git
-cd VisioMind
+git clone https://github.com/Ouniverse-X/VisioMind.git lingmou-zhikong
+cd lingmou-zhikong
 python -m venv .venv
 source .venv/bin/activate
 pip install -U pip
