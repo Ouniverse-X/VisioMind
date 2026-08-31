@@ -62,7 +62,7 @@ python run_instruction_demo.py \
 
 ## Qwen 工业规划器
 
-安装大模型推理依赖，并将 `Qwen/Qwen2.5-3B-Instruct` 基础权重放在 `models/base/Qwen2.5-3B-Instruct/`。仓库只分发项目训练的 LoRA Adapter。
+本项目的推理大模型使用经过 LoRA 微调的 Qwen2.5-3B-Instruct 模型，运行前需将其基础权重放至 `models/base/Qwen2.5-3B-Instruct/` 文件夹。项目的 LoRA Adapter 位于 `models/qwen25_3b_industrial_lora/` 目录下。
 
 ```bash
 pip install -e '.[llm]'
