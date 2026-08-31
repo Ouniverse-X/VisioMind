@@ -1,10 +1,3 @@
-"""Merged immutable HOV-SG assets and runtime scene-state overlays.
-
-This module is the single semantic/geometry view used by grounding, object
-approach planning, and dynamic map composition.  Static assets are never
-mutated; runtime relations override them in this derived view.
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -64,9 +57,7 @@ class EffectiveObjectState:
     floor_id: str | None
     footprint: list[tuple[float, float]] = field(default_factory=list)
     footprints: list[list[tuple[float, float]]] = field(default_factory=list)
-    navigation_footprints: list[list[tuple[float, float]]] = field(
-        default_factory=list
-    )
+    navigation_footprints: list[list[tuple[float, float]]] = field(default_factory=list)
     collision_parts: list[dict[str, Any]] = field(default_factory=list)
     geometry_source: str = "category_circle"
     static_object_id: str | None = None
@@ -101,10 +92,7 @@ class EffectiveObjectState:
 
     @property
     def participates_in_navigation(self) -> bool:
-        return (
-            self.navigation_role not in NON_BLOCKING_NAVIGATION_ROLES
-            and not self.held_by_self
-        )
+        return self.navigation_role not in NON_BLOCKING_NAVIGATION_ROLES and not self.held_by_self
 
     @property
     def approachable(self) -> bool:
@@ -203,7 +191,9 @@ def effective_scene_view(
         _register_aliases(aliases, effective)
 
     relation_candidates = _static_relations(scene, objects)
-    relation_candidates.extend(_derived_location_relations(objects, state_step=state.step if state else 0))
+    relation_candidates.extend(
+        _derived_location_relations(objects, state_step=state.step if state else 0)
+    )
     if state is not None:
         relation_candidates.extend(
             _canonicalize_runtime_relations(
@@ -335,7 +325,9 @@ def _effective_object(
     runtime_only = static_object is None
     object_id = (
         f"runtime:{runtime_object.name}"
-        if runtime_only and runtime_object is not None and not runtime_object.name.startswith("runtime:")
+        if runtime_only
+        and runtime_object is not None
+        and not runtime_object.name.startswith("runtime:")
         else runtime_object.name
         if runtime_only and runtime_object is not None
         else str(static_object.object_id)
@@ -343,13 +335,14 @@ def _effective_object(
     name = str(
         runtime_object.name
         if runtime_only and runtime_object is not None
-        else getattr(static_object, "name", None)
-        or getattr(static_object, "object_id", object_id)
+        else getattr(static_object, "name", None) or getattr(static_object, "object_id", object_id)
     )
     category = (
         runtime_object.category
         if runtime_object is not None and runtime_object.category
-        else getattr(static_object, "name", None) if static_object is not None else None
+        else getattr(static_object, "name", None)
+        if static_object is not None
+        else None
     )
     position = (
         dict(runtime_object.position)
@@ -370,7 +363,9 @@ def _effective_object(
     floor_id = (
         runtime_object.floor_hint
         if runtime_object is not None and runtime_object.floor_hint
-        else room.floor_id if room is not None else None
+        else room.floor_id
+        if room is not None
+        else None
     )
     floor_height = _floor_height(scene, floor_id)
     footprints, navigation_footprints, geometry_source = _effective_footprints(
@@ -389,9 +384,7 @@ def _effective_object(
         navigation_footprints = [
             _expand_polygon(item, uncertainty_margin) for item in navigation_footprints
         ]
-    footprint = convex_hull(
-        [point for polygon in footprints for point in polygon]
-    )
+    footprint = convex_hull([point for polygon in footprints for point in polygon])
     pose_revision = _hash_payload(position or {})
     geometry_revision = _hash_payload(
         {
@@ -476,9 +469,7 @@ def _effective_footprints(
                 if _oriented_bbox_overlaps_navigation_height(
                     runtime_object.oriented_bbox,
                     floor_height=floor_height,
-                    vertical_axis=str(
-                        getattr(scene, "vertical_axis", "z") or "z"
-                    ),
+                    vertical_axis=str(getattr(scene, "vertical_axis", "z") or "z"),
                 )
                 else []
             )
@@ -631,7 +622,12 @@ def _oriented_bbox_polygon(
     cosine = math.cos(yaw)
     sine = math.sin(yaw)
     polygon = []
-    for local_x, local_y in ((-half_x, -half_y), (half_x, -half_y), (half_x, half_y), (-half_x, half_y)):
+    for local_x, local_y in (
+        (-half_x, -half_y),
+        (half_x, -half_y),
+        (half_x, half_y),
+        (-half_x, half_y),
+    ):
         polygon.append(
             (
                 float(center_xy[0]) + local_x * cosine - local_y * sine,
@@ -877,11 +873,7 @@ def _canonicalize_runtime_relations(
     for relation in relations:
         if relation.expires_at_step is not None and current_step > relation.expires_at_step:
             continue
-        subject_aliases = (
-            room_aliases
-            if relation.relation == "connected_through"
-            else aliases
-        )
+        subject_aliases = room_aliases if relation.relation == "connected_through" else aliases
         subject_id = _resolve_alias(
             subject_aliases,
             relation.subject_id,
@@ -894,9 +886,7 @@ def _canonicalize_runtime_relations(
             else aliases
         )
         object_id = (
-            _resolve_alias(endpoint_aliases, relation.object_id)
-            if relation.object_id
-            else None
+            _resolve_alias(endpoint_aliases, relation.object_id) if relation.object_id else None
         )
         canonical.append(
             RuntimeRelationState(
@@ -1103,9 +1093,9 @@ def convex_hull(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
         first: tuple[float, float],
         second: tuple[float, float],
     ) -> float:
-        return (first[0] - origin[0]) * (second[1] - origin[1]) - (
-            first[1] - origin[1]
-        ) * (second[0] - origin[0])
+        return (first[0] - origin[0]) * (second[1] - origin[1]) - (first[1] - origin[1]) * (
+            second[0] - origin[0]
+        )
 
     lower: list[tuple[float, float]] = []
     for point in unique:
@@ -1166,18 +1156,13 @@ def _bounds_overlap(
     right: tuple[float, float, float, float],
 ) -> bool:
     return not (
-        left[2] < right[0]
-        or right[2] < left[0]
-        or left[3] < right[1]
-        or right[3] < left[1]
+        left[2] < right[0] or right[2] < left[0] or left[3] < right[1] or right[3] < left[1]
     )
 
 
 def _hash_payload(value: Any) -> str:
     return hashlib.sha1(
-        json.dumps(value, sort_keys=True, separators=(",", ":"), default=str).encode(
-            "utf-8"
-        )
+        json.dumps(value, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
     ).hexdigest()[:16]
 
 

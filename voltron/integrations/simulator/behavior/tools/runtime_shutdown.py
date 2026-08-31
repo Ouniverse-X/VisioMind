@@ -1,5 +1,3 @@
-"""Runtime shutdown helpers for the BEHAVIOR runtime bridge."""
-
 from __future__ import annotations
 
 import importlib
@@ -24,8 +22,6 @@ def build_run_end_payload(
 
 
 def reset_omnigibson_simulator() -> None:
-    """Return OmniGibson's global simulator to a reloadable state."""
-
     try:
         og = importlib.import_module("omnigibson")
     except ModuleNotFoundError:

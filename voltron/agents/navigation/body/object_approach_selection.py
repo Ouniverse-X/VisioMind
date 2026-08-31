@@ -1,5 +1,3 @@
-"""High-level object-approach candidate selection owned by the Navigation body."""
-
 from __future__ import annotations
 
 import json
@@ -55,8 +53,6 @@ _OPENPI_COMET_REFERENCE_HANDOFFS = {
 
 
 class HeuristicNavigationApproachPointSelector:
-    """Choose an approach anchor by path cost, geometry, and historical penalty."""
-
     min_candidate_clearance_m = 0.5
     min_path_clearance_m = 0.5
     max_handoff_distance_m = 1.0
@@ -84,18 +80,29 @@ class HeuristicNavigationApproachPointSelector:
                 "candidate": None,
                 "reason": "all object-approach candidates violated hard constraints",
                 "source": "heuristic_navigation_approach_point_selector",
-                "ranked_candidate_ids": [item.get("candidate_id") for item in sorted(candidates, key=self._sort_key)],
-                "rejected_candidate_ids": [item.get("candidate_id") for item in rejected_candidates],
+                "ranked_candidate_ids": [
+                    item.get("candidate_id") for item in sorted(candidates, key=self._sort_key)
+                ],
+                "rejected_candidate_ids": [
+                    item.get("candidate_id") for item in rejected_candidates
+                ],
                 "rejection_reasons": {
-                    str(item.get("candidate_id")): self._constraint_violations(item) for item in rejected_candidates
+                    str(item.get("candidate_id")): self._constraint_violations(item)
+                    for item in rejected_candidates
                 },
             }
 
         ranked = sorted(usable_candidates, key=self._sort_key)
-        forced_candidate_id = str(os.getenv("VOLTRON_FORCE_OBJECT_APPROACH_CANDIDATE_ID") or "").strip()
+        forced_candidate_id = str(
+            os.getenv("VOLTRON_FORCE_OBJECT_APPROACH_CANDIDATE_ID") or ""
+        ).strip()
         if forced_candidate_id:
             forced_candidate = next(
-                (item for item in ranked if str(item.get("candidate_id") or "") == forced_candidate_id),
+                (
+                    item
+                    for item in ranked
+                    if str(item.get("candidate_id") or "") == forced_candidate_id
+                ),
                 None,
             )
             if forced_candidate is not None:
@@ -107,9 +114,12 @@ class HeuristicNavigationApproachPointSelector:
                     "ranked_candidate_ids": [item.get("candidate_id") for item in ranked],
                 }
                 if rejected_candidates:
-                    result["rejected_candidate_ids"] = [item.get("candidate_id") for item in rejected_candidates]
+                    result["rejected_candidate_ids"] = [
+                        item.get("candidate_id") for item in rejected_candidates
+                    ]
                     result["rejection_reasons"] = {
-                        str(item.get("candidate_id")): self._constraint_violations(item) for item in rejected_candidates
+                        str(item.get("candidate_id")): self._constraint_violations(item)
+                        for item in rejected_candidates
                     }
                 return result
 
@@ -126,9 +136,12 @@ class HeuristicNavigationApproachPointSelector:
                 "ranked_candidate_ids": [item.get("candidate_id") for item in ranked],
             }
             if rejected_candidates:
-                result["rejected_candidate_ids"] = [item.get("candidate_id") for item in rejected_candidates]
+                result["rejected_candidate_ids"] = [
+                    item.get("candidate_id") for item in rejected_candidates
+                ]
                 result["rejection_reasons"] = {
-                    str(item.get("candidate_id")): self._constraint_violations(item) for item in rejected_candidates
+                    str(item.get("candidate_id")): self._constraint_violations(item)
+                    for item in rejected_candidates
                 }
             return result
 
@@ -140,9 +153,12 @@ class HeuristicNavigationApproachPointSelector:
             "ranked_candidate_ids": [item.get("candidate_id") for item in ranked],
         }
         if rejected_candidates:
-            result["rejected_candidate_ids"] = [item.get("candidate_id") for item in rejected_candidates]
+            result["rejected_candidate_ids"] = [
+                item.get("candidate_id") for item in rejected_candidates
+            ]
             result["rejection_reasons"] = {
-                str(item.get("candidate_id")): self._constraint_violations(item) for item in rejected_candidates
+                str(item.get("candidate_id")): self._constraint_violations(item)
+                for item in rejected_candidates
             }
         return result
 
@@ -154,11 +170,15 @@ class HeuristicNavigationApproachPointSelector:
         goal: dict,
         candidates: list[dict],
     ) -> dict | None:
-        if not cls._uses_openpi_comet(context) or not cls._openpi_comet_reference_handoff_enabled(context):
+        if not cls._uses_openpi_comet(context) or not cls._openpi_comet_reference_handoff_enabled(
+            context
+        ):
             return None
         if not candidates:
             return None
-        reference = cls._openpi_comet_reference(goal) or cls._openpi_comet_reference_from_candidates(candidates)
+        reference = cls._openpi_comet_reference(
+            goal
+        ) or cls._openpi_comet_reference_from_candidates(candidates)
         if reference is None:
             return None
         nearest = min(candidates, key=lambda item: cls._squared_xy_distance(item, reference))
@@ -197,7 +217,9 @@ class HeuristicNavigationApproachPointSelector:
         metadata = getattr(getattr(context, "task_request", None), "metadata", {})
         if isinstance(metadata, dict) and metadata.get("openpi_comet_reference_handoff") is True:
             return True
-        return str(os.getenv("VOLTRON_ENABLE_OPENPI_COMET_REFERENCE_HANDOFF") or "").strip().lower() in {
+        return str(
+            os.getenv("VOLTRON_ENABLE_OPENPI_COMET_REFERENCE_HANDOFF") or ""
+        ).strip().lower() in {
             "1",
             "true",
             "yes",
@@ -214,16 +236,23 @@ class HeuristicNavigationApproachPointSelector:
 
     @staticmethod
     def _openpi_comet_reference(goal: dict) -> dict | None:
-        object_name = str(
-            goal.get("object_name")
-            or goal.get("object")
-            or goal.get("target_object")
-            or goal.get("target")
-            or ""
-        ).strip().lower().replace("_", " ")
+        object_name = (
+            str(
+                goal.get("object_name")
+                or goal.get("object")
+                or goal.get("target_object")
+                or goal.get("target")
+                or ""
+            )
+            .strip()
+            .lower()
+            .replace("_", " ")
+        )
         object_id = str(goal.get("object_id") or "").strip().lower().replace("_", " ")
         for task_name, reference in _OPENPI_COMET_REFERENCE_HANDOFFS.items():
-            if object_name in reference["object_names"] or any(name in object_id for name in reference["object_names"]):
+            if object_name in reference["object_names"] or any(
+                name in object_id for name in reference["object_names"]
+            ):
                 return dict(reference, task_name=task_name)
         return None
 
@@ -347,14 +376,14 @@ class HeuristicNavigationApproachPointSelector:
         evidence = HeuristicNavigationApproachPointSelector._clearance_evidence(candidate)
         if not evidence:
             return 0.0
-        nearest = HeuristicNavigationApproachPointSelector._effective_candidate_clearance_m(evidence)
-        distances = [
-            value
-            for value in (nearest,)
-            if isinstance(value, (int, float))
-        ]
+        nearest = HeuristicNavigationApproachPointSelector._effective_candidate_clearance_m(
+            evidence
+        )
+        distances = [value for value in (nearest,) if isinstance(value, (int, float))]
         path_nearest = evidence.get("path_nearest_object_distance_m")
-        if isinstance(path_nearest, (int, float)) and not HeuristicNavigationApproachPointSelector._is_portal_like_object_name(
+        if isinstance(
+            path_nearest, (int, float)
+        ) and not HeuristicNavigationApproachPointSelector._is_portal_like_object_name(
             evidence.get("path_nearest_object_name")
         ):
             distances.append(path_nearest)
@@ -379,8 +408,6 @@ class OpenAINavigationApproachPointSelectorConfig:
 
 
 class OpenAICompatibleNavigationApproachPointSelector:
-    """OpenAI-compatible candidate selector used by the Navigation body."""
-
     def __init__(self, config: OpenAINavigationApproachPointSelectorConfig) -> None:
         self.config = config
         self.session = requests.Session()
@@ -412,10 +439,16 @@ class OpenAICompatibleNavigationApproachPointSelector:
                 goal=goal,
                 prepared_payload=prepared_payload,
             )
-        forced_candidate_id = str(os.getenv("VOLTRON_FORCE_OBJECT_APPROACH_CANDIDATE_ID") or "").strip()
+        forced_candidate_id = str(
+            os.getenv("VOLTRON_FORCE_OBJECT_APPROACH_CANDIDATE_ID") or ""
+        ).strip()
         if forced_candidate_id:
             forced_candidate = next(
-                (item for item in usable_candidates if str(item.get("candidate_id") or "") == forced_candidate_id),
+                (
+                    item
+                    for item in usable_candidates
+                    if str(item.get("candidate_id") or "") == forced_candidate_id
+                ),
                 None,
             )
             if forced_candidate is not None:
@@ -425,9 +458,13 @@ class OpenAICompatibleNavigationApproachPointSelector:
                     "source": "openai_compatible_navigation_approach_point_selector_forced",
                 }
                 if rejected_candidates:
-                    result["rejected_candidate_ids"] = [item.get("candidate_id") for item in rejected_candidates]
+                    result["rejected_candidate_ids"] = [
+                        item.get("candidate_id") for item in rejected_candidates
+                    ]
                     result["rejection_reasons"] = {
-                        str(item.get("candidate_id")): self.fallback_selector._constraint_violations(item)
+                        str(
+                            item.get("candidate_id")
+                        ): self.fallback_selector._constraint_violations(item)
                         for item in rejected_candidates
                     }
                 return result
@@ -444,14 +481,21 @@ class OpenAICompatibleNavigationApproachPointSelector:
                 "source": "openpi_comet_reference_handoff_selector",
             }
             if rejected_candidates:
-                result["rejected_candidate_ids"] = [item.get("candidate_id") for item in rejected_candidates]
+                result["rejected_candidate_ids"] = [
+                    item.get("candidate_id") for item in rejected_candidates
+                ]
                 result["rejection_reasons"] = {
-                    str(item.get("candidate_id")): self.fallback_selector._constraint_violations(item)
+                    str(item.get("candidate_id")): self.fallback_selector._constraint_violations(
+                        item
+                    )
                     for item in rejected_candidates
                 }
             return result
 
-        if any(self.fallback_selector._has_target_part_score(candidate) for candidate in usable_candidates):
+        if any(
+            self.fallback_selector._has_target_part_score(candidate)
+            for candidate in usable_candidates
+        ):
             selection = self.fallback_selector.select_candidate(
                 subtask=subtask,
                 context=context,
@@ -468,7 +512,9 @@ class OpenAICompatibleNavigationApproachPointSelector:
         filtered_payload = dict(prepared_payload)
         filtered_payload["candidates"] = usable_candidates
         try:
-            prompt = self._build_prompt(subtask=subtask, goal=goal, prepared_payload=filtered_payload)
+            prompt = self._build_prompt(
+                subtask=subtask, goal=goal, prepared_payload=filtered_payload
+            )
             content = self._request_chat_completion(prompt)
             payload = extract_json_object(content, label="Navigation point selector")
             selected_id = str(payload.get("candidate_id", "")).strip()
@@ -476,13 +522,18 @@ class OpenAICompatibleNavigationApproachPointSelector:
                 if str(candidate.get("candidate_id")) == selected_id:
                     result = {
                         "candidate": dict(candidate),
-                        "reason": str(payload.get("reason", "")).strip() or "selected by navigation llm point selector",
+                        "reason": str(payload.get("reason", "")).strip()
+                        or "selected by navigation llm point selector",
                         "source": "openai_compatible_navigation_approach_point_selector",
                     }
                     if rejected_candidates:
-                        result["rejected_candidate_ids"] = [item.get("candidate_id") for item in rejected_candidates]
+                        result["rejected_candidate_ids"] = [
+                            item.get("candidate_id") for item in rejected_candidates
+                        ]
                         result["rejection_reasons"] = {
-                            str(item.get("candidate_id")): self.fallback_selector._constraint_violations(item)
+                            str(
+                                item.get("candidate_id")
+                            ): self.fallback_selector._constraint_violations(item)
                             for item in rejected_candidates
                         }
                     return result
@@ -494,13 +545,17 @@ class OpenAICompatibleNavigationApproachPointSelector:
                 goal=goal,
                 prepared_payload=prepared_payload,
             )
-            fallback["reason"] = f"fallback after openai point selector error: {exc}; {fallback['reason']}"
+            fallback["reason"] = (
+                f"fallback after openai point selector error: {exc}; {fallback['reason']}"
+            )
             fallback["source"] = "heuristic_navigation_approach_point_selector_fallback"
             return fallback
 
     def _request_chat_completion(self, user_prompt: str) -> str:
         url = self._completion_url(self.config.base_url)
-        api_key = self.config.api_key or os.getenv(self.config.api_key_env) or os.getenv("OPENAI_API_KEY")
+        api_key = (
+            self.config.api_key or os.getenv(self.config.api_key_env) or os.getenv("OPENAI_API_KEY")
+        )
         headers = {"Content-Type": "application/json"}
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
@@ -516,7 +571,9 @@ class OpenAICompatibleNavigationApproachPointSelector:
         response = None
         for attempt in range(1, attempts + 1):
             try:
-                response = self.session.post(url, headers=headers, json=payload, timeout=self.config.timeout_s)
+                response = self.session.post(
+                    url, headers=headers, json=payload, timeout=self.config.timeout_s
+                )
                 if response.status_code in _RETRIABLE_STATUS_CODES and attempt < attempts:
                     time.sleep(max(0.0, float(self.config.retry_backoff_s)))
                     continue
@@ -535,7 +592,9 @@ class OpenAICompatibleNavigationApproachPointSelector:
             raise ValueError("Navigation point selector response did not include choices")
         content = choices[0].get("message", {}).get("content")
         if isinstance(content, list):
-            content = "".join(item.get("text", "") if isinstance(item, dict) else str(item) for item in content)
+            content = "".join(
+                item.get("text", "") if isinstance(item, dict) else str(item) for item in content
+            )
         if not isinstance(content, str) or not content.strip():
             raise ValueError("Navigation point selector response content is empty")
         return content

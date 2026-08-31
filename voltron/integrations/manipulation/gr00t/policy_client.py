@@ -1,5 +1,3 @@
-"""Adapter for GR00T PolicyClient backend."""
-
 from __future__ import annotations
 
 import importlib
@@ -11,11 +9,6 @@ from voltron.shared.errors import AdapterError
 
 
 class Gr00tPolicyAdapter:
-    """Thin adapter over GR00T PolicyClient.
-
-    This isolates ZeroMQ client and import path details from agent logic.
-    """
-
     def __init__(
         self,
         host: str = "127.0.0.1",
@@ -46,7 +39,7 @@ class Gr00tPolicyAdapter:
     def ping(self) -> bool:
         try:
             return bool(self._client.ping())
-        except Exception as exc:  # pragma: no cover - backend/network dependent
+        except Exception as exc:
             raise AdapterError(f"Policy ping failed: {exc}") from exc
 
     def get_action(
@@ -73,12 +66,10 @@ class Gr00tPolicyAdapter:
 
     @staticmethod
     def _load_policy_client_class() -> type:
-        """Load PolicyClient even when Isaac-GR00T package is not pip-installed."""
         try:
             module = importlib.import_module("gr00t.policy.server_client")
             return getattr(module, "PolicyClient")
         except ModuleNotFoundError:
-            # Fallback to local repo layout: <repo>/isaac_gr00t_learn
             repo_root = Path(__file__).resolve().parents[3]
             local_gr00t_root = repo_root / "isaac_gr00t_learn"
             if local_gr00t_root.exists():

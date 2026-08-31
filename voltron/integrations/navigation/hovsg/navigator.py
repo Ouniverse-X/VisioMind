@@ -1,14 +1,3 @@
-"""Lightweight HOV-SG navigator adapter for Voltron VLN integration.
-
-This adapter intentionally avoids importing the full HOV-SG runtime stack.
-It only reads exported graph assets from disk:
-
-- ``graph/floors/*.json``
-- ``graph/rooms/*.json``
-- ``graph/objects/*.json``
-- ``graph/nav_graph/*.json`` for room graphs or Voronoi graphs
-"""
-
 from __future__ import annotations
 from pathlib import Path
 from typing import Any
@@ -40,8 +29,6 @@ from .models import (
 
 
 class HOVSGNavigatorAdapter:
-    """Goal grounding and path planning over exported HOV-SG assets."""
-
     def __init__(
         self,
         *,
@@ -212,7 +199,9 @@ class HOVSGNavigatorAdapter:
         )
 
     @staticmethod
-    def _room_steps_from_node_waypoints(node_waypoints: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _room_steps_from_node_waypoints(
+        node_waypoints: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         return hovsg_waypoint_planning.room_steps_from_node_waypoints(node_waypoints)
 
     def _collapse_room_steps(
@@ -334,14 +323,18 @@ class HOVSGNavigatorAdapter:
     def _load_metadata(path: Path) -> dict[str, Any]:
         return hovsg_scene_loading.load_metadata(path)
 
-    def _resolve_vertical_axis(self, metadata: dict[str, Any], *, config: dict[str, Any] | None = None) -> str:
+    def _resolve_vertical_axis(
+        self, metadata: dict[str, Any], *, config: dict[str, Any] | None = None
+    ) -> str:
         return hovsg_scene_loading.resolve_vertical_axis(
             metadata,
             config=config,
             default_vertical_axis=self.vertical_axis,
         )
 
-    def _resolve_scene_map_source(self, metadata: dict[str, Any], *, config: dict[str, Any] | None = None) -> str | None:
+    def _resolve_scene_map_source(
+        self, metadata: dict[str, Any], *, config: dict[str, Any] | None = None
+    ) -> str | None:
         return hovsg_scene_loading.resolve_scene_map_source(metadata, config=config)
 
     @staticmethod
@@ -367,7 +360,9 @@ class HOVSGNavigatorAdapter:
     def _validate_scene_graph_consistency(self, scene: HOVSGSceneAsset) -> None:
         hovsg_scene_loading.validate_scene_graph_consistency(scene)
 
-    def _validate_scene_map_graph_path(self, *, scene: HOVSGSceneAsset, payload: dict[str, Any]) -> None:
+    def _validate_scene_map_graph_path(
+        self, *, scene: HOVSGSceneAsset, payload: dict[str, Any]
+    ) -> None:
         hovsg_scene_loading.validate_scene_map_graph_path(scene=scene, payload=payload)
 
     def _validate_scene_map_nav_graph_topology(self, *, scene: HOVSGSceneAsset) -> None:
@@ -429,7 +424,9 @@ class HOVSGNavigatorAdapter:
             persist=persist,
         )
 
-    def _containing_room(self, scene: HOVSGSceneAsset, pose: dict[str, Any]) -> HOVSGRoomAsset | None:
+    def _containing_room(
+        self, scene: HOVSGSceneAsset, pose: dict[str, Any]
+    ) -> HOVSGRoomAsset | None:
         return hovsg_pose_localization.containing_room(self, scene, pose)
 
     def _localized_room(
@@ -471,7 +468,9 @@ class HOVSGNavigatorAdapter:
     def _has_complete_pose(pose: dict[str, Any]) -> bool:
         return hovsg_pose_localization.has_complete_pose(HOVSGNavigatorAdapter, pose)
 
-    def _room_contains_pose(self, scene: HOVSGSceneAsset, room: HOVSGRoomAsset, pose: dict[str, Any]) -> bool:
+    def _room_contains_pose(
+        self, scene: HOVSGSceneAsset, room: HOVSGRoomAsset, pose: dict[str, Any]
+    ) -> bool:
         return hovsg_pose_localization.room_contains_pose(self, scene, room, pose)
 
     @staticmethod
@@ -479,7 +478,9 @@ class HOVSGNavigatorAdapter:
         return hovsg_pose_localization.horizontal_axes(scene)
 
     @staticmethod
-    def _project_horizontal(scene: HOVSGSceneAsset, point: dict[str, Any]) -> tuple[float, float] | None:
+    def _project_horizontal(
+        scene: HOVSGSceneAsset, point: dict[str, Any]
+    ) -> tuple[float, float] | None:
         return hovsg_pose_localization.project_horizontal(HOVSGNavigatorAdapter, scene, point)
 
     @staticmethod
@@ -524,10 +525,14 @@ class HOVSGNavigatorAdapter:
     ) -> HOVSGObjectAsset | None:
         return hovsg_goal_resolution.match_object(self, scene, text, room_id=room_id)
 
-    def _match_floor(self, scene: HOVSGSceneAsset | None, text: str | None) -> HOVSGFloorAsset | None:
+    def _match_floor(
+        self, scene: HOVSGSceneAsset | None, text: str | None
+    ) -> HOVSGFloorAsset | None:
         return hovsg_goal_resolution.match_floor(self, scene, text)
 
-    def _goal_position(self, scene: HOVSGSceneAsset, goal: dict[str, Any]) -> dict[str, float] | None:
+    def _goal_position(
+        self, scene: HOVSGSceneAsset, goal: dict[str, Any]
+    ) -> dict[str, float] | None:
         return hovsg_goal_resolution.goal_position(self, scene, goal)
 
     def _goal_waypoint(
@@ -641,7 +646,9 @@ class HOVSGNavigatorAdapter:
     ) -> dict[str, Any] | None:
         return hovsg_object_approach.select_object_approach_candidate(candidates=candidates)
 
-    def _object_polygon_2d(self, scene: HOVSGSceneAsset, obj: HOVSGObjectAsset) -> list[tuple[float, float]]:
+    def _object_polygon_2d(
+        self, scene: HOVSGSceneAsset, obj: HOVSGObjectAsset
+    ) -> list[tuple[float, float]]:
         return hovsg_object_approach.object_polygon_2d(self, scene, obj)
 
     def _infer_floor_id(self, scene: HOVSGSceneAsset, anchor: dict[str, Any]) -> str | None:
@@ -798,7 +805,9 @@ class HOVSGNavigatorAdapter:
         source_polygon: list[tuple[float, float]],
         target_polygon: list[tuple[float, float]],
     ) -> dict[str, Any] | None:
-        return hovsg_portal_candidates.transition_metrics_from_bboxes(source_polygon, target_polygon)
+        return hovsg_portal_candidates.transition_metrics_from_bboxes(
+            source_polygon, target_polygon
+        )
 
     def _room_transition_metrics(
         self,
@@ -1006,11 +1015,15 @@ class HOVSGNavigatorAdapter:
             target_room=target_room,
         )
 
-    def _room_polygon_2d(self, scene: HOVSGSceneAsset, room: HOVSGRoomAsset) -> list[tuple[float, float]]:
+    def _room_polygon_2d(
+        self, scene: HOVSGSceneAsset, room: HOVSGRoomAsset
+    ) -> list[tuple[float, float]]:
         return hovsg_portal_primitives.room_polygon_2d(self, scene, room)
 
     @staticmethod
-    def _polygon_segments(polygon: list[tuple[float, float]]) -> list[tuple[tuple[float, float], tuple[float, float]]]:
+    def _polygon_segments(
+        polygon: list[tuple[float, float]],
+    ) -> list[tuple[tuple[float, float], tuple[float, float]]]:
         return hovsg_portal_primitives.polygon_segments(polygon)
 
     def _segment_entry_point_into_polygon(

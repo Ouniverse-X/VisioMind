@@ -1,5 +1,3 @@
-"""Small mutable runtime context store used by control-plane helpers."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -18,8 +16,6 @@ def merge_runtime_context(
 
 @dataclass
 class RuntimeContextStore:
-    """A small dict-backed store for runtime-scoped context updates."""
-
     initial: Mapping[str, Any] | None = None
     _values: dict[str, Any] = field(init=False, repr=False)
 

@@ -1,11 +1,11 @@
-"""Robot-state extraction helpers for the BEHAVIOR runtime bridge."""
-
 from __future__ import annotations
 
 import math
 from typing import Any
 
-from voltron.integrations.simulator.behavior.artifacts import process_logger as behavior_process_logger
+from voltron.integrations.simulator.behavior.artifacts import (
+    process_logger as behavior_process_logger,
+)
 from voltron.shared.geometry_frames import (
     is_identity_transform,
     resolve_frame_contract,
@@ -32,7 +32,11 @@ def navigation_completion_goal(nav_state: dict[str, Any] | None) -> dict[str, An
     base = dict(nav_state.get("nav_goal") or {})
     goal_type = str(base.get("goal_type") or "").strip().lower()
     selected_object_approach = nav_state.get("selected_object_approach")
-    if goal_type == "object" and isinstance(selected_object_approach, dict) and selected_object_approach:
+    if (
+        goal_type == "object"
+        and isinstance(selected_object_approach, dict)
+        and selected_object_approach
+    ):
         merged = {**base, **selected_object_approach}
         position = goal_position(selected_object_approach)
         if position is not None:
@@ -211,12 +215,15 @@ def extract_runtime_orientation(
     if orientation is None:
         return extract_scene_orientation(last_info=last_info, last_obs=last_obs)
     contract = resolve_frame_contract(frame_config)
-    return transform_orientation(
-        orientation,
-        contract["scene_from_simulator_transform"],
-        source_vertical_axis=contract["simulator_vertical_axis"],
-        target_vertical_axis=contract["scene_vertical_axis"],
-    ) or orientation
+    return (
+        transform_orientation(
+            orientation,
+            contract["scene_from_simulator_transform"],
+            source_vertical_axis=contract["simulator_vertical_axis"],
+            target_vertical_axis=contract["scene_vertical_axis"],
+        )
+        or orientation
+    )
 
 
 def extract_runtime_robot_state(
@@ -239,12 +246,15 @@ def extract_runtime_robot_state(
         pose = transform_position(simulator_pose, transform) or simulator_pose
     orientation = extract_scene_orientation(last_info=last_info, last_obs=last_obs)
     if simulator_orientation is not None:
-        orientation = transform_orientation(
-            simulator_orientation,
-            transform,
-            source_vertical_axis=contract["simulator_vertical_axis"],
-            target_vertical_axis=contract["scene_vertical_axis"],
-        ) or simulator_orientation
+        orientation = (
+            transform_orientation(
+                simulator_orientation,
+                transform,
+                source_vertical_axis=contract["simulator_vertical_axis"],
+                target_vertical_axis=contract["scene_vertical_axis"],
+            )
+            or simulator_orientation
+        )
     return {
         "pose": pose,
         "orientation": orientation,
@@ -262,10 +272,7 @@ def _field_is_scene_frame(container: dict[str, Any], *, field: str) -> bool:
         container.get("frame_id"),
         container.get("coordinate_frame"),
     )
-    return any(
-        str(marker or "").strip().lower() in {"scene", "map", "hovsg"}
-        for marker in markers
-    )
+    return any(str(marker or "").strip().lower() in {"scene", "map", "hovsg"} for marker in markers)
 
 
 def extract_runtime_region(*, last_info: dict[str, Any], last_obs: dict[str, Any]) -> str | None:
@@ -426,7 +433,9 @@ def object_navigation_goal_status(
     if not isinstance(geometry_status, dict) or not geometry_status.get("reached"):
         return {"reached": False, "controller_mode": None}
 
-    has_policy_completion_signal = any(key in nav_state for key in ("goal_reached", "controller_mode"))
+    has_policy_completion_signal = any(
+        key in nav_state for key in ("goal_reached", "controller_mode")
+    )
     if not has_policy_completion_signal:
         return {"reached": True, "controller_mode": None}
 
@@ -458,7 +467,9 @@ def navigation_goal_match_status(
     if goal_type == "object":
         return {
             "reached": bool(object_goal_reached),
-            "match_reason": "object_goal_reached" if object_goal_reached else "object_goal_incomplete",
+            "match_reason": "object_goal_reached"
+            if object_goal_reached
+            else "object_goal_incomplete",
         }
     if target_room_id and room_id and target_room_id == room_id:
         return {"reached": True, "match_reason": "target_room_id"}

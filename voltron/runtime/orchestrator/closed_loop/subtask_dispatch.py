@@ -1,5 +1,3 @@
-"""Subtask-dispatch helpers for the closed-loop orchestrator."""
-
 from __future__ import annotations
 
 from voltron.shared.context import Subtask

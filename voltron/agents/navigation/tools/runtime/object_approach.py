@@ -1,5 +1,3 @@
-"""Object-approach runtime helpers for the Navigation agent."""
-
 from __future__ import annotations
 
 import re
@@ -40,8 +38,6 @@ def object_approach_cache_bucket(context: ExecutionContext) -> dict[str, Any]:
 
 
 def object_approach_cache_key(subtask: Subtask) -> str:
-    """Scope cached grounding and paths to one versioned subtask execution."""
-
     return subtask.runtime_id
 
 
@@ -66,12 +62,16 @@ def restore_cached_object_approach_state(cached: dict[str, Any]) -> dict[str, An
     return {
         "grounded_goal": dict(cached["grounded_goal"]),
         "navigation_skill_selection": clone_optional_dict(cached.get("navigation_skill_selection")),
-        "prepared_navigation_payload": clone_optional_dict(cached.get("prepared_navigation_payload")),
+        "prepared_navigation_payload": clone_optional_dict(
+            cached.get("prepared_navigation_payload")
+        ),
         "object_approach_selection": clone_optional_dict(cached.get("object_approach_selection")),
         "selected_object_approach": clone_optional_dict(cached.get("selected_object_approach")),
         "path_plan": clone_optional_dict(cached.get("path_plan")),
         "interpreted_goal": clone_optional_dict(cached.get("interpreted_goal")),
-        "navigation_grounding_context": clone_optional_dict(cached.get("navigation_grounding_context")),
+        "navigation_grounding_context": clone_optional_dict(
+            cached.get("navigation_grounding_context")
+        ),
     }
 
 
@@ -120,7 +120,11 @@ def should_replan_cached_object_approach(
     observation: dict[str, Any],
 ) -> bool:
     recovery_mode = str(subtask.parameters.get("recovery_mode") or "").strip().lower()
-    if recovery_mode and recovery_mode not in {"progress_stalled", "feedback_blocked", "oscillation_detected"}:
+    if recovery_mode and recovery_mode not in {
+        "progress_stalled",
+        "feedback_blocked",
+        "oscillation_detected",
+    }:
         return True
     nav_feedback = observation.get("nav_feedback")
     if not isinstance(nav_feedback, dict):
@@ -176,12 +180,8 @@ def _scene_revision_from_goal(
         )
         if goal.get(key)
     }
-    if isinstance(selected_candidate, dict) and selected_candidate.get(
-        "candidate_cache_revision"
-    ):
-        revision["candidate_cache_revision"] = selected_candidate[
-            "candidate_cache_revision"
-        ]
+    if isinstance(selected_candidate, dict) and selected_candidate.get("candidate_cache_revision"):
+        revision["candidate_cache_revision"] = selected_candidate["candidate_cache_revision"]
     return revision
 
 
@@ -204,7 +204,9 @@ def filter_candidates_for_goal_room(
     goal: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     target_room_id = str(goal.get("room_id") or "").strip()
-    target_room_name = normalize_label(goal.get("room_name") or goal.get("room") or goal.get("region"))
+    target_room_name = normalize_label(
+        goal.get("room_name") or goal.get("room") or goal.get("region")
+    )
     if not target_room_id and target_room_name is None:
         return [dict(candidate) for candidate in candidates], []
 
@@ -213,7 +215,9 @@ def filter_candidates_for_goal_room(
     for candidate in candidates:
         item = dict(candidate)
         candidate_room_id = str(item.get("room_id") or "").strip()
-        candidate_room_name = normalize_label(item.get("room_name") or item.get("room") or item.get("region"))
+        candidate_room_name = normalize_label(
+            item.get("room_name") or item.get("room") or item.get("region")
+        )
         room_matches = bool(target_room_id and candidate_room_id == target_room_id) or bool(
             target_room_name and candidate_room_name == target_room_name
         )
@@ -245,10 +249,7 @@ def cached_dynamic_local_segment_completed(
         return False
 
     parameters = subtask.parameters if isinstance(subtask.parameters, dict) else {}
-    if bool(
-        parameters.get("requires_replan")
-        or parameters.get("local_segment_complete")
-    ):
+    if bool(parameters.get("requires_replan") or parameters.get("local_segment_complete")):
         return True
     controller_mode = str(parameters.get("controller_mode") or "").strip().lower()
     if bool(parameters.get("goal_reached")) or controller_mode == "goal_reached":
@@ -304,7 +305,9 @@ def prime_object_approach_history(
         "object": goal.get("object_name") or subtask.target.get("object"),
         "object_id": goal.get("object_id") or subtask.target.get("object_id"),
         "room_id": goal.get("room_id") or subtask.target.get("room_id"),
-        "room_name": goal.get("room_name") or subtask.target.get("room") or subtask.target.get("region"),
+        "room_name": goal.get("room_name")
+        or subtask.target.get("room")
+        or subtask.target.get("region"),
         "floor_id": goal.get("floor_id") or subtask.target.get("floor_id"),
     }
     return memory.get_object_approach_history(scene_id=scene_id, target=target, top_k=10)

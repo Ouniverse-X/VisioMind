@@ -1,5 +1,3 @@
-"""Configuration and runtime state helpers for the HOVSG navigator."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -36,8 +34,7 @@ def configure_adapter(
 ) -> None:
     adapter.graph_root = Path(graph_root).expanduser() if graph_root is not None else None
     adapter.scene_roots = {
-        scene_id: Path(path).expanduser()
-        for scene_id, path in (scene_roots or {}).items()
+        scene_id: Path(path).expanduser() for scene_id, path in (scene_roots or {}).items()
     }
     adapter.default_scene_id = default_scene_id
     adapter.auto_load = auto_load
@@ -51,7 +48,9 @@ def configure_adapter(
     adapter.portal_opening_probe_offset_m = max(0.02, float(portal_opening_probe_offset_m))
     adapter.portal_opening_clearance_radius_m = max(0.0, float(portal_opening_clearance_radius_m))
     adapter.room_boundary_tolerance = max(0.0, float(room_boundary_tolerance))
-    adapter.room_hysteresis_margin = max(adapter.room_boundary_tolerance, float(room_hysteresis_margin))
+    adapter.room_hysteresis_margin = max(
+        adapter.room_boundary_tolerance, float(room_hysteresis_margin)
+    )
     adapter.object_approach_min_distance_m = max(0.1, float(object_approach_min_distance_m))
     adapter.object_approach_preferred_distance_m = max(
         adapter.object_approach_min_distance_m,

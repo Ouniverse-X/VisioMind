@@ -1,5 +1,3 @@
-"""Helpers for Nav2 profile resolution and runtime environment probing."""
-
 from __future__ import annotations
 
 import json

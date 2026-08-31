@@ -13,7 +13,6 @@ voltron/integrations/simulator/runs/
 *.avi
 *.tmp
 voltron/integrations/memory/data/
-
-# Large upstream foundation-model weights are runtime dependencies.  The
-# project commits only its reproducible LoRA adapter and provenance metadata.
 models/base/
+data/
+reports/

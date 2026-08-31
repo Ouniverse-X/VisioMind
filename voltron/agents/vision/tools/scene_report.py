@@ -1,5 +1,3 @@
-"""Scene report helpers for the Vision agent."""
-
 from __future__ import annotations
 
 import re
@@ -10,12 +8,16 @@ from voltron.shared.enums import AgentName
 
 
 def build_scene_report(*, report: Any, subtask: Subtask, task_complete: bool) -> dict[str, Any]:
-    raw_response = report.metadata.get("raw_response", {}) if isinstance(report.metadata, dict) else {}
+    raw_response = (
+        report.metadata.get("raw_response", {}) if isinstance(report.metadata, dict) else {}
+    )
     raw_scene_candidate = raw_response.get("scene_report") if isinstance(raw_response, dict) else {}
     raw_scene = raw_scene_candidate if isinstance(raw_scene_candidate, dict) else {}
 
     target_labels = _target_labels(subtask)
-    object_names = [str(obj.name).strip().lower() for obj in report.objects if getattr(obj, "name", None)]
+    object_names = [
+        str(obj.name).strip().lower() for obj in report.objects if getattr(obj, "name", None)
+    ]
     raw_text = str(report.raw_text or "").strip().lower()
     target_part_name = _target_part_name(subtask, raw_scene)
 
@@ -99,7 +101,9 @@ def _coerce_bool(value: Any) -> bool | None:
     return None
 
 
-def _infer_target_part_visible(*, target_part_name: str, object_names: list[str], raw_text: str) -> bool:
+def _infer_target_part_visible(
+    *, target_part_name: str, object_names: list[str], raw_text: str
+) -> bool:
     if target_part_name:
         if target_part_name in raw_text:
             return True

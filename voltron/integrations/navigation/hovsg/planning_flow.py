@@ -1,5 +1,3 @@
-"""Planning flow helpers for the HOV-SG navigator."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -31,9 +29,9 @@ def generate_object_approach_candidates(
     if not isinstance(start_pose, dict):
         return []
 
-    start_floor = adapter._infer_floor_id(
-        scene, start
-    ) or adapter._infer_floor_from_height(scene, start_pose)
+    start_floor = adapter._infer_floor_id(scene, start) or adapter._infer_floor_from_height(
+        scene, start_pose
+    )
     start_room_id = adapter._infer_room_id(scene, start)
     start_node = adapter._nearest_nav_node(
         scene.nav_graph,
@@ -95,9 +93,7 @@ def plan_path(
             found=False,
             reason="pose_or_goal_missing",
         )
-    if goal.get("goal_type") == "object" and goal.get(
-        "object_approach_selection_failed"
-    ):
+    if goal.get("goal_type") == "object" and goal.get("object_approach_selection_failed"):
         result = _planner_result(
             scene_id=scene_id,
             vertical_axis=scene.vertical_axis,
@@ -107,21 +103,19 @@ def plan_path(
             goal=goal,
             found=False,
             reason="object_approach_selection_failed",
-            object_approach_candidates=list(
-                goal.get("object_approach_candidates") or []
-            ),
+            object_approach_candidates=list(goal.get("object_approach_candidates") or []),
         )
         result["selected_object_approach"] = None
         return result
 
-    start_floor = adapter._infer_floor_id(
-        scene, start
-    ) or adapter._infer_floor_from_height(scene, start_pose)
+    start_floor = adapter._infer_floor_id(scene, start) or adapter._infer_floor_from_height(
+        scene, start_pose
+    )
     start_room_id = adapter._infer_room_id(scene, start)
     goal_room_id = adapter._infer_room_id(scene, goal)
-    goal_floor = adapter._infer_floor_id(
-        scene, goal
-    ) or adapter._infer_floor_from_height(scene, raw_goal_position)
+    goal_floor = adapter._infer_floor_id(scene, goal) or adapter._infer_floor_from_height(
+        scene, raw_goal_position
+    )
     start_node = adapter._nearest_nav_node(
         scene.nav_graph,
         start_pose,
@@ -191,9 +185,7 @@ def plan_path(
             )
             if door_candidates:
                 result["door_candidates"] = door_candidates
-                result["blocked_transition"] = _blocked_transition_from_door(
-                    door_candidates[0]
-                )
+                result["blocked_transition"] = _blocked_transition_from_door(door_candidates[0])
         return result
     goal_node = (
         adapter._nearest_nav_node(
@@ -223,13 +215,9 @@ def plan_path(
     active_graph_type = scene.nav_graph_type
     active_graph_path = scene.nav_graph_asset_path
     try:
-        path_nodes = nx.shortest_path(
-            active_graph, start_node, goal_node, weight="dist"
-        )
+        path_nodes = nx.shortest_path(active_graph, start_node, goal_node, weight="dist")
     except nx.NetworkXNoPath:
         if door_gated and nx.has_path(scene.nav_graph, start_node, goal_node):
-            # The static graph would route here, but every route crosses a
-            # closed door — report blocked instead of planning through it.
             door_candidates = hovsg_door_gating.blocking_door_candidates(
                 adapter,
                 scene,
@@ -249,9 +237,7 @@ def plan_path(
                 selected_object_approach=selected_object_approach,
                 closed_doors=hovsg_door_gating.closed_door_names(adapter, scene_id),
                 blocked_transition=(
-                    _blocked_transition_from_door(door_candidates[0])
-                    if door_candidates
-                    else None
+                    _blocked_transition_from_door(door_candidates[0]) if door_candidates else None
                 ),
                 door_candidates=door_candidates,
             )
@@ -261,10 +247,7 @@ def plan_path(
             config={"nav_graph_type": "global_room_graph"},
         )
         fallback_graph = fallback_graph_asset.graph
-        if (
-            scene.nav_graph_type == "voronoi_graph"
-            and fallback_graph.number_of_nodes() > 0
-        ):
+        if scene.nav_graph_type == "voronoi_graph" and fallback_graph.number_of_nodes() > 0:
             fallback_start_node = adapter._nearest_nav_node(
                 fallback_graph,
                 start_pose,
@@ -296,9 +279,7 @@ def plan_path(
                 raise
         else:
             raise
-    node_waypoints = [
-        adapter._node_to_waypoint(active_graph, node_id) for node_id in path_nodes
-    ]
+    node_waypoints = [adapter._node_to_waypoint(active_graph, node_id) for node_id in path_nodes]
     waypoints = adapter._build_geometric_waypoints(
         scene=scene,
         path_nodes=path_nodes,
@@ -328,9 +309,7 @@ def plan_path(
         "dense_waypoints": dense_waypoints,
         "path_cost": path_cost(active_graph, path_nodes),
         "room_sequence": room_sequence(waypoints),
-        "graph_room_sequence": graph_room_sequence(
-            adapter, scene=scene, waypoints=node_waypoints
-        ),
+        "graph_room_sequence": graph_room_sequence(adapter, scene=scene, waypoints=node_waypoints),
         "found": True,
         "object_approach_candidates": object_approach_candidates,
         "selected_object_approach": selected_object_approach,
@@ -376,9 +355,7 @@ def graph_room_sequence(
             if isinstance(room_id, (str, int)):
                 room = scene.rooms.get(str(room_id))
                 room_name = (
-                    room.name
-                    if room is not None and isinstance(room.name, str)
-                    else str(room_id)
+                    room.name if room is not None and isinstance(room.name, str) else str(room_id)
                 )
         if not isinstance(room_name, str) or not room_name.strip():
             room = adapter._containing_room(scene, waypoint)
@@ -413,9 +390,7 @@ def _planner_result(
         "scene_id": scene_id,
         "vertical_axis": vertical_axis,
         "nav_graph_type": nav_graph_type,
-        "nav_graph_asset_path": str(nav_graph_asset_path)
-        if nav_graph_asset_path
-        else None,
+        "nav_graph_asset_path": str(nav_graph_asset_path) if nav_graph_asset_path else None,
         "start": start,
         "goal": goal,
         "waypoints": [],

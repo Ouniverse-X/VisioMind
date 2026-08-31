@@ -1,5 +1,3 @@
-"""Bootstrap and runtime reset helpers for the HEMS backend."""
-
 from __future__ import annotations
 
 import importlib

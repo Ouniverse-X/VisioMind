@@ -9,7 +9,11 @@ def reuse_cached_segment(*, cached_plan: dict[str, Any] | None, error_text: str)
     if error_text:
         existing_error = str(reused.get("nav2_error") or "").strip()
         if existing_error:
-            reused["nav2_error"] = existing_error if error_text in existing_error else f"{existing_error}; {error_text}"
+            reused["nav2_error"] = (
+                existing_error
+                if error_text in existing_error
+                else f"{existing_error}; {error_text}"
+            )
         else:
             reused["nav2_error"] = error_text
     return reused
@@ -80,7 +84,9 @@ def reuse_matching_local_segment(
     cached_waypoints = cached.get("waypoints")
     if not isinstance(cached_waypoints, list) or not cached_waypoints:
         return None
-    reusable_waypoints = [dict(waypoint) for waypoint in cached_waypoints if isinstance(waypoint, dict)]
+    reusable_waypoints = [
+        dict(waypoint) for waypoint in cached_waypoints if isinstance(waypoint, dict)
+    ]
     if not reusable_waypoints:
         return None
 
@@ -96,10 +102,14 @@ def reuse_matching_local_segment(
         cached_plan={
             "waypoints": reusable_waypoints,
             "nav2_raw_path_points": [
-                dict(point) for point in cached.get("nav2_raw_path_points", []) if isinstance(point, dict)
+                dict(point)
+                for point in cached.get("nav2_raw_path_points", [])
+                if isinstance(point, dict)
             ],
             "nav2_path_points": [
-                dict(point) for point in cached.get("nav2_path_points", []) if isinstance(point, dict)
+                dict(point)
+                for point in cached.get("nav2_path_points", [])
+                if isinstance(point, dict)
             ],
             "nav2_raw_path_length": int(cached.get("nav2_raw_path_length", 0)),
             "dense_waypoint_index": int(cached.get("dense_waypoint_index", 0)),

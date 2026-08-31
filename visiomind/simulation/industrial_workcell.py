@@ -1,20 +1,13 @@
-"""Install a visual-only industrial workcell around a BEHAVIOR task.
-
-The competition base task supplies physically validated tools, a worktop, and
-an articulated container, but its source scene is a house.  This module adds
-USD geometry that is deliberately *not* registered as OmniGibson objects and
-has no collision API.  It therefore changes the reviewer-facing appearance
-without changing task predicates, collision bodies, or CuRobo object lists.
-"""
-
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 
 import numpy as np
 
 
+logger = logging.getLogger(__name__)
 DEFAULT_ROOT_PATH = "/World/scene_0/VisioMindIndustrialWorkcell"
 
 
@@ -117,8 +110,6 @@ def _cube_spec(
 
 
 def default_workcell_parts() -> list[dict[str, Any]]:
-    """Return a compact blue-grey safety workcell in robot-local coordinates."""
-
     steel = [0.055, 0.075, 0.105]
     blue = [0.025, 0.16, 0.31]
     yellow = [0.95, 0.62, 0.02]
@@ -156,9 +147,7 @@ def _define_cube(
     xformable.ClearXformOpOrder()
     xformable.AddTranslateOp().Set(Gf.Vec3d(*position.astype(float).tolist()))
     x, y, z, w = orientation_xyzw.astype(float).tolist()
-    xformable.AddOrientOp(UsdGeom.XformOp.PrecisionFloat).Set(
-        Gf.Quatf(w, Gf.Vec3f(x, y, z))
-    )
+    xformable.AddOrientOp(UsdGeom.XformOp.PrecisionFloat).Set(Gf.Quatf(w, Gf.Vec3f(x, y, z)))
     xformable.AddScaleOp().Set(Gf.Vec3f(*dimensions.astype(float).tolist()))
 
 
@@ -229,7 +218,6 @@ def _add_physical_dividers(
     grid_shape: tuple[int, int],
     divider_thickness: float = 0.008,
 ) -> list[str]:
-    """Add 3D physical internal divider partition plates to the container."""
     from voltron.shared.compartment_geometry import MultiCompartmentBinGeometry
 
     geom = MultiCompartmentBinGeometry(
@@ -255,8 +243,6 @@ def _add_physical_dividers(
 
 
 def install_industrial_workcell(env: Any, config: dict[str, Any]) -> dict[str, Any]:
-    """Create visual workcell geometry and return auditable diagnostics."""
-
     if not isinstance(config, dict) or not bool(config.get("enabled", False)):
         return {"enabled": False, "created": False}
     robot = _first_robot(env)

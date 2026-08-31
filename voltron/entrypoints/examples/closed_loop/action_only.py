@@ -1,5 +1,3 @@
-"""ACTION-only BEHAVIOR runtime entrypoint."""
-
 from __future__ import annotations
 
 import argparse
@@ -11,8 +9,6 @@ from voltron.shared.enums import AgentName
 
 
 def build_parser() -> argparse.ArgumentParser:
-    # Keep parser construction import-light so plan/config validation can run
-    # on CI hosts without Isaac Sim, OmniGibson, or optional vision packages.
     from voltron.entrypoints.examples.closed_loop import parser as entrypoint_parser
 
     parser = entrypoint_parser.build_closed_loop_parser()
@@ -105,9 +101,6 @@ def _build_action_only_plan(args: argparse.Namespace) -> Plan:
 
 
 def main() -> None:
-    # Heavy simulator/runtime imports are intentionally delayed until after
-    # argument parsing.  This makes the competition overlay testable in a
-    # CPU-only environment while preserving the normal runtime entrypoint.
     from voltron.entrypoints.examples.closed_loop import main as closed_loop_main
     from voltron.runtime.assembly import runtime_builder
 
@@ -261,36 +254,30 @@ def main() -> None:
         vision_completion_positive_streak=args.vision_completion_positive_streak,
         vision_completion_stability_steps=args.vision_completion_stability_steps,
         vision_completion_min_confidence=args.vision_completion_min_confidence,
-        vision_completion_action_delta_threshold=(
-            args.vision_completion_action_delta_threshold
-        ),
-        vision_completion_check_interval_steps=(
-            args.vision_completion_check_interval_steps
-        ),
+        vision_completion_action_delta_threshold=(args.vision_completion_action_delta_threshold),
+        vision_completion_check_interval_steps=(args.vision_completion_check_interval_steps),
         vision_completion_agent_scope=args.vision_completion_agent_scope,
-        vision_completion_use_memory_guidance=(
-            args.vision_completion_use_memory_guidance
-        ),
-        vision_completion_include_third_person=(
-            args.vision_completion_include_third_person
-        ),
+        vision_completion_use_memory_guidance=(args.vision_completion_use_memory_guidance),
+        vision_completion_include_third_person=(args.vision_completion_include_third_person),
         vision_completion_max_images=args.vision_completion_max_images,
-        vision_completion_max_image_side_px=(
-            args.vision_completion_max_image_side_px
-        ),
+        vision_completion_max_image_side_px=(args.vision_completion_max_image_side_px),
         vision_completion_jpeg_quality=args.vision_completion_jpeg_quality,
-        vision_completion_max_image_b64_chars=(
-            args.vision_completion_max_image_b64_chars
-        ),
+        vision_completion_max_image_b64_chars=(args.vision_completion_max_image_b64_chars),
         vision_completion_image_detail=args.vision_completion_image_detail,
         logging_verbose=args.logging_verbose,
         anygrasp_config=getattr(args, "anygrasp_config", None),
     )
 
     environment = runtime_builder.build_behavior_environment(args=args, hovsg_runtime=hovsg_runtime)
-    orchestrator.event_sink = lambda event: closed_loop_main._record_orchestrator_event_to_environment(environment, event)
-    request = runtime_builder.build_task_request(args=args, scene_id=hovsg_runtime["scene_id"], hovsg_runtime=hovsg_runtime)
-    result = orchestrator.run_task(request=request, environment=environment, plan_override=_build_action_only_plan(args))
+    orchestrator.event_sink = (
+        lambda event: closed_loop_main._record_orchestrator_event_to_environment(environment, event)
+    )
+    request = runtime_builder.build_task_request(
+        args=args, scene_id=hovsg_runtime["scene_id"], hovsg_runtime=hovsg_runtime
+    )
+    result = orchestrator.run_task(
+        request=request, environment=environment, plan_override=_build_action_only_plan(args)
+    )
     print(result)
 
 

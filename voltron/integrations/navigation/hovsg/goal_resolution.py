@@ -1,5 +1,3 @@
-"""Goal and anchor resolution helpers for the HOV-SG navigator."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -54,8 +52,7 @@ def match_object(
     if isinstance(room_id, str) and room_id.strip():
         objects = [obj for obj in objects if obj.room_id == room_id]
     valid = [
-        (adapter._score_text_match(str(obj.name or obj.object_id), text), obj)
-        for obj in objects
+        (adapter._score_text_match(str(obj.name or obj.object_id), text), obj) for obj in objects
     ]
     ranked = [(score, obj) for score, obj in valid if score > 0.0]
     if not ranked:
@@ -230,9 +227,7 @@ def resolve_goal_position_and_node(
     return selected, selected_node, candidates, selected
 
 
-def infer_floor_id(
-    adapter: Any, scene: HOVSGSceneAsset, anchor: dict[str, Any]
-) -> str | None:
+def infer_floor_id(adapter: Any, scene: HOVSGSceneAsset, anchor: dict[str, Any]) -> str | None:
     if isinstance(anchor.get("floor_id"), (str, int)):
         return str(anchor["floor_id"])
     room_id = anchor.get("room_id")
@@ -273,8 +268,7 @@ def refine_start_anchor(
     if (
         isinstance(rejected_room, str)
         and isinstance(localized_room, str)
-        and adapter._normalize_text(localized_room)
-        == adapter._normalize_text(rejected_room)
+        and adapter._normalize_text(localized_room) == adapter._normalize_text(rejected_room)
     ):
         refined.setdefault("scene_id", scene.scene_id)
         return refined
@@ -283,9 +277,7 @@ def refine_start_anchor(
     return refined
 
 
-def infer_room_id(
-    adapter: Any, scene: HOVSGSceneAsset, anchor: dict[str, Any]
-) -> str | None:
+def infer_room_id(adapter: Any, scene: HOVSGSceneAsset, anchor: dict[str, Any]) -> str | None:
     if isinstance(anchor.get("room_id"), (str, int)):
         room_id = str(anchor["room_id"])
         if room_id in scene.rooms:
@@ -308,10 +300,7 @@ def infer_room_id(
             continue
         normalized = adapter._normalize_text(candidate)
         for room in scene.rooms.values():
-            if (
-                isinstance(room.name, str)
-                and adapter._normalize_text(room.name) == normalized
-            ):
+            if isinstance(room.name, str) and adapter._normalize_text(room.name) == normalized:
                 return room.room_id
     return None
 
@@ -358,11 +347,7 @@ def nearest_nav_node(
             pos = attrs.get("pos")
             if not isinstance(pos, (list, tuple)) or len(pos) < 3:
                 continue
-            dist = (
-                (float(pos[0]) - px) ** 2
-                + (float(pos[1]) - py) ** 2
-                + (float(pos[2]) - pz) ** 2
-            )
+            dist = (float(pos[0]) - px) ** 2 + (float(pos[1]) - py) ** 2 + (float(pos[2]) - pz) ** 2
             if best_dist is None or dist < best_dist:
                 best_node = node_id
                 best_dist = dist

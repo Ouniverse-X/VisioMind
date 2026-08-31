@@ -1,5 +1,3 @@
-"""Object-approach memory helpers for the HEMS backend."""
-
 from __future__ import annotations
 
 from copy import deepcopy
@@ -76,7 +74,11 @@ def record_object_approach_outcome(
     if not normalized_scene_id:
         return {"status": "skipped", "reason": "scene_id_missing"}
     if not target_key:
-        return {"status": "skipped", "reason": "target_key_missing", "scene_id": normalized_scene_id}
+        return {
+            "status": "skipped",
+            "reason": "target_key_missing",
+            "scene_id": normalized_scene_id,
+        }
 
     scene_entry = ensure_map(maps, normalized_scene_id)
     object_memory = scene_entry["map_payload"].setdefault("object_approach_memory", {})

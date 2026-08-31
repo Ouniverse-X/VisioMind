@@ -1,5 +1,3 @@
-"""Contracts for Brain interactive planning sessions."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -8,8 +6,6 @@ from typing import Any
 
 @dataclass
 class PlanSuccessCondition:
-    """Known success condition for a collaborative plan step."""
-
     description: str
     source: str
     confidence: float = 0.0
@@ -28,8 +24,6 @@ class PlanSuccessCondition:
 
 @dataclass
 class CollaborativePlanStep:
-    """User-facing collaborative planning step without agent assignment."""
-
     step_id: str
     intent: str
     description: str
@@ -72,8 +66,6 @@ class CollaborativePlanStep:
 
 @dataclass
 class TextPlanDraft:
-    """Human-readable plan draft produced before executable subtasks."""
-
     task_summary: str
     steps: list[dict[str, Any]] = field(default_factory=list)
     collaborative_steps: list[CollaborativePlanStep] = field(default_factory=list)
@@ -100,8 +92,6 @@ class TextPlanDraft:
 
 @dataclass
 class ClarificationQuestion:
-    """Question Brain asks before compiling an executable plan."""
-
     question_id: str
     question: str
     reason: str
@@ -137,8 +127,6 @@ class ClarificationQuestion:
 
 @dataclass
 class UserAnswer:
-    """User response to one Brain clarification question."""
-
     question_id: str
     answer: str
 
@@ -153,8 +141,6 @@ class UserAnswer:
 
 @dataclass
 class PlanConfirmation:
-    """User approval or rejection of a revised text plan."""
-
     confirmed: bool
     user_message: str | None = None
 
@@ -167,8 +153,6 @@ class PlanConfirmation:
 
 @dataclass
 class BrainPlanningSession:
-    """Mutable interactive planning state mirrored into working memory."""
-
     session_id: str
     task_id: str
     user_instruction: str
@@ -248,9 +232,7 @@ class BrainPlanningSession:
             None,
         )
         if collaborative_step is not None and collaborative_step.semantic_anchors:
-            criterion["semantic_anchors"] = dict(
-                collaborative_step.semantic_anchors
-            )
+            criterion["semantic_anchors"] = dict(collaborative_step.semantic_anchors)
         metadata = {
             key: question.get(key)
             for key in ("step_id", "agent", "intent")
@@ -292,7 +274,9 @@ class BrainPlanningSession:
             if step.step_id != collaborative_step_id:
                 continue
             step.known_success_conditions = [
-                item for item in step.known_success_conditions if item.description != condition.description
+                item
+                for item in step.known_success_conditions
+                if item.description != condition.description
             ]
             step.known_success_conditions.append(condition)
             break

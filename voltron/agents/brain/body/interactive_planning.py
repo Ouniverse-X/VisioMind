@@ -1,5 +1,3 @@
-"""Brain-side interactive planning session helpers."""
-
 from __future__ import annotations
 
 from uuid import uuid4
@@ -17,8 +15,6 @@ from voltron.shared.context import Plan, TaskRequest
 
 
 class BrainInteractivePlanningController:
-    """Owns interactive planning session mutation and working-memory mirroring."""
-
     def __init__(
         self,
         *,
@@ -51,8 +47,12 @@ class BrainInteractivePlanningController:
         for item in [*required_items, *optional_items[: self.skill.max_questions]]:
             session.add_question(
                 ClarificationQuestion(
-                    question_id=str(item.get("uncertainty_id") or f"q_{len(session.dialogue) + 1:02d}"),
-                    question=str(item.get("question") or "Please clarify the planning requirement."),
+                    question_id=str(
+                        item.get("uncertainty_id") or f"q_{len(session.dialogue) + 1:02d}"
+                    ),
+                    question=str(
+                        item.get("question") or "Please clarify the planning requirement."
+                    ),
                     reason=str(item.get("reason") or ""),
                     applies_to=str(item.get("applies_to") or "task"),
                     options=list(item.get("options") or []),
@@ -72,7 +72,9 @@ class BrainInteractivePlanningController:
     def answer(self, session: BrainPlanningSession, answer: UserAnswer) -> BrainPlanningSession:
         session.add_answer(answer)
         self._mirror_session(session)
-        self._record_observation("brain.user_clarification", session, answer=answer.to_dialogue_item())
+        self._record_observation(
+            "brain.user_clarification", session, answer=answer.to_dialogue_item()
+        )
         return session
 
     def confirm(
@@ -82,7 +84,9 @@ class BrainInteractivePlanningController:
     ) -> BrainPlanningSession:
         session.set_confirmation(confirmation)
         self._mirror_session(session)
-        self._record_observation("brain.plan_confirmation", session, confirmation=confirmation.to_dict())
+        self._record_observation(
+            "brain.plan_confirmation", session, confirmation=confirmation.to_dict()
+        )
         return session
 
     def _mirror_session(self, session: BrainPlanningSession) -> None:

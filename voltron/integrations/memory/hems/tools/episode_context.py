@@ -1,5 +1,3 @@
-"""Completed-episode context helpers for MemoryAgent extraction."""
-
 from __future__ import annotations
 
 from copy import deepcopy
@@ -14,10 +12,8 @@ def build_scene_memory_context(
     max_items: int = 8,
     max_entries_per_target: int = 3,
 ) -> dict[str, Any]:
-    """Build a bounded scene-memory summary suitable for LLM extraction input."""
-
     scenes = []
-    for scene_id, entry in list(maps.items())[:max(0, int(max_scenes))]:
+    for scene_id, entry in list(maps.items())[: max(0, int(max_scenes))]:
         if not isinstance(entry, dict):
             continue
         scenes.append(
@@ -70,7 +66,9 @@ def summarize_scene_entry(
     if object_approach:
         summary["object_approach_memory"] = object_approach
 
-    obstacles = _limited_list(map_payload.get("obstacles", []), max_items=max_items, serializer=serializer)
+    obstacles = _limited_list(
+        map_payload.get("obstacles", []), max_items=max_items, serializer=serializer
+    )
     if obstacles:
         summary["obstacles"] = obstacles
 
@@ -319,7 +317,9 @@ def summarize_exploration(
         return {}
     summary: dict[str, Any] = {}
     if "frontiers" in exploration:
-        summary["frontiers"] = _limited_list(exploration.get("frontiers"), max_items=max_items, serializer=serializer)
+        summary["frontiers"] = _limited_list(
+            exploration.get("frontiers"), max_items=max_items, serializer=serializer
+        )
     if "explored_regions" in exploration:
         summary["explored_regions"] = _limited_list(
             exploration.get("explored_regions"),
@@ -333,7 +333,9 @@ def summarize_exploration(
     return {key: value for key, value in summary.items() if value}
 
 
-def _select_keys(value: Any, keys: tuple[str, ...], *, serializer: Callable[[Any], Any]) -> dict[str, Any]:
+def _select_keys(
+    value: Any, keys: tuple[str, ...], *, serializer: Callable[[Any], Any]
+) -> dict[str, Any]:
     if not isinstance(value, dict):
         return {}
     selected = {}
@@ -353,7 +355,9 @@ def _limited_list(value: Any, *, max_items: int, serializer: Callable[[Any], Any
     return [serializer(item) for item in value[:max_items]]
 
 
-def _add_count(summary: dict[str, Any], source: dict[str, Any], *, source_key: str, count_key: str) -> None:
+def _add_count(
+    summary: dict[str, Any], source: dict[str, Any], *, source_key: str, count_key: str
+) -> None:
     value = source.get(source_key)
     if isinstance(value, list):
         summary[count_key] = len(value)

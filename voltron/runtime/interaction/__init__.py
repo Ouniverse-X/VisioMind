@@ -1,5 +1,3 @@
-"""Runtime interaction surfaces."""
-
 from .operator_feedback import OperatorFeedback, build_operator_feedback
 from .stop_resume import ExecutionControlSignal, request_resume, request_stop
 from .task_request import build_task_request

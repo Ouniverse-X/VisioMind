@@ -1,5 +1,3 @@
-"""Skill that prepares discrete approach anchors for object-level Navigation tasks."""
-
 from __future__ import annotations
 
 from copy import deepcopy
@@ -18,8 +16,13 @@ class ObjectApproachSelectionSkill:
     def can_handle(self, subtask: Subtask, context: ExecutionContext) -> bool:
         grounded_goal = context.runtime_state.get("navigation_grounded_goal_for_skill")
         grounded_target = ""
-        if isinstance(grounded_goal, dict) and str(grounded_goal.get("goal_type") or "").strip().lower() == "object":
-            grounded_target = str(grounded_goal.get("object_id") or grounded_goal.get("object_name") or "").strip()
+        if (
+            isinstance(grounded_goal, dict)
+            and str(grounded_goal.get("goal_type") or "").strip().lower() == "object"
+        ):
+            grounded_target = str(
+                grounded_goal.get("object_id") or grounded_goal.get("object_name") or ""
+            ).strip()
         return bool(
             grounded_target
             or str(subtask.target.get("object") or subtask.target.get("object_id") or "").strip()
@@ -35,12 +38,21 @@ class ObjectApproachSelectionSkill:
         goal: dict[str, Any],
         navigation_context: dict[str, Any],
     ) -> dict[str, Any]:
-        scene_id = str(goal.get("scene_id") or start.get("scene_id") or navigation_context.get("scene_id") or "").strip()
-        history = self.memory.get_object_approach_history(
-            scene_id=scene_id,
-            target=self._history_target(goal=goal, subtask=subtask),
-            top_k=10,
-        ) if scene_id else {"scene_id": None, "target_key": None, "entries": []}
+        scene_id = str(
+            goal.get("scene_id")
+            or start.get("scene_id")
+            or navigation_context.get("scene_id")
+            or ""
+        ).strip()
+        history = (
+            self.memory.get_object_approach_history(
+                scene_id=scene_id,
+                target=self._history_target(goal=goal, subtask=subtask),
+                top_k=10,
+            )
+            if scene_id
+            else {"scene_id": None, "target_key": None, "entries": []}
+        )
         history = self._merge_memory_navigation_guidance(
             history=history,
             guidance=subtask.context.get("memory_navigation_guidance"),
@@ -62,7 +74,9 @@ class ObjectApproachSelectionSkill:
             "candidates": candidates,
             "selection_context": {
                 "target_object": goal.get("object_name") or subtask.target.get("object"),
-                "target_room": goal.get("room_name") or subtask.target.get("room") or subtask.target.get("region"),
+                "target_room": goal.get("room_name")
+                or subtask.target.get("room")
+                or subtask.target.get("region"),
                 "current_room": start.get("current_room") or start.get("current_region"),
             },
         }
@@ -73,7 +87,9 @@ class ObjectApproachSelectionSkill:
             "object": goal.get("object_name") or subtask.target.get("object"),
             "object_id": goal.get("object_id") or subtask.target.get("object_id"),
             "room_id": goal.get("room_id") or subtask.target.get("room_id"),
-            "room_name": goal.get("room_name") or subtask.target.get("room") or subtask.target.get("region"),
+            "room_name": goal.get("room_name")
+            or subtask.target.get("room")
+            or subtask.target.get("region"),
             "floor_id": goal.get("floor_id") or subtask.target.get("floor_id"),
         }
 
@@ -89,11 +105,15 @@ class ObjectApproachSelectionSkill:
             candidate.setdefault("candidate_id", f"cand_{index:02d}")
             summary = self._history_summary(candidate, history_entries)
             candidate["history_summary"] = summary
-            candidate["history_penalty"] = float(summary["failure_count"]) * 3.0 - float(summary["success_count"]) * 1.5
+            candidate["history_penalty"] = (
+                float(summary["failure_count"]) * 3.0 - float(summary["success_count"]) * 1.5
+            )
             if summary["evidence_sources"]:
                 candidate["memory_guidance_sources"] = list(summary["evidence_sources"])
             candidate["blocked_by_history"] = bool(
-                summary["failure_count"] > 0 and summary["success_count"] == 0 and summary["recent_failure"]
+                summary["failure_count"] > 0
+                and summary["success_count"] == 0
+                and summary["recent_failure"]
             )
             annotated.append(candidate)
         return annotated
@@ -114,16 +134,22 @@ class ObjectApproachSelectionSkill:
         for item in guidance.get("avoid_object_approach_candidates", []):
             if not isinstance(item, dict):
                 continue
-            entries.extend(cls._guidance_entries(item, outcome="failure", count_key="failure_count"))
+            entries.extend(
+                cls._guidance_entries(item, outcome="failure", count_key="failure_count")
+            )
         for item in guidance.get("prefer_object_approach_candidates", []):
             if not isinstance(item, dict):
                 continue
-            entries.extend(cls._guidance_entries(item, outcome="success", count_key="success_count"))
+            entries.extend(
+                cls._guidance_entries(item, outcome="success", count_key="success_count")
+            )
         merged["entries"] = entries
         return merged
 
     @staticmethod
-    def _guidance_entries(item: dict[str, Any], *, outcome: str, count_key: str) -> list[dict[str, Any]]:
+    def _guidance_entries(
+        item: dict[str, Any], *, outcome: str, count_key: str
+    ) -> list[dict[str, Any]]:
         signature = item.get("candidate_signature")
         if not isinstance(signature, dict) or not signature:
             return []
@@ -139,7 +165,9 @@ class ObjectApproachSelectionSkill:
         ]
 
     @staticmethod
-    def _history_summary(candidate: dict[str, Any], history_entries: list[dict[str, Any]]) -> dict[str, Any]:
+    def _history_summary(
+        candidate: dict[str, Any], history_entries: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         failure_count = 0
         success_count = 0
         recent_failure = False
@@ -200,7 +228,7 @@ def _ordered_evidence_sources(sources: set[str]) -> list[str]:
 
 
 class NavigationObjectApproachSelectionSkill(ObjectApproachSelectionSkill):
-    """Canonical object-approach skill for the Navigation agent."""
+    pass
 
 
 __all__ = ["NavigationObjectApproachSelectionSkill", "ObjectApproachSelectionSkill"]

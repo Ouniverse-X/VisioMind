@@ -1,5 +1,3 @@
-"""Closed-loop runtime adapter for Isaac-GR00T BEHAVIOR environments."""
-
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -9,18 +7,38 @@ from voltron.shared.results import AgentResult
 from voltron.runtime.task_state import execution_state as runtime_execution_state
 from voltron.runtime.task_state import plan_state as runtime_plan_state
 from voltron.runtime.task_state import subtask_state as runtime_subtask_state
-from voltron.integrations.simulator.behavior.environment import client as behavior_environment_client
-from voltron.integrations.simulator.behavior.tools import bridge_execution as behavior_bridge_execution
-from voltron.integrations.simulator.behavior.tools import bridge_environment as behavior_bridge_environment
+from voltron.integrations.simulator.behavior.environment import (
+    client as behavior_environment_client,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_execution as behavior_bridge_execution,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_environment as behavior_bridge_environment,
+)
 from voltron.integrations.simulator.behavior.tools import bridge_inputs as behavior_bridge_inputs
-from voltron.integrations.simulator.behavior.tools import bridge_lifecycle as behavior_bridge_lifecycle
-from voltron.integrations.simulator.behavior.tools import bridge_localization as behavior_bridge_localization
-from voltron.integrations.simulator.behavior.tools import bridge_recording as behavior_bridge_recording
-from voltron.integrations.simulator.behavior.tools import bridge_subtasks as behavior_bridge_subtasks
-from voltron.integrations.simulator.behavior.tools import door_navigation_passability as behavior_door_navigation_passability
-from voltron.integrations.simulator.behavior.tools import runtime_adapter_state as behavior_runtime_adapter_state
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_lifecycle as behavior_bridge_lifecycle,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_localization as behavior_bridge_localization,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_recording as behavior_bridge_recording,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_subtasks as behavior_bridge_subtasks,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    door_navigation_passability as behavior_door_navigation_passability,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    runtime_adapter_state as behavior_runtime_adapter_state,
+)
 from voltron.integrations.simulator.behavior.tools import runtime_config as behavior_runtime_config
-from voltron.integrations.simulator.behavior.tools import runtime_control as behavior_runtime_control
+from voltron.integrations.simulator.behavior.tools import (
+    runtime_control as behavior_runtime_control,
+)
 from voltron.shared.contracts import RuntimeEnvironment
 from voltron.shared.models import SubtaskStepOutcome
 
@@ -28,12 +46,6 @@ _RUNTIME_BRIDGE_FILE = __file__
 
 
 class BehaviorRuntimeEnvironment(RuntimeEnvironment):
-    """Adapter that bridges closed-loop orchestrator and BEHAVIOR gym env.
-
-    It keeps environment lifecycle and action/observation transformations isolated from
-    agent implementations, so simulator can be swapped later without changing agents.
-    """
-
     def __init__(
         self,
         env_id: str,
@@ -74,9 +86,7 @@ class BehaviorRuntimeEnvironment(RuntimeEnvironment):
         behavior_runtime_config.initialize_runtime_state(self)
 
     def reset(self, request: TaskRequest, plan: Plan, context: ExecutionContext) -> dict[str, Any]:
-        behavior_door_navigation_passability.clear_navigation_passability_overrides(
-            self
-        )
+        behavior_door_navigation_passability.clear_navigation_passability_overrides(self)
         self._root_task_instruction = request.description.strip()
         self._task_type = request.task_type
         reset = behavior_runtime_control.reset_runtime_session(
@@ -94,7 +104,9 @@ class BehaviorRuntimeEnvironment(RuntimeEnvironment):
                 plan,
                 runtime_bridge_file=_RUNTIME_BRIDGE_FILE,
             ),
-            record_event=lambda event, payload: behavior_bridge_lifecycle.record_event(self, event, payload),
+            record_event=lambda event, payload: behavior_bridge_lifecycle.record_event(
+                self, event, payload
+            ),
             configure_runtime_subtasks=self._configure_runtime_subtasks,
             ensure_env=lambda: behavior_bridge_environment.ensure_env(
                 self,
@@ -114,12 +126,15 @@ class BehaviorRuntimeEnvironment(RuntimeEnvironment):
                     resolved_metadata,
                 )
             ),
-            extract_pose=lambda last_info, last_obs: behavior_bridge_localization.extract_runtime_pose(
+            extract_pose=lambda last_info,
+            last_obs: behavior_bridge_localization.extract_runtime_pose(
                 last_info=last_info,
                 last_obs=last_obs,
                 frame_config=self.env_kwargs,
             ),
-            apply_post_reset_state=lambda env, obs, info: behavior_bridge_environment.apply_post_reset_state(
+            apply_post_reset_state=lambda env,
+            obs,
+            info: behavior_bridge_environment.apply_post_reset_state(
                 self,
                 env=env,
                 obs=obs,
@@ -166,7 +181,9 @@ class BehaviorRuntimeEnvironment(RuntimeEnvironment):
             plan=plan,
             env_kwargs=self.env_kwargs,
             build_runtime_subtask=self._build_runtime_subtask,
-            call_env_method=lambda method_name, payload: self._call_behavior_env_method(method_name, payload),
+            call_env_method=lambda method_name, payload: self._call_behavior_env_method(
+                method_name, payload
+            ),
         )
         return behavior_runtime_adapter_state.apply_configured_runtime_subtasks(self, configured)
 
@@ -181,7 +198,9 @@ class BehaviorRuntimeEnvironment(RuntimeEnvironment):
             ),
             last_info=self._last_info,
             call_env_method=self._call_behavior_env_method,
-            record_event=lambda event, payload: behavior_bridge_lifecycle.record_event(self, event, payload),
+            record_event=lambda event, payload: behavior_bridge_lifecycle.record_event(
+                self, event, payload
+            ),
         )
         return behavior_runtime_adapter_state.apply_synced_runtime_subtask(self, synced)
 
@@ -250,17 +269,11 @@ class BehaviorRuntimeEnvironment(RuntimeEnvironment):
         )
         if update is None:
             return
-        context.runtime_state["navigation_door_passability"] = dict(
-            update["active_overrides"]
-        )
+        context.runtime_state["navigation_door_passability"] = dict(update["active_overrides"])
         behavior_bridge_lifecycle.record_event(
             self,
             event="navigation_door_passability_updated",
-            payload={
-                key: value
-                for key, value in update.items()
-                if key != "active_overrides"
-            },
+            payload={key: value for key, value in update.items() if key != "active_overrides"},
         )
 
     def task_succeeded(self, context: ExecutionContext) -> bool:

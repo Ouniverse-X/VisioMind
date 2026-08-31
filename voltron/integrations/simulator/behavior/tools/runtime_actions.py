@@ -1,5 +1,3 @@
-"""Action/observation helpers for the BEHAVIOR runtime bridge."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -44,7 +42,9 @@ def format_behavior_action(
                 expected_shape=expected_shape,
                 hold_grippers_closed=hold_grippers_closed,
             )
-            formatted[key] = held_value if held_value is not None else np.zeros(expected_shape, dtype=np.float32)
+            formatted[key] = (
+                held_value if held_value is not None else np.zeros(expected_shape, dtype=np.float32)
+            )
             continue
 
         arr = to_numpy(value)
@@ -65,7 +65,9 @@ def format_behavior_action(
     return formatted
 
 
-def expand_robot_r1_action(action: dict[str, Any], *, action_spaces: dict[str, Any]) -> dict[str, Any]:
+def expand_robot_r1_action(
+    action: dict[str, Any], *, action_spaces: dict[str, Any]
+) -> dict[str, Any]:
     if "robot_r1" not in action or "robot_r1" in action_spaces:
         return action
     if not any(key.startswith("action.") for key in action_spaces):
@@ -74,7 +76,9 @@ def expand_robot_r1_action(action: dict[str, Any], *, action_spaces: dict[str, A
     arr = to_numpy(action["robot_r1"])
     if arr is None:
         return action
-    arr = select_first_action_step(arr, expected_shape=()).astype(np.float32, copy=False).reshape(-1)
+    arr = (
+        select_first_action_step(arr, expected_shape=()).astype(np.float32, copy=False).reshape(-1)
+    )
     if arr.shape != (23,):
         return action
 
@@ -109,7 +113,9 @@ def held_action_value_from_observation(
     arr = to_numpy(value)
     if arr is None:
         return None
-    arr = select_first_action_step(arr, expected_shape=()).astype(np.float32, copy=False).reshape(-1)
+    arr = (
+        select_first_action_step(arr, expected_shape=()).astype(np.float32, copy=False).reshape(-1)
+    )
     if action_key in {"action.left_gripper", "action.right_gripper"}:
         return np.array([1.0 if float(np.mean(arr)) >= 0.01 else -1.0], dtype=np.float32)
     if expected_shape and arr.shape != expected_shape:

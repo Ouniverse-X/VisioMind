@@ -1,5 +1,3 @@
-"""Runtime object builders for closed-loop entrypoints."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -11,9 +9,7 @@ from voltron.integrations.simulator.behavior.runtime_bridge import (
 )
 
 
-def build_behavior_env_kwargs(
-    *, args: Any, hovsg_runtime: dict[str, Any]
-) -> dict[str, Any]:
+def build_behavior_env_kwargs(*, args: Any, hovsg_runtime: dict[str, Any]) -> dict[str, Any]:
     scene_id = hovsg_runtime.get("scene_id")
     env_kwargs: dict[str, Any] = {
         "env_idx": args.env_idx,
@@ -23,9 +19,7 @@ def build_behavior_env_kwargs(
     if args.behavior_scene_file:
         env_kwargs["scene_file"] = str(Path(args.behavior_scene_file).expanduser())
     if args.behavior_tro_state_file:
-        env_kwargs["tro_state_file"] = str(
-            Path(args.behavior_tro_state_file).expanduser()
-        )
+        env_kwargs["tro_state_file"] = str(Path(args.behavior_tro_state_file).expanduser())
     if args.behavior_task_instance_id is not None:
         env_kwargs["task_instance_id"] = int(args.behavior_task_instance_id)
     if getattr(args, "behavior_scene_state_include_aabb", False):
@@ -36,9 +30,7 @@ def build_behavior_env_kwargs(
         None,
     )
     if isinstance(navigation_role_overrides, dict) and navigation_role_overrides:
-        env_kwargs["scene_state_navigation_role_overrides"] = dict(
-            navigation_role_overrides
-        )
+        env_kwargs["scene_state_navigation_role_overrides"] = dict(navigation_role_overrides)
     if args.behavior_robot_start_position is not None:
         env_kwargs["robot_start_position"] = [
             float(value) for value in args.behavior_robot_start_position
@@ -56,26 +48,20 @@ def build_behavior_env_kwargs(
             float(value) for value in args.behavior_post_reset_robot_orientation
         ]
     if getattr(args, "behavior_post_reset_object_states", None) is not None:
-        env_kwargs["post_reset_object_states"] = dict(
-            args.behavior_post_reset_object_states
-        )
+        env_kwargs["post_reset_object_states"] = dict(args.behavior_post_reset_object_states)
     if getattr(args, "behavior_post_reset_robot_joint_positions", None) is not None:
         env_kwargs["post_reset_robot_joint_positions"] = [
-            float(value)
-            for value in args.behavior_post_reset_robot_joint_positions
+            float(value) for value in args.behavior_post_reset_robot_joint_positions
         ]
     if getattr(args, "behavior_post_reset_robot_joint_velocities", None) is not None:
         env_kwargs["post_reset_robot_joint_velocities"] = [
-            float(value)
-            for value in args.behavior_post_reset_robot_joint_velocities
+            float(value) for value in args.behavior_post_reset_robot_joint_velocities
         ]
     env_kwargs["post_reset_refresh_observation"] = bool(
         getattr(args, "behavior_post_reset_refresh_observation", True)
     )
     if getattr(args, "behavior_post_reset_settle_steps", None) is not None:
-        env_kwargs["post_reset_settle_steps"] = max(
-            0, int(args.behavior_post_reset_settle_steps)
-        )
+        env_kwargs["post_reset_settle_steps"] = max(0, int(args.behavior_post_reset_settle_steps))
     for arg_name, env_name in (
         ("behavior_recording_third_person_local_offset", "recording_third_person_local_offset"),
         ("behavior_recording_third_person_look_at_offset", "recording_third_person_look_at_offset"),
@@ -109,9 +95,7 @@ def build_behavior_env_kwargs(
     if hovsg_runtime.get("scene_vertical_axis"):
         env_kwargs["scene_vertical_axis"] = hovsg_runtime["scene_vertical_axis"]
     if hovsg_runtime.get("simulator_vertical_axis"):
-        env_kwargs["simulator_vertical_axis"] = hovsg_runtime[
-            "simulator_vertical_axis"
-        ]
+        env_kwargs["simulator_vertical_axis"] = hovsg_runtime["simulator_vertical_axis"]
     if hovsg_runtime.get("scene_from_simulator_transform"):
         env_kwargs["scene_from_simulator_transform"] = hovsg_runtime[
             "scene_from_simulator_transform"

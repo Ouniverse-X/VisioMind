@@ -1,5 +1,3 @@
-"""Shared semantic helpers for high-level interaction actions."""
-
 from __future__ import annotations
 
 from typing import Any

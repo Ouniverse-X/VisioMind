@@ -1,10 +1,3 @@
-"""Fixed JSON contract for the Qwen industrial instruction planner.
-
-The language model is responsible for semantic parsing and task decomposition.
-Runtime instance grounding remains deterministic and auditable, so an unseen
-tool name may be copied into ``slots.object`` without inventing a simulator ID.
-"""
-
 from __future__ import annotations
 
 import json
@@ -103,7 +96,6 @@ def build_plan(
     cell_index: int | None = None,
     spatial_relation: str | None = None,
 ) -> dict[str, Any]:
-    """Build the canonical plan used as a supervised target and oracle."""
     if intent not in INTENTS:
         raise ValueError(f"unsupported intent: {intent}")
     slots = {
@@ -133,9 +125,7 @@ def build_plan(
         steps = ["select_target", "plan_grasp", "pick_up"]
         actions = [{"action": "pick_up", "target": {"object": object_name}}]
     else:
-        placement_step = (
-            "place_on_top" if intent == "transfer_on_top" else "place_inside"
-        )
+        placement_step = "place_on_top" if intent == "transfer_on_top" else "place_inside"
         steps = ["select_target", "plan_grasp", "pick_up"]
         if intent == "recover_placement":
             steps = ["detect_failed_placement", "authorize_recovery", *steps]
@@ -173,7 +163,6 @@ def compact_json(plan: dict[str, Any]) -> str:
 
 
 def extract_json_object(text: str) -> tuple[dict[str, Any] | None, bool]:
-    """Parse a JSON object, tolerating only surrounding whitespace/fences."""
     stripped = text.strip()
     if stripped.startswith("```"):
         lines = stripped.splitlines()
@@ -190,7 +179,6 @@ def extract_json_object(text: str) -> tuple[dict[str, Any] | None, bool]:
 
 
 def validate_plan(value: Any) -> tuple[bool, list[str]]:
-    """Validate required types and keys without restricting unseen tool names."""
     errors: list[str] = []
     if not isinstance(value, dict):
         return False, ["plan is not an object"]
@@ -208,9 +196,7 @@ def validate_plan(value: Any) -> tuple[bool, list[str]]:
         for name in ("object", "container", "spatial_relation"):
             if slots[name] is not None and not isinstance(slots[name], str):
                 errors.append(f"slot {name} must be string or null")
-        if slots["cell_index"] is not None and not isinstance(
-            slots["cell_index"], int
-        ):
+        if slots["cell_index"] is not None and not isinstance(slots["cell_index"], int):
             errors.append("slot cell_index must be integer or null")
     tasks = value.get("task_sequence")
     if not isinstance(tasks, list) or not tasks:
@@ -257,8 +243,4 @@ def slot_pairs(plan: dict[str, Any] | None) -> set[tuple[str, str]]:
 def task_steps(plan: dict[str, Any] | None) -> list[str]:
     if not isinstance(plan, dict) or not isinstance(plan.get("task_sequence"), list):
         return []
-    return [
-        str(item.get("step"))
-        for item in plan["task_sequence"]
-        if isinstance(item, dict)
-    ]
+    return [str(item.get("step")) for item in plan["task_sequence"] if isinstance(item, dict)]

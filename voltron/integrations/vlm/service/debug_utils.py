@@ -1,5 +1,3 @@
-"""Debug helpers for the Voltron VLM service integration."""
-
 from __future__ import annotations
 
 import base64

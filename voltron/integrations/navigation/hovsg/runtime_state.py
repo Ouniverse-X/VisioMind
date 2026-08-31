@@ -1,10 +1,3 @@
-"""Runtime scene-state overlay for the HOV-SG navigator.
-
-Static HOV-SG assets are loaded once and treated as immutable; live object
-poses and door states sampled from the simulator are kept here, per scene, and
-consulted before any static centroid/adjacency lookup.
-"""
-
 from __future__ import annotations
 
 import re
@@ -29,7 +22,6 @@ def ingest_scene_state(
     scene_id: str | None,
     payload: Any,
 ) -> dict[str, Any] | None:
-    """Parse and store a scene-state payload; returns a telemetry summary."""
     if not scene_id:
         return None
     state = scene_runtime_state_from_payload(payload)
@@ -94,7 +86,6 @@ def resolve_object_centroid(
     scene: HOVSGSceneAsset,
     obj: HOVSGObjectAsset,
 ) -> tuple[dict[str, float] | None, str]:
-    """Return the freshest known centroid for a static object and its source."""
     state = current_scene_state(adapter, scene.scene_id)
     if state is not None:
         runtime_object = match_runtime_object(
@@ -122,9 +113,6 @@ def match_runtime_object(
         if isinstance(key, str) and key in candidates:
             return candidates[key]
 
-    # Runtime names carry extra junk tokens (model code, instance index), so
-    # only the conservative direction is safe: every meaningful static-name
-    # token must appear in the runtime name. No match → static fallback.
     target_tokens = _meaningful_tokens(object_name) or _meaningful_tokens(object_id)
     if not target_tokens:
         return None
@@ -150,7 +138,6 @@ def match_runtime_door(
     object_id: str | None,
     static_centroid: dict[str, float] | None,
 ) -> RuntimeDoorState | None:
-    """Match a static HOV-SG door object to the dedicated runtime door layer."""
     candidates = state.doors
     if not candidates:
         return None
@@ -161,9 +148,7 @@ def match_runtime_door(
     if not target_tokens:
         return None
     matched = [
-        door
-        for door in candidates.values()
-        if target_tokens <= _meaningful_tokens(door.name)
+        door for door in candidates.values() if target_tokens <= _meaningful_tokens(door.name)
     ]
     if not matched:
         return None
@@ -177,7 +162,6 @@ def match_runtime_object_by_text(
     state: SceneRuntimeState,
     text: str | None,
 ) -> RuntimeObjectState | None:
-    """Fallback grounding for objects the static export does not know about."""
     if not isinstance(text, str) or not text.strip():
         return None
     ranked: list[tuple[float, RuntimeObjectState]] = []
@@ -196,7 +180,9 @@ def match_runtime_object_by_text(
     return ranked[0][1]
 
 
-def containing_room_id(adapter: Any, scene: HOVSGSceneAsset, position: dict[str, float] | None) -> str | None:
+def containing_room_id(
+    adapter: Any, scene: HOVSGSceneAsset, position: dict[str, float] | None
+) -> str | None:
     if not isinstance(position, dict):
         return None
     room = adapter._containing_room(scene, position)
@@ -210,8 +196,6 @@ def overlay_room_id(
     obj: HOVSGObjectAsset,
     overlay_position: dict[str, float] | None,
 ) -> str | None:
-    """Re-localize an object's room when its overlay position drifted from the
-    static centroid; returns None when the static room assignment still holds."""
     if overlay_position is None or obj.centroid is None:
         return None
     if _distance_sq(overlay_position, obj.centroid) < _OVERLAY_ROOM_REASSIGN_DISTANCE_M**2:
@@ -232,14 +216,10 @@ def _summary(state: SceneRuntimeState) -> dict[str, Any]:
         "door_count": len(state.doors),
         "relation_count": len(state.relations),
         "closed_doors": sorted(
-            name
-            for name, door in state.doors.items()
-            if door_is_navigation_passable(door) is False
+            name for name, door in state.doors.items() if door_is_navigation_passable(door) is False
         ),
         "navigation_passable_doors": sorted(
-            name
-            for name, door in state.doors.items()
-            if door.navigation_passable is True
+            name for name, door in state.doors.items() if door.navigation_passable is True
         ),
     }
 

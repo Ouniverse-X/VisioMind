@@ -1,5 +1,3 @@
-"""Tool surfaces owned by the Brain agent."""
-
 from . import cron
 from . import base
 from . import execution_flow

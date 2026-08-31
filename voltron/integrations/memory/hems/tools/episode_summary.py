@@ -1,5 +1,3 @@
-"""Episode summary helpers for the HEMS integration."""
-
 from __future__ import annotations
 
 from copy import deepcopy
@@ -8,7 +6,9 @@ from typing import Any
 from voltron.shared.telemetry.payload_sanitizer import strip_image_payloads
 
 
-def annotate_episode(*, episode: Any, task_context: dict[str, Any], working_state: dict[str, Any]) -> None:
+def annotate_episode(
+    *, episode: Any, task_context: dict[str, Any], working_state: dict[str, Any]
+) -> None:
     execution_state = task_context.get("execution_state", {})
     namespace = task_context.get("runtime_namespace", {})
 
@@ -18,20 +18,24 @@ def annotate_episode(*, episode: Any, task_context: dict[str, Any], working_stat
         episode.initial_state = initial_state
 
     final_state = dict(getattr(episode, "final_state", {}) or {})
-    final_state["working_memory_summary"] = strip_image_payloads({
-        "task_phase": execution_state.get("task_phase"),
-        "parent_task_phase": execution_state.get("parent_task_phase"),
-        "current_plan": deepcopy(execution_state.get("current_plan", [])),
-        "current_subtask": deepcopy(execution_state.get("current_subtask", {})),
-        "current_internal_subtask": deepcopy(execution_state.get("current_internal_subtask")),
-        "action_internal_plan": deepcopy(execution_state.get("action_internal_plan")),
-        "robot_state": deepcopy(execution_state.get("robot_state", {})),
-        "recent_decisions": deepcopy(execution_state.get("recent_decisions", [])),
-        "latest_scene_report": deepcopy(execution_state.get("latest_scene_report", {})),
-        "latest_navigation_report": deepcopy(execution_state.get("latest_navigation_report", {})),
-        "latest_environment_feedback": _compact_environment_feedback(execution_state),
-        "working_state": deepcopy(working_state),
-    })
+    final_state["working_memory_summary"] = strip_image_payloads(
+        {
+            "task_phase": execution_state.get("task_phase"),
+            "parent_task_phase": execution_state.get("parent_task_phase"),
+            "current_plan": deepcopy(execution_state.get("current_plan", [])),
+            "current_subtask": deepcopy(execution_state.get("current_subtask", {})),
+            "current_internal_subtask": deepcopy(execution_state.get("current_internal_subtask")),
+            "action_internal_plan": deepcopy(execution_state.get("action_internal_plan")),
+            "robot_state": deepcopy(execution_state.get("robot_state", {})),
+            "recent_decisions": deepcopy(execution_state.get("recent_decisions", [])),
+            "latest_scene_report": deepcopy(execution_state.get("latest_scene_report", {})),
+            "latest_navigation_report": deepcopy(
+                execution_state.get("latest_navigation_report", {})
+            ),
+            "latest_environment_feedback": _compact_environment_feedback(execution_state),
+            "working_state": deepcopy(working_state),
+        }
+    )
     episode.final_state = final_state
 
 

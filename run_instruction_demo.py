@@ -1,5 +1,3 @@
-"""Parse a natural-language instruction and execute its grounded Isaac plan."""
-
 from __future__ import annotations
 
 import argparse
@@ -44,7 +42,9 @@ def main() -> None:
     parser.add_argument(
         "--config",
         type=Path,
-        default=ROOT / "voltron" / "configs" / "half_apple_to_packing_box_place_inside_i10.json",
+        default=(
+            ROOT / "voltron" / "configs" / "compact_industrial_pliers_to_toolbox_cell3_i00.json"
+        ),
     )
     parser.add_argument(
         "--model",
@@ -54,7 +54,7 @@ def main() -> None:
     parser.add_argument(
         "--grounding",
         type=Path,
-        default=ROOT / "configs" / "scene_grounding_preparing_lunch_box.json",
+        default=ROOT / "configs" / "scene_grounding_industrial.json",
     )
     parser.add_argument("--min-confidence", type=float, default=0.55)
     parser.add_argument("--dry-run", action="store_true")

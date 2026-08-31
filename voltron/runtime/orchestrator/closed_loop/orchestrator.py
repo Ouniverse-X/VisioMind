@@ -1,5 +1,3 @@
-"""Closed-loop orchestration runtime for simulator/robot-in-the-loop execution."""
-
 from __future__ import annotations
 
 import logging
@@ -22,8 +20,6 @@ logger = logging.getLogger(__name__)
 
 
 class ClosedLoopOrchestrator:
-    """Run Voltron task flow in closed loop with a runtime environment adapter."""
-
     def __init__(
         self,
         brain_agent: Any | None = None,
@@ -104,17 +100,16 @@ class ClosedLoopOrchestrator:
         *,
         initial_plan_reason: str = "initial_plan",
     ) -> dict[str, Any]:
-        """Execute an already prepared Brain context and plan.
-
-        Interactive planning confirms a text draft before executable planning.
-        This method lets that confirmed context run without calling
-        `BrainAgent.prepare()` again and losing the user's clarification state.
-        """
-
-        context.runtime_state.setdefault("log_navigation_candidates", self.log_navigation_candidates)
+        context.runtime_state.setdefault(
+            "log_navigation_candidates", self.log_navigation_candidates
+        )
         context.runtime_state.setdefault("log_nav2_path_snapshots", self.log_nav2_path_snapshots)
-        context.runtime_state["current_plan_subtask_ids"] = [item.subtask_id for item in plan.subtasks]
-        context.runtime_state["current_plan_execution_ids"] = [item.runtime_id for item in plan.subtasks]
+        context.runtime_state["current_plan_subtask_ids"] = [
+            item.subtask_id for item in plan.subtasks
+        ]
+        context.runtime_state["current_plan_execution_ids"] = [
+            item.runtime_id for item in plan.subtasks
+        ]
         self._emit_event(
             event_type="brain_plan",
             source="BRAIN",
@@ -167,18 +162,26 @@ class ClosedLoopOrchestrator:
                 )
                 if self._plan_changed(plan, bootstrapped_plan):
                     plan = bootstrapped_plan
-                    context.runtime_state["current_plan_subtask_ids"] = [item.subtask_id for item in plan.subtasks]
+                    context.runtime_state["current_plan_subtask_ids"] = [
+                        item.subtask_id for item in plan.subtasks
+                    ]
                     context.runtime_state["current_plan_execution_ids"] = [
                         item.runtime_id for item in plan.subtasks
                     ]
                     pending_subtasks = deque(plan.subtasks)
-                    dynamic_execution = bool(plan.metadata.get("dynamic_execution", dynamic_execution))
-                    replanning_flow.update_environment_plan(environment=environment, context=context, plan=plan)
+                    dynamic_execution = bool(
+                        plan.metadata.get("dynamic_execution", dynamic_execution)
+                    )
+                    replanning_flow.update_environment_plan(
+                        environment=environment, context=context, plan=plan
+                    )
                     self._emit_event(
                         event_type="brain_plan",
                         source="BRAIN",
                         message=f"runtime bootstrap plan with {len(plan.subtasks)} subtasks",
-                        payload=_serialize_plan_event_payload(plan=plan, reason="runtime_bootstrap"),
+                        payload=_serialize_plan_event_payload(
+                            plan=plan, reason="runtime_bootstrap"
+                        ),
                         task_id=request.task_id,
                     )
 
@@ -198,7 +201,9 @@ class ClosedLoopOrchestrator:
                         success=False,
                         reason="task_failed_after_approach",
                     )
-                    final = self.brain_agent.finalize(success=False, failure_reason=result.error_code)
+                    final = self.brain_agent.finalize(
+                        success=False, failure_reason=result.error_code
+                    )
                     response = build_task_run_response(context, final)
                     break
 
@@ -207,10 +212,16 @@ class ClosedLoopOrchestrator:
                 if replanned_followups:
                     pending_subtasks.extendleft(reversed(replanned_followups))
 
-                dynamic_execution = bool(context.runtime_state.get("dynamic_execution", dynamic_execution))
-                if dynamic_execution and not pending_subtasks and not self._task_succeeded(
-                    context=context,
-                    environment=environment,
+                dynamic_execution = bool(
+                    context.runtime_state.get("dynamic_execution", dynamic_execution)
+                )
+                if (
+                    dynamic_execution
+                    and not pending_subtasks
+                    and not self._task_succeeded(
+                        context=context,
+                        environment=environment,
+                    )
                 ):
                     next_plan = self.brain_agent.next_step(
                         request=request,
@@ -224,7 +235,9 @@ class ClosedLoopOrchestrator:
                         payload=_serialize_plan_event_payload(plan=next_plan, reason="next_step"),
                         task_id=request.task_id,
                     )
-                    replanning_flow.update_environment_plan(environment=environment, context=context, plan=next_plan)
+                    replanning_flow.update_environment_plan(
+                        environment=environment, context=context, plan=next_plan
+                    )
                     context.runtime_state["current_plan_subtask_ids"] = [
                         item.subtask_id for item in next_plan.subtasks
                     ]
@@ -238,7 +251,9 @@ class ClosedLoopOrchestrator:
                 self._flush_pending_object_approach_outcome(
                     context=context,
                     success=task_success,
-                    reason="task_completed_after_approach" if task_success else "task_failed_after_approach",
+                    reason="task_completed_after_approach"
+                    if task_success
+                    else "task_failed_after_approach",
                 )
                 final = self.brain_agent.finalize(
                     success=task_success,
@@ -293,7 +308,9 @@ class ClosedLoopOrchestrator:
             attempt=attempt,
         )
 
-    def _start_vision_heartbeat(self, *, context: ExecutionContext, environment: RuntimeEnvironment) -> None:
+    def _start_vision_heartbeat(
+        self, *, context: ExecutionContext, environment: RuntimeEnvironment
+    ) -> None:
         if self.vision_heartbeat_interval_steps <= 0:
             return
         runner = VisionHeartbeatRunner(
@@ -387,7 +404,9 @@ class ClosedLoopOrchestrator:
             feedback=feedback,
         )
 
-    def _task_succeeded(self, *, context: ExecutionContext, environment: RuntimeEnvironment) -> bool:
+    def _task_succeeded(
+        self, *, context: ExecutionContext, environment: RuntimeEnvironment
+    ) -> bool:
         if self.completion_monitor._environment_success_allowed():
             return environment.task_succeeded(context)
         if bool(context.runtime_state.get("dynamic_execution", False)):
@@ -409,7 +428,11 @@ class ClosedLoopOrchestrator:
 
     def _vla_policy_needs_reset(self) -> bool:
         vla_agent = self._agents.get(AgentName.ACTION)
-        return bool(vla_agent is not None and hasattr(vla_agent, "policy") and hasattr(vla_agent.policy, "reset"))
+        return bool(
+            vla_agent is not None
+            and hasattr(vla_agent, "policy")
+            and hasattr(vla_agent.policy, "reset")
+        )
 
     def _maybe_reset_vla_policy(self, *, subtask: Subtask, context: ExecutionContext) -> None:
         if subtask.agent != AgentName.ACTION:
@@ -425,7 +448,9 @@ class ClosedLoopOrchestrator:
                 logger.warning("VLA policy reset failed: %s", exc)
         context.runtime_state["vla_policy_reset_pending"] = False
 
-    def _update_working_memory_task_context(self, *, context: ExecutionContext, updates: dict[str, Any]) -> None:
+    def _update_working_memory_task_context(
+        self, *, context: ExecutionContext, updates: dict[str, Any]
+    ) -> None:
         _merge_runtime_state(context.runtime_state, updates)
         try:
             self.brain_agent.memory.update_task_context(updates)
@@ -443,9 +468,7 @@ class ClosedLoopOrchestrator:
         verdict = strip_image_payloads(decision.verdict.to_dict())
         state = context.runtime_state.setdefault("completion_monitor", {})
         completed = set(
-            state.get("completed_execution_ids")
-            or state.get("completed_subtasks")
-            or []
+            state.get("completed_execution_ids") or state.get("completed_subtasks") or []
         )
         completed_subtasks = set(state.get("completed_subtasks") or [])
         if decision.done and decision.success is not False:
@@ -740,9 +763,7 @@ class ClosedLoopOrchestrator:
 
     def _record_working_observation(self, observation: dict[str, Any]) -> None:
         clean = {
-            key: value
-            for key, value in observation.items()
-            if value not in (None, "", [], {})
+            key: value for key, value in observation.items() if value not in (None, "", [], {})
         }
         record = getattr(self.brain_agent.memory, "record_working_observation", None)
         if not clean or not callable(record):
@@ -780,11 +801,7 @@ class ClosedLoopOrchestrator:
         *,
         keys: tuple[str, ...],
     ) -> dict[str, Any]:
-        return {
-            key: value.get(key)
-            for key in keys
-            if value.get(key) not in (None, "", [], {})
-        }
+        return {key: value.get(key) for key in keys if value.get(key) not in (None, "", [], {})}
 
     @staticmethod
     def _first_text(*values: Any) -> str | None:

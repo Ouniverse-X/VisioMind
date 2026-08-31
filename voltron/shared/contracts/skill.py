@@ -1,5 +1,3 @@
-"""Shared skill-execution contracts."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -11,8 +9,6 @@ from voltron.shared.results import SkillResult
 
 @dataclass
 class SkillRequest:
-    """Canonical request envelope for skill-level execution."""
-
     subtask: Subtask
     context: ExecutionContext
     selection: LocalSkillSelection | None = None
@@ -21,7 +17,5 @@ class SkillRequest:
 
 
 class SkillExecutor(Protocol):
-    """Protocol for shared skill-level execution surfaces."""
-
     def execute(self, request: SkillRequest) -> SkillResult:
-        """Execute one skill request and return a normalized skill result."""
+        pass

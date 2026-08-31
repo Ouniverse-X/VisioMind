@@ -1,17 +1,16 @@
-"""Replanning skill for the Brain agent."""
-
 from __future__ import annotations
 
 import json
 from typing import Any
 
-from voltron.agents.brain.skills.planning.skill import DefaultBrainPlanningSkill, NAVIGATION_INSTRUCTION_GUIDANCE
+from voltron.agents.brain.skills.planning.skill import (
+    DefaultBrainPlanningSkill,
+    NAVIGATION_INSTRUCTION_GUIDANCE,
+)
 from voltron.shared.context import Subtask
 
 
 class DefaultBrainReplanningSkill(DefaultBrainPlanningSkill):
-    """Prompt/schema/parser skill for Brain replanning."""
-
     _FAILED_PARAMETER_KEYS = (
         "instruction",
         "control_mode",
@@ -42,7 +41,9 @@ class DefaultBrainReplanningSkill(DefaultBrainPlanningSkill):
         execution_state: dict[str, Any],
     ) -> str:
         failed_payload = self.compact_failed_subtask_for_replan(failed_subtask)
-        decision_summary = self.planning_decision_summary(context=context, execution_state=execution_state)
+        decision_summary = self.planning_decision_summary(
+            context=context, execution_state=execution_state
+        )
         return (
             "Replan after a failed Voltron subtask.\n"
             f"Task description: {task_description}\n"
@@ -58,15 +59,15 @@ class DefaultBrainReplanningSkill(DefaultBrainPlanningSkill):
             "Do not blindly repeat the same failed subtask when the execution state shows no progress, timeout, "
             "or unchanged scene evidence. Distance, approach readiness, and reachability come from navigation_report. "
             "If the target is visible and navigation_report.approach_ready=true, do not return NAVIGATION navigate/approach; "
-            "prefer ACTION local interaction with `parameters.control_mode = \"whole_body_local\"`. Use NAVIGATION only when "
+            'prefer ACTION local interaction with `parameters.control_mode = "whole_body_local"`. Use NAVIGATION only when '
             "this is still clearly a room-level relocation or object-level approach problem. "
             "If the target is visible but navigation_report.approach_ready=false and "
             "navigation_report.approach_reachable=true, use `NAVIGATION approach_target` with an object-centered instruction. "
             f"{NAVIGATION_INSTRUCTION_GUIDANCE} "
             "Navigation door/portal recovery: when Execution state JSON contains "
-            "`latest_result.navigation_failure_context.failure_type = \"portal_path_unavailable\"` with nearby "
-            "`door_candidates` and either `nav2_error = \"empty_path\"` or "
-            "`portal_block_reason = \"blocked_by_closed_door\"`, Brain should decide whether to insert an "
+            '`latest_result.navigation_failure_context.failure_type = "portal_path_unavailable"` with nearby '
+            '`door_candidates` and either `nav2_error = "empty_path"` or '
+            '`portal_block_reason = "blocked_by_closed_door"`, Brain should decide whether to insert an '
             "approach-and-open recovery before retrying the failed NAVIGATION subtask. Unless execution evidence "
             "already proves the robot is within interaction range of the selected door, return exactly this ordered "
             "recovery prefix: NAVIGATION to approach the candidate door and stop within handle reach, then ACTION "
@@ -87,8 +88,6 @@ class DefaultBrainReplanningSkill(DefaultBrainPlanningSkill):
 
     @classmethod
     def compact_failed_subtask_for_replan(cls, subtask: Subtask) -> dict[str, Any]:
-        """Serialize only planner-authored fields from a runtime-mutated subtask."""
-
         return {
             "subtask_id": subtask.subtask_id,
             "execution_id": subtask.runtime_id,
@@ -104,15 +103,11 @@ class DefaultBrainReplanningSkill(DefaultBrainPlanningSkill):
 
     @classmethod
     def serialize_replanning_context(cls, context: dict[str, Any]) -> str:
-        """Keep only stable planner contract fields needed to choose recovery agents."""
-
         compact = {
             "task_type": context.get("task_type"),
             "task_type_hint": context.get("task_type_hint"),
             "planner_mode": context.get("planner_mode", "auto"),
-            "agent_capabilities": cls._strip_heavy_fields(
-                context.get("agent_capabilities", [])
-            ),
+            "agent_capabilities": cls._strip_heavy_fields(context.get("agent_capabilities", [])),
             "interaction_target_hints": cls._strip_heavy_fields(
                 context.get("interaction_target_hints", {})
             ),
@@ -124,8 +119,6 @@ class DefaultBrainReplanningSkill(DefaultBrainPlanningSkill):
         cls,
         execution_state: dict[str, Any],
     ) -> str:
-        """Build a bounded replan payload from active-plan and failure evidence only."""
-
         current_plan = execution_state.get("current_plan")
         compact_plan = (
             [
@@ -140,12 +133,8 @@ class DefaultBrainReplanningSkill(DefaultBrainPlanningSkill):
             "task_type": execution_state.get("task_type"),
             "planner_mode": execution_state.get("planner_mode"),
             "failure_reason": execution_state.get("failure_reason"),
-            "latest_result": cls.compact_latest_result(
-                execution_state.get("latest_result")
-            ),
-            "last_scene_report": cls.compact_scene_report(
-                execution_state.get("last_scene_report")
-            ),
+            "latest_result": cls.compact_latest_result(execution_state.get("latest_result")),
+            "last_scene_report": cls.compact_scene_report(execution_state.get("last_scene_report")),
             "navigation_state": cls.compact_navigation_state(
                 execution_state.get("navigation_state")
             ),
@@ -157,9 +146,9 @@ class DefaultBrainReplanningSkill(DefaultBrainPlanningSkill):
             "current_plan_execution_ids": list(
                 execution_state.get("current_plan_execution_ids") or []
             )[:100],
-            "completed_execution_ids": list(
-                execution_state.get("completed_execution_ids") or []
-            )[-100:],
+            "completed_execution_ids": list(execution_state.get("completed_execution_ids") or [])[
+                -100:
+            ],
         }
         return json.dumps(compact, ensure_ascii=False, default=str)
 

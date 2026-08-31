@@ -1,5 +1,3 @@
-"""Subtask and naming bridge helpers for the BEHAVIOR runtime facade."""
-
 from __future__ import annotations
 
 from typing import Any, Callable

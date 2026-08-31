@@ -1,5 +1,3 @@
-"""Default VLA deliberation helpers and target refinement tool."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -11,8 +9,6 @@ from voltron.shared.contracts import MemoryAdapter
 
 
 class StructuredTargetRefiner:
-    """Build a structured local execution target from current task and memory context."""
-
     def __init__(self, memory: MemoryAdapter) -> None:
         self.memory = memory
 
@@ -32,10 +28,19 @@ class StructuredTargetRefiner:
                 part_name = candidate
                 target["part"] = candidate
 
-        refined_instruction = self._build_instruction(subtask=subtask, target=target, part_name=part_name)
+        refined_instruction = self._build_instruction(
+            subtask=subtask, target=target, part_name=part_name
+        )
         action_name = normalize_action_name(subtask.action)
         selector_hints: dict[str, Any] = {}
-        if action_name in {"toggle_on", "toggle_off", "turn_on", "turn_off", "press", "push_button"}:
+        if action_name in {
+            "toggle_on",
+            "toggle_off",
+            "turn_on",
+            "turn_off",
+            "press",
+            "push_button",
+        }:
             selector_hints["preferred_skill_id"] = "button_interaction_skill"
         elif action_name in {"open", "close", "pull", "push", "turn", "rotate"}:
             selector_hints["preferred_skill_id"] = "handle_operation_skill"
@@ -73,7 +78,9 @@ class StructuredTargetRefiner:
 
     @staticmethod
     def _build_success_cues(target: dict[str, Any], part_name: str) -> list[str]:
-        object_name = str(target.get("object") or target.get("object_id") or "target object").strip()
+        object_name = str(
+            target.get("object") or target.get("object_id") or "target object"
+        ).strip()
         if part_name:
             return [f"{part_name} on {object_name} has been manipulated"]
         return [f"{object_name} manipulation completed"]

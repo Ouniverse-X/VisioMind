@@ -1,5 +1,3 @@
-"""Working-memory helpers for the HEMS integration."""
-
 from __future__ import annotations
 
 from copy import deepcopy
@@ -14,7 +12,9 @@ def get_active_regions(*, working_memory: Any) -> list[str]:
     return sorted(str(region) for region in working_memory.get_active_regions())
 
 
-def get_recent_observations(*, working_memory: Any, n: int, serializer: Callable[[Any], Any]) -> list[dict[str, Any]]:
+def get_recent_observations(
+    *, working_memory: Any, n: int, serializer: Callable[[Any], Any]
+) -> list[dict[str, Any]]:
     observations = working_memory.get_recent_observations(n=n)
     return [serializer(item) for item in observations]
 
@@ -76,9 +76,7 @@ def _compact_observation(value: dict[str, Any]) -> dict[str, Any]:
         "action_sequence",
     }
     return {
-        str(key): _compact_value(item)
-        for key, item in value.items()
-        if str(key) not in heavy_keys
+        str(key): _compact_value(item) for key, item in value.items() if str(key) not in heavy_keys
     }
 
 
@@ -118,7 +116,11 @@ def annotate_current_episode(
     get_working_state: Callable[[], dict[str, Any]],
     annotate_episode: Callable[..., None],
 ) -> bool:
-    episode = working_memory.get_current_episode() if hasattr(working_memory, "get_current_episode") else None
+    episode = (
+        working_memory.get_current_episode()
+        if hasattr(working_memory, "get_current_episode")
+        else None
+    )
     if episode is None:
         return False
 

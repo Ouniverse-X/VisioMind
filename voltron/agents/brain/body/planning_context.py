@@ -1,5 +1,3 @@
-"""Planning-context assembly helpers for BrainAgent."""
-
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -13,8 +11,6 @@ def build_planning_context(
     request: TaskRequest,
     planner_mode_from_request: Callable[[TaskRequest], str],
 ) -> dict[str, Any]:
-    """Fetch reusable memory context for planner decisions."""
-
     memory_snapshot = MemorySnapshot.from_memory(memory, recent_observation_limit=8)
     return {
         "objects": memory.find_object(request.description, top_k=5),
@@ -37,10 +33,10 @@ def refresh_runtime_planning_context(
     planning_context: dict[str, Any],
     execution_state: dict[str, Any] | None,
     environment_state: dict[str, Any] | None,
-    resolve_navigation_state: Callable[[dict[str, Any] | None, dict[str, Any] | None], dict[str, Any]],
+    resolve_navigation_state: Callable[
+        [dict[str, Any] | None, dict[str, Any] | None], dict[str, Any]
+    ],
 ) -> None:
-    """Refresh dynamic planning context after environment or execution updates."""
-
     nav_state = resolve_navigation_state(execution_state, environment_state)
     if nav_state:
         planning_context["navigation_state"] = nav_state
@@ -52,7 +48,9 @@ def refresh_runtime_planning_context(
         if isinstance(scene_report, dict) and scene_report:
             planning_context["last_scene_report"] = dict(scene_report)
 
-    planning_context.update(MemorySnapshot.from_memory(memory, recent_observation_limit=8).to_planning_context())
+    planning_context.update(
+        MemorySnapshot.from_memory(memory, recent_observation_limit=8).to_planning_context()
+    )
 
 
 def attach_counterfactual_evidence(
@@ -63,7 +61,6 @@ def attach_counterfactual_evidence(
     failed_subtask: Any,
     top_k: int = 3,
 ) -> None:
-    """Attach bounded counterfactual evidence for replanning prompts."""
     query = getattr(memory, "counterfactual_query", None)
     if not callable(query):
         return
@@ -212,7 +209,9 @@ def _compact_counterfactual_result(result: dict[str, Any], *, top_k: int) -> dic
         "query": dict(result.get("query", {})) if isinstance(result.get("query"), dict) else {},
         "results": [],
         "explanation": result.get("explanation", ""),
-        "metadata": dict(result.get("metadata", {})) if isinstance(result.get("metadata"), dict) else {},
+        "metadata": dict(result.get("metadata", {}))
+        if isinstance(result.get("metadata"), dict)
+        else {},
     }
     raw_results = result.get("results", [])
     if isinstance(raw_results, list):

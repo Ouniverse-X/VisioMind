@@ -1,5 +1,3 @@
-"""JSON configuration loading helpers for CLI entrypoints."""
-
 from __future__ import annotations
 
 import argparse
@@ -260,9 +258,7 @@ def normalize_config(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _normalize_task_section(section: Any) -> dict[str, Any]:
-    _validate_section(
-        section, "task", {"task_id", "task_desc", "task_type", "planner_mode"}
-    )
+    _validate_section(section, "task", {"task_id", "task_desc", "task_type", "planner_mode"})
     return dict(section)
 
 
@@ -311,9 +307,7 @@ def _normalize_environment_section(section: Any) -> dict[str, Any]:
     )
     normalized = {k: v for k, v in section.items() if k != "auto_register"}
     if "scene_state_include_aabb" in section:
-        normalized["behavior_scene_state_include_aabb"] = bool(
-            section["scene_state_include_aabb"]
-        )
+        normalized["behavior_scene_state_include_aabb"] = bool(section["scene_state_include_aabb"])
     if "scene_state_navigation_role_overrides" in section:
         overrides = section["scene_state_navigation_role_overrides"]
         if not isinstance(overrides, dict):
@@ -332,25 +326,18 @@ def _normalize_environment_section(section: Any) -> dict[str, Any]:
                 f"invalid roles: {invalid_roles}"
             )
         normalized["behavior_scene_state_navigation_role_overrides"] = dict(overrides)
-    if (
-        "robot_start_position" in section
-        and "behavior_robot_start_position" not in normalized
-    ):
+    if "robot_start_position" in section and "behavior_robot_start_position" not in normalized:
         normalized["behavior_robot_start_position"] = section["robot_start_position"]
     if (
         "robot_start_orientation" in section
         and "behavior_robot_start_orientation" not in normalized
     ):
-        normalized["behavior_robot_start_orientation"] = section[
-            "robot_start_orientation"
-        ]
+        normalized["behavior_robot_start_orientation"] = section["robot_start_orientation"]
     if (
         "post_reset_robot_position" in section
         and "behavior_post_reset_robot_position" not in normalized
     ):
-        normalized["behavior_post_reset_robot_position"] = section[
-            "post_reset_robot_position"
-        ]
+        normalized["behavior_post_reset_robot_position"] = section["post_reset_robot_position"]
     if (
         "post_reset_robot_orientation" in section
         and "behavior_post_reset_robot_orientation" not in normalized
@@ -362,9 +349,7 @@ def _normalize_environment_section(section: Any) -> dict[str, Any]:
         "post_reset_object_states" in section
         and "behavior_post_reset_object_states" not in normalized
     ):
-        normalized["behavior_post_reset_object_states"] = section[
-            "post_reset_object_states"
-        ]
+        normalized["behavior_post_reset_object_states"] = section["post_reset_object_states"]
     if (
         "post_reset_robot_joint_positions" in section
         and "behavior_post_reset_robot_joint_positions" not in normalized
@@ -390,9 +375,7 @@ def _normalize_environment_section(section: Any) -> dict[str, Any]:
         "post_reset_settle_steps" in section
         and "behavior_post_reset_settle_steps" not in normalized
     ):
-        normalized["behavior_post_reset_settle_steps"] = section[
-            "post_reset_settle_steps"
-        ]
+        normalized["behavior_post_reset_settle_steps"] = section["post_reset_settle_steps"]
     for short_key in (
         "recording_third_person_local_offset",
         "recording_third_person_look_at_offset",
@@ -416,9 +399,7 @@ def _normalize_environment_section(section: Any) -> dict[str, Any]:
     ):
         overlay = section["industrial_visual_overlay"]
         if not isinstance(overlay, dict):
-            raise ValueError(
-                "Config environment.industrial_visual_overlay must be an object"
-            )
+            raise ValueError("Config environment.industrial_visual_overlay must be an object")
         normalized["behavior_industrial_visual_overlay"] = dict(overlay)
     normalized.pop("robot_start_position", None)
     normalized.pop("robot_start_orientation", None)
@@ -454,9 +435,7 @@ def _normalize_runtime_section(section: Any) -> dict[str, Any]:
     )
     normalized = {k: v for k, v in section.items() if k != "termination"}
     if "termination" in section:
-        normalized.update(
-            _normalize_runtime_termination_section(section["termination"])
-        )
+        normalized.update(_normalize_runtime_termination_section(section["termination"]))
     return normalized
 
 
@@ -482,9 +461,7 @@ def _normalize_recording_section(section: Any) -> dict[str, Any]:
 
 
 def _normalize_logging_section(section: Any) -> dict[str, Any]:
-    _validate_section(
-        section, "logging", {"verbose", "memory_diagnostics", "nav2_path_snapshots"}
-    )
+    _validate_section(section, "logging", {"verbose", "memory_diagnostics", "nav2_path_snapshots"})
     normalized: dict[str, Any] = {}
     if "verbose" in section:
         normalized["logging_verbose"] = bool(section["verbose"])
@@ -549,9 +526,7 @@ def _normalize_memory_section(section: Any) -> dict[str, Any]:
     if "llm" in section:
         normalized.update(_normalize_memory_llm_section(section["llm"]))
     if "experience_extraction" in section:
-        normalized.update(
-            _normalize_memory_experience_section(section["experience_extraction"])
-        )
+        normalized.update(_normalize_memory_experience_section(section["experience_extraction"]))
     return normalized
 
 
@@ -599,9 +574,7 @@ def _normalize_memory_experience_section(section: Any) -> dict[str, Any]:
         "extract_clarification_answers",
     }
     _validate_section(section, "memory.experience_extraction", allowed)
-    return {
-        f"memory_experience_extraction_{key}": value for key, value in section.items()
-    }
+    return {f"memory_experience_extraction_{key}": value for key, value in section.items()}
 
 
 def _normalize_brain_section(section: Any) -> dict[str, Any]:
@@ -640,9 +613,7 @@ def _normalize_brain_section(section: Any) -> dict[str, Any]:
         normalized.pop(src, None)
     if "interactive_planning" in section:
         normalized.update(
-            _normalize_brain_interactive_planning_section(
-                section["interactive_planning"]
-            )
+            _normalize_brain_interactive_planning_section(section["interactive_planning"])
         )
     return normalized
 
@@ -659,9 +630,7 @@ def _normalize_brain_interactive_planning_section(section: Any) -> dict[str, Any
             "reuse_memory_criteria_min_confidence",
         },
     )
-    return {
-        f"brain_interactive_planning_{key}": value for key, value in section.items()
-    }
+    return {f"brain_interactive_planning_{key}": value for key, value in section.items()}
 
 
 def _normalize_vision_section(section: Any) -> dict[str, Any]:
@@ -692,9 +661,7 @@ def _normalize_vision_section(section: Any) -> dict[str, Any]:
         "heartbeat_interval_steps" in section
         and "vision_heartbeat_interval_steps" not in normalized
     ):
-        normalized["vision_heartbeat_interval_steps"] = section[
-            "heartbeat_interval_steps"
-        ]
+        normalized["vision_heartbeat_interval_steps"] = section["heartbeat_interval_steps"]
 
     for key in (
         "provider",
@@ -906,14 +873,10 @@ def _normalize_action_section(section: Any) -> dict[str, Any]:
         normalized.pop(src, None)
     if "internal_step_completion" in section:
         normalized.update(
-            _normalize_action_internal_step_completion_section(
-                section["internal_step_completion"]
-            )
+            _normalize_action_internal_step_completion_section(section["internal_step_completion"])
         )
     if "internal_planning" in section:
-        normalized.update(
-            _normalize_action_internal_planning_section(section["internal_planning"])
-        )
+        normalized.update(_normalize_action_internal_planning_section(section["internal_planning"]))
     return normalized
 
 
@@ -931,10 +894,7 @@ def _normalize_action_internal_step_completion_section(section: Any) -> dict[str
             "require_verified_completion",
         },
     )
-    return {
-        f"action_internal_step_completion_{key}": value
-        for key, value in section.items()
-    }
+    return {f"action_internal_step_completion_{key}": value for key, value in section.items()}
 
 
 def _normalize_anygrasp_section(section: Any) -> dict[str, Any]:
@@ -1048,6 +1008,4 @@ def _validate_section(section: Any, name: str, allowed_keys: set[str]) -> None:
         raise ValueError(f"Config section '{name}' must be a JSON object")
     unknown_keys = set(section) - allowed_keys
     if unknown_keys:
-        raise ValueError(
-            f"Unknown config keys in section '{name}': {sorted(unknown_keys)}"
-        )
+        raise ValueError(f"Unknown config keys in section '{name}': {sorted(unknown_keys)}")

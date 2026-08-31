@@ -1,5 +1,3 @@
-"""Coordinate-frame helpers shared by runtime sampling and map consumers."""
-
 from __future__ import annotations
 
 import math
@@ -42,22 +40,26 @@ def coerce_frame_transform(value: Any) -> list[list[float]] | None:
 
 
 def resolve_frame_contract(*containers: Any) -> dict[str, Any]:
-    """Resolve the simulator-to-scene frame contract from runtime containers."""
     scene_vertical_axis = None
     simulator_vertical_axis = None
     explicit_transform = None
     for container in containers:
         if not isinstance(container, dict):
             continue
-        scene_vertical_axis = scene_vertical_axis or container.get(
-            "scene_vertical_axis"
-        ) or container.get("hovsg_vertical_axis") or container.get("vertical_axis")
+        scene_vertical_axis = (
+            scene_vertical_axis
+            or container.get("scene_vertical_axis")
+            or container.get("hovsg_vertical_axis")
+            or container.get("vertical_axis")
+        )
         simulator_vertical_axis = simulator_vertical_axis or container.get(
             "simulator_vertical_axis"
         )
-        explicit_transform = explicit_transform or container.get(
-            "scene_from_simulator_transform"
-        ) or container.get("simulator_to_scene_transform")
+        explicit_transform = (
+            explicit_transform
+            or container.get("scene_from_simulator_transform")
+            or container.get("simulator_to_scene_transform")
+        )
     simulator_axis = normalize_vertical_axis(simulator_vertical_axis, default="z")
     scene_axis = normalize_vertical_axis(scene_vertical_axis, default=simulator_axis)
     transform = coerce_frame_transform(explicit_transform) or (
@@ -93,9 +95,7 @@ def transform_vector(
 ) -> list[float]:
     x_coord, y_coord, z_coord = (float(vector[index]) for index in range(3))
     return [
-        transform[row][0] * x_coord
-        + transform[row][1] * y_coord
-        + transform[row][2] * z_coord
+        transform[row][0] * x_coord + transform[row][1] * y_coord + transform[row][2] * z_coord
         for row in range(3)
     ]
 
@@ -123,18 +123,11 @@ def transform_orientation(
     source_vertical_axis: str = "z",
     target_vertical_axis: str = "z",
 ) -> dict[str, float] | None:
-    """Transform a world orientation and expose its scene-planar heading.
-
-    The returned quaternion describes the full scene-frame orientation. ``yaw``
-    follows the navigation convention used by the selected horizontal axes.
-    """
     if not isinstance(orientation, dict):
         return None
-    if (
-        is_identity_transform(transform)
-        and normalize_vertical_axis(source_vertical_axis)
-        == normalize_vertical_axis(target_vertical_axis)
-    ):
+    if is_identity_transform(transform) and normalize_vertical_axis(
+        source_vertical_axis
+    ) == normalize_vertical_axis(target_vertical_axis):
         try:
             return {key: float(value) for key, value in orientation.items()}
         except (TypeError, ValueError):
@@ -171,9 +164,7 @@ def transform_aabb(
         return None
     minimum = aabb.get("min")
     maximum = aabb.get("max")
-    if not isinstance(minimum, (list, tuple)) or not isinstance(
-        maximum, (list, tuple)
-    ):
+    if not isinstance(minimum, (list, tuple)) or not isinstance(maximum, (list, tuple)):
         return None
     try:
         points = [
@@ -195,10 +186,7 @@ def multiply_transforms(
     right: list[list[float]],
 ) -> list[list[float]]:
     return [
-        [
-            sum(left[row][index] * right[index][column] for index in range(4))
-            for column in range(4)
-        ]
+        [sum(left[row][index] * right[index][column] for index in range(4)) for column in range(4)]
         for row in range(4)
     ]
 
@@ -247,10 +235,7 @@ def _multiply_3x3(
     right: list[list[float]],
 ) -> list[list[float]]:
     return [
-        [
-            sum(left[row][index] * right[index][column] for index in range(3))
-            for column in range(3)
-        ]
+        [sum(left[row][index] * right[index][column] for index in range(3)) for column in range(3)]
         for row in range(3)
     ]
 
@@ -268,9 +253,7 @@ def _orientation_rotation_matrix(
     ]
     if all(value is not None for value in quaternion):
         try:
-            return _rotation_matrix_from_quaternion(
-                *(float(value) for value in quaternion)
-            )
+            return _rotation_matrix_from_quaternion(*(float(value) for value in quaternion))
         except (TypeError, ValueError):
             return None
     if all(key in orientation for key in ("roll", "pitch", "yaw")):
@@ -313,12 +296,7 @@ def _rotation_matrix_from_quaternion(
     z_coord: float,
     w_coord: float,
 ) -> list[list[float]]:
-    norm = math.sqrt(
-        x_coord * x_coord
-        + y_coord * y_coord
-        + z_coord * z_coord
-        + w_coord * w_coord
-    )
+    norm = math.sqrt(x_coord * x_coord + y_coord * y_coord + z_coord * z_coord + w_coord * w_coord)
     if norm <= 1e-12:
         return [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
     x_coord /= norm
@@ -396,10 +374,7 @@ def _rotation_from_transform(transform: list[list[float]]) -> list[list[float]]:
     if sum(third[index] * original_third[index] for index in range(3)) < 0.0:
         second = [-value for value in second]
         third = _cross(first, second)
-    return [
-        [first[row], second[row], third[row]]
-        for row in range(3)
-    ]
+    return [[first[row], second[row], third[row]] for row in range(3)]
 
 
 def _normalize_vector(vector: list[float]) -> list[float]:
@@ -419,8 +394,7 @@ def _cross(left: list[float], right: list[float]) -> list[float]:
 
 def is_identity_transform(transform: list[list[float]]) -> bool:
     return all(
-        abs(float(transform[row][column]) - (1.0 if row == column else 0.0))
-        <= 1e-12
+        abs(float(transform[row][column]) - (1.0 if row == column else 0.0)) <= 1e-12
         for row in range(4)
         for column in range(4)
     )

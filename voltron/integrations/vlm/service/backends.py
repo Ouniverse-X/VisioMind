@@ -1,5 +1,3 @@
-"""Backend adapters for the Voltron VLM service integration."""
-
 from __future__ import annotations
 
 from http import HTTPStatus
@@ -31,27 +29,22 @@ _RETRIABLE_STATUS_CODES = {
 
 
 class VLMBackendError(RuntimeError):
-    """Raised when the remote VLM backend cannot complete a request."""
+    pass
 
 
 class VLMTimeoutError(VLMBackendError):
-    """Raised when the remote VLM backend times out."""
+    pass
 
 
 class VLMHTTPError(VLMBackendError):
-    """Raised when the remote VLM backend returns an HTTP error."""
+    pass
 
 
 class VLMBackend(Protocol):
-    """Interface implemented by concrete VLM backend adapters."""
-
-    def analyze(self, request: VLMProcessRequest) -> VLMProcessResponse:
-        ...
+    def analyze(self, request: VLMProcessRequest) -> VLMProcessResponse: ...
 
 
 class OpenAICompatibleVLMBackend:
-    """Call an OpenAI-compatible chat completions endpoint."""
-
     def __init__(self, config: VLMBackendConfig, session: requests.Session | None = None):
         if not config.base_url:
             raise ValueError("OpenAI-compatible VLM backend requires base_url")
@@ -75,7 +68,9 @@ class OpenAICompatibleVLMBackend:
         retry_backoff_s = max(0.0, float(self.config.retry_backoff_s))
 
         for attempt in range(1, max_attempts + 1):
-            request_timeout = _request_timeout_budget(deadline, attempt, max_attempts, retry_backoff_s)
+            request_timeout = _request_timeout_budget(
+                deadline, attempt, max_attempts, retry_backoff_s
+            )
             if request_timeout <= 0.0:
                 raise VLMTimeoutError(
                     f"VLM backend timeout after {self.config.timeout_s:.1f}s "
@@ -131,8 +126,6 @@ class OpenAICompatibleVLMBackend:
 
 
 class DashScopeVLMBackend:
-    """Call DashScope multi-modal conversation backend."""
-
     def __init__(self, config: VLMBackendConfig):
         self.config = config
 
@@ -186,8 +179,7 @@ def extract_message_content(body: dict[str, Any]) -> str:
     content = message.get("content")
     if isinstance(content, list):
         content = "".join(
-            item.get("text", "") if isinstance(item, dict) else str(item)
-            for item in content
+            item.get("text", "") if isinstance(item, dict) else str(item) for item in content
         )
     if not isinstance(content, str):
         content = str(content)
@@ -210,7 +202,9 @@ def _build_process_response(content: str, *, instruction: str = "") -> VLMProces
             raw_text=content,
         )
 
-    summary = str(payload.get("summary") or payload.get("result") or payload.get("raw_text") or content).strip()
+    summary = str(
+        payload.get("summary") or payload.get("result") or payload.get("raw_text") or content
+    ).strip()
     raw_text = str(payload.get("raw_text") or summary or content).strip()
     task_complete = _coerce_bool(payload.get("task_complete"))
     if task_complete is None:
@@ -225,11 +219,15 @@ def _build_process_response(content: str, *, instruction: str = "") -> VLMProces
         task_complete = False
         is_success = False
 
-    scene_report = payload.get("scene_report") if isinstance(payload.get("scene_report"), dict) else {}
+    scene_report = (
+        payload.get("scene_report") if isinstance(payload.get("scene_report"), dict) else {}
+    )
     if not scene_report:
         scene_report = {key: payload.get(key) for key in _SCENE_REPORT_KEYS if key in payload}
     else:
-        scene_report = {key: scene_report.get(key) for key in _SCENE_REPORT_KEYS if key in scene_report}
+        scene_report = {
+            key: scene_report.get(key) for key in _SCENE_REPORT_KEYS if key in scene_report
+        }
     if scene_report and "task_complete" not in scene_report:
         scene_report["task_complete"] = bool(task_complete)
 

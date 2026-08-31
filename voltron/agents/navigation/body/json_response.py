@@ -1,5 +1,3 @@
-"""Utilities for parsing JSON-only LLM responses from Navigation prompts."""
-
 from __future__ import annotations
 
 import json
@@ -8,7 +6,6 @@ from typing import Any
 
 
 def extract_json_object(content: str, *, label: str) -> dict[str, Any]:
-    """Parse a JSON object, tolerating markdown fences or short prefatory text."""
     stripped = content.strip()
     candidates = [stripped]
     if "```" in stripped:

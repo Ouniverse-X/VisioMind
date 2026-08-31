@@ -1,10 +1,3 @@
-"""Deterministic and local geometric runtime relation sampling.
-
-The main scene sampler owns object geometry collection.  This module derives
-only decision-relevant relations and keeps geometric checks local by room and
-spatial buckets.
-"""
-
 from __future__ import annotations
 
 import math
@@ -211,9 +204,7 @@ def _explicit_object_relations(
                 official_value = _object_relative_state(raw, state_name, owner)
                 if official_value is None:
                     continue
-                authoritative_relative_states.add(
-                    (name, relation_name, owner_name)
-                )
+                authoritative_relative_states.add((name, relation_name, owner_name))
                 if official_value:
                     relations.append(
                         RuntimeRelationState(
@@ -273,9 +264,7 @@ def _held_relations(
     if not held_names:
         return []
     known_names = set(objects)
-    known_names.update(
-        str(getattr(obj, "name", "") or "").strip() for obj in scene_objects
-    )
+    known_names.update(str(getattr(obj, "name", "") or "").strip() for obj in scene_objects)
     return [
         RuntimeRelationState(
             subject_id=name,
@@ -329,11 +318,14 @@ def _held_object_names(robot: Any, *, scene_objects: list[Any]) -> set[str]:
     arms = getattr(robot, "arm_names", None)
     arm_names = list(arms) if isinstance(arms, (list, tuple)) and arms else ["default"]
     for arm in arm_names:
-        if _robot_reports_grasping(
-            robot,
-            arm=str(arm),
-            candidate_obj=None,
-        ) is not True:
+        if (
+            _robot_reports_grasping(
+                robot,
+                arm=str(arm),
+                candidate_obj=None,
+            )
+            is not True
+        ):
             continue
         for obj in scene_objects:
             if _robot_reports_grasping(
@@ -372,11 +364,7 @@ def _geometric_relations(
             not inside_authoritative
             and _is_container_capable(raw_by_name.get(owner.name), owner)
             and inside_ratio
-            >= (
-                _INSIDE_RETAIN_RATIO
-                if inside_established
-                else _INSIDE_ESTABLISH_RATIO
-            )
+            >= (_INSIDE_RETAIN_RATIO if inside_established else _INSIDE_ESTABLISH_RATIO)
         )
         if not inside_authoritative and _update_relation_hysteresis(
             runtime,
@@ -406,11 +394,7 @@ def _geometric_relations(
             owner.aabb,
             vertical_axis=vertical_axis,
         )
-        gap_limit = (
-            _ON_TOP_RETAIN_GAP_M
-            if on_top_established
-            else _ON_TOP_ESTABLISH_GAP_M
-        )
+        gap_limit = _ON_TOP_RETAIN_GAP_M if on_top_established else _ON_TOP_ESTABLISH_GAP_M
         on_top_observed = (
             not on_top_authoritative
             and _is_reliable_support(raw_by_name.get(owner.name), owner)
@@ -438,9 +422,7 @@ def _geometric_relations(
         near_established = _relation_is_established(runtime, near_key)
         distance = _aabb_center_distance(subject.aabb, owner.aabb)
         near_observed = distance <= (
-            _NEAR_RETAIN_DISTANCE_M
-            if near_established
-            else _NEAR_ESTABLISH_DISTANCE_M
+            _NEAR_RETAIN_DISTANCE_M if near_established else _NEAR_ESTABLISH_DISTANCE_M
         )
         if _update_relation_hysteresis(runtime, near_key, near_observed):
             relations.append(
@@ -631,8 +613,7 @@ def _aabb_center(aabb: dict[str, list[float]] | None) -> tuple[float, float, flo
         return None
     try:
         return tuple(
-            0.5 * (float(aabb["min"][axis]) + float(aabb["max"][axis]))
-            for axis in range(3)
+            0.5 * (float(aabb["min"][axis]) + float(aabb["max"][axis])) for axis in range(3)
         )
     except (KeyError, IndexError, TypeError, ValueError):
         return None
@@ -646,9 +627,7 @@ def _aabb_center_distance(
     right_center = _aabb_center(right)
     if left_center is None or right_center is None:
         return float("inf")
-    return math.sqrt(
-        sum((left_center[index] - right_center[index]) ** 2 for index in range(3))
-    )
+    return math.sqrt(sum((left_center[index] - right_center[index]) ** 2 for index in range(3)))
 
 
 def _aabb_volume(aabb: dict[str, list[float]] | None) -> float:
@@ -656,8 +635,7 @@ def _aabb_volume(aabb: dict[str, list[float]] | None) -> float:
         return float("inf")
     try:
         return math.prod(
-            max(0.0, float(aabb["max"][axis]) - float(aabb["min"][axis]))
-            for axis in range(3)
+            max(0.0, float(aabb["max"][axis]) - float(aabb["min"][axis])) for axis in range(3)
         )
     except (KeyError, IndexError, TypeError, ValueError):
         return float("inf")

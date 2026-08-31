@@ -1,5 +1,3 @@
-"""Vision-owned tool for saving robot camera frames as photos."""
-
 from __future__ import annotations
 
 import base64
@@ -23,8 +21,6 @@ ALLOWED_VIEWS = {"head", "left_wrist", "right_wrist"}
 
 
 class VisionPhotoCaptureTool:
-    """Capture requested robot camera views and persist them as PNG files."""
-
     tool_names = (TOOL_NAME,)
 
     def invoke(self, invocation: ToolInvocation) -> ToolResult:
@@ -49,7 +45,11 @@ class VisionPhotoCaptureTool:
 
             trace_id = self._safe_path_component(payload.get("trace_id"), "unknown_trace")
             subtask_id = self._safe_path_component(payload.get("subtask_id"), "unknown_subtask")
-            run_dir = Path(payload["run_dir"]) if payload.get("run_dir") else self._default_run_dir(trace_id)
+            run_dir = (
+                Path(payload["run_dir"])
+                if payload.get("run_dir")
+                else self._default_run_dir(trace_id)
+            )
             photos_base = (run_dir / "photos").resolve()
             output_dir = (photos_base / subtask_id).resolve()
             if not output_dir.is_relative_to(photos_base):

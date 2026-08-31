@@ -1,5 +1,3 @@
-"""Prompting and parsing for task-level memory experience extraction."""
-
 from __future__ import annotations
 
 import json
@@ -112,8 +110,6 @@ Separate candidate types strictly:
 
 
 class DefaultMemoryExperienceExtractionSkill:
-    """Build LLM prompts and parse JSON-only extraction responses."""
-
     @property
     def system_prompt(self) -> str:
         return _SYSTEM_PROMPT
@@ -181,10 +177,7 @@ def _compact_top_level_value(key: str, value: Any) -> Any:
 
 
 def _compact_action_list(actions: list[Any] | tuple[Any, ...]) -> list[Any]:
-    compacted = [
-        _compact_action(action)
-        for action in list(actions)[:_MAX_COMPACT_LIST_ITEMS]
-    ]
+    compacted = [_compact_action(action) for action in list(actions)[:_MAX_COMPACT_LIST_ITEMS]]
     omitted = len(actions) - len(compacted)
     if omitted > 0:
         compacted.append({"omitted_items": omitted})
@@ -295,7 +288,9 @@ def _compact_scene_memory_context(context: dict[str, Any]) -> dict[str, Any]:
             compacted[key] = _compact_value(context[key])
     scenes = context.get("scenes")
     if isinstance(scenes, list):
-        compacted["scenes"] = [_compact_scene(scene) for scene in scenes[:2] if isinstance(scene, dict)]
+        compacted["scenes"] = [
+            _compact_scene(scene) for scene in scenes[:2] if isinstance(scene, dict)
+        ]
         omitted = len(scenes) - len(compacted["scenes"])
         if omitted > 0:
             compacted["scenes"].append({"omitted_items": omitted})
@@ -459,8 +454,7 @@ def _compact_string(value: str) -> str | dict[str, Any]:
 
 def _compact_list(values: list[Any] | tuple[Any, ...], *, depth: int) -> list[Any]:
     compacted = [
-        _compact_value(item, depth=depth)
-        for item in list(values)[:_MAX_COMPACT_LIST_ITEMS]
+        _compact_value(item, depth=depth) for item in list(values)[:_MAX_COMPACT_LIST_ITEMS]
     ]
     omitted = len(values) - len(compacted)
     if omitted > 0:

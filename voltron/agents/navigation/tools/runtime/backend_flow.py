@@ -1,5 +1,3 @@
-"""Backend planning-flow helpers for the Navigation agent runtime."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -31,7 +29,9 @@ def resolve_grounded_goal_bundle(
     object_approach_selection: dict[str, Any] | None = None
     selected_object_approach: dict[str, Any] | None = None
 
-    cached_object_approach = object_approach.load_cached_object_approach_state(context=context, subtask=subtask)
+    cached_object_approach = object_approach.load_cached_object_approach_state(
+        context=context, subtask=subtask
+    )
     if cached_object_approach is not None:
         restored = object_approach.restore_cached_object_approach_state(cached_object_approach)
         grounded_goal = restored["grounded_goal"]
@@ -45,7 +45,9 @@ def resolve_grounded_goal_bundle(
             execution_context.resolve_instruction(subtask),
             context=nav_context,
         )
-        if object_approach.should_use_object_approach_flow(subtask=subtask, grounded_goal=grounded_goal):
+        if object_approach.should_use_object_approach_flow(
+            subtask=subtask, grounded_goal=grounded_goal
+        ):
             history = object_approach.prime_object_approach_history(
                 memory=memory,
                 subtask=subtask,
@@ -111,7 +113,9 @@ def resolve_grounded_goal_bundle(
             goal=grounded_goal,
             context=nav_context,
         )
-        if object_approach.should_use_object_approach_flow(subtask=subtask, grounded_goal=grounded_goal):
+        if object_approach.should_use_object_approach_flow(
+            subtask=subtask, grounded_goal=grounded_goal
+        ):
             object_approach.store_cached_object_approach_state(
                 context=context,
                 subtask=subtask,

@@ -1,5 +1,3 @@
-"""Persistent Nav2 runtime bridge for local planning and path execution."""
-
 from __future__ import annotations
 
 import atexit
@@ -33,9 +31,7 @@ DEFAULT_NAV2_TRAV_MAP_FILENAME = "floor_trav_no_obj_0.png"
 def nav_footprint_string(
     footprint: tuple[tuple[float, float], ...] = R1PRO_NAV_FOOTPRINT,
 ) -> str:
-    return json.dumps(
-        [[float(x_coord), float(y_coord)] for x_coord, y_coord in footprint]
-    )
+    return json.dumps([[float(x_coord), float(y_coord)] for x_coord, y_coord in footprint])
 
 
 def _prepend_path(value: str, existing: str | None) -> str:
@@ -55,26 +51,16 @@ def _build_overlay_env() -> dict[str, str]:
     if not overlay_prefix:
         return env
 
-    env["AMENT_PREFIX_PATH"] = _prepend_path(
-        overlay_prefix, env.get("AMENT_PREFIX_PATH")
-    )
-    env["CMAKE_PREFIX_PATH"] = _prepend_path(
-        overlay_prefix, env.get("CMAKE_PREFIX_PATH")
-    )
-    env["COLCON_PREFIX_PATH"] = _prepend_path(
-        overlay_prefix, env.get("COLCON_PREFIX_PATH")
-    )
-    env["LD_LIBRARY_PATH"] = _prepend_path(
-        f"{overlay_prefix}/lib", env.get("LD_LIBRARY_PATH")
-    )
+    env["AMENT_PREFIX_PATH"] = _prepend_path(overlay_prefix, env.get("AMENT_PREFIX_PATH"))
+    env["CMAKE_PREFIX_PATH"] = _prepend_path(overlay_prefix, env.get("CMAKE_PREFIX_PATH"))
+    env["COLCON_PREFIX_PATH"] = _prepend_path(overlay_prefix, env.get("COLCON_PREFIX_PATH"))
+    env["LD_LIBRARY_PATH"] = _prepend_path(f"{overlay_prefix}/lib", env.get("LD_LIBRARY_PATH"))
     if overlay_python:
         env["PYTHONPATH"] = _prepend_path(overlay_python, env.get("PYTHONPATH"))
     return env
 
 
-def _resolve_trav_map_path(
-    *, layout_dir: Path, trav_map_filename: str | None = None
-) -> Path:
+def _resolve_trav_map_path(*, layout_dir: Path, trav_map_filename: str | None = None) -> Path:
     candidates: list[str] = []
     if isinstance(trav_map_filename, str) and trav_map_filename.strip():
         candidates.append(trav_map_filename.strip())
@@ -109,11 +95,7 @@ def _scene_layout_root(scene_id: str) -> Path:
                 [
                     base / "scenes" / candidate_scene_id / "layout",
                     base / candidate_scene_id / "layout",
-                    base
-                    / "behavior-1k-assets"
-                    / "scenes"
-                    / candidate_scene_id
-                    / "layout",
+                    base / "behavior-1k-assets" / "scenes" / candidate_scene_id / "layout",
                     base
                     / "2025-challenge-task-instances"
                     / "scenes"
@@ -129,11 +111,7 @@ def _scene_layout_root(scene_id: str) -> Path:
             [
                 fallback_base / "scenes" / candidate_scene_id / "layout",
                 fallback_base / candidate_scene_id / "layout",
-                fallback_base
-                / "behavior-1k-assets"
-                / "scenes"
-                / candidate_scene_id
-                / "layout",
+                fallback_base / "behavior-1k-assets" / "scenes" / candidate_scene_id / "layout",
                 fallback_base
                 / "2025-challenge-task-instances"
                 / "scenes"
@@ -162,18 +140,14 @@ def load_scene_map_spec(
     img = Image.open(trav_map_path).convert("L")
     img_np = np.asarray(img, dtype=np.uint8)
     if img_np.ndim != 2 or img_np.shape[0] != img_np.shape[1]:
-        raise RuntimeError(
-            f"Expected square traversability map, got shape={img_np.shape}"
-        )
+        raise RuntimeError(f"Expected square traversability map, got shape={img_np.shape}")
 
     map_size = int(img_np.shape[0] * 0.01 / float(map_resolution))
     if map_size <= 0:
         raise RuntimeError(f"Invalid Nav2 map size derived from {trav_map_path}")
 
     if map_size != img_np.shape[0]:
-        resized = Image.fromarray(img_np).resize(
-            (map_size, map_size), resample=Image.NEAREST
-        )
+        resized = Image.fromarray(img_np).resize((map_size, map_size), resample=Image.NEAREST)
         img_np = np.asarray(resized, dtype=np.uint8)
 
     free_mask = img_np == 255
@@ -202,14 +176,6 @@ def _inflate_obstacle_mask(
     inflation_radius_m: float,
     map_resolution: float,
 ) -> np.ndarray:
-    """Inflate occupied cells with a Euclidean disk at the requested radius.
-
-    A square kernel with a ceil-rounded cell radius substantially over-inflates
-    diagonal corners (for example 0.15 m at 0.1 m resolution became 0.28 m),
-    which can disconnect narrow but footprint-valid passages before Nav2's own
-    costmap inflation is applied.
-    """
-
     radius_m = max(0.0, float(inflation_radius_m))
     resolution = float(map_resolution)
     if radius_m <= 0.0 or resolution <= 0.0 or not bool(np.any(obstacle_mask)):
@@ -259,14 +225,6 @@ def clear_exported_door_artifacts_from_map_spec(
     obstacle_inflation_radius_m: float = 0.0,
     doorless_trav_map_filename: str = "floor_trav_no_door_0.png",
 ) -> dict[str, Any]:
-    """Remove only door pixels baked into a selected base traversability map.
-
-    The doorless map is used as a same-scene reference: cells occupied in the
-    selected map but free in the doorless map are export-time door leaves.
-    Walls and task objects occupied in both maps remain untouched, after which
-    live closed-door footprints can be stamped at their current poses.
-    """
-
     try:
         doorless_spec = load_scene_map_spec(
             scene_id=scene_id,
@@ -276,18 +234,12 @@ def clear_exported_door_artifacts_from_map_spec(
         )
         width = int(map_spec["width"])
         height = int(map_spec["height"])
-        if width != int(doorless_spec["width"]) or height != int(
-            doorless_spec["height"]
-        ):
+        if width != int(doorless_spec["width"]) or height != int(doorless_spec["height"]):
             return map_spec
         if map_spec.get("origin") != doorless_spec.get("origin"):
             return map_spec
-        grid = (
-            np.asarray(map_spec["data"], dtype=np.int16).reshape(height, width).copy()
-        )
-        doorless_grid = np.asarray(doorless_spec["data"], dtype=np.int16).reshape(
-            height, width
-        )
+        grid = np.asarray(map_spec["data"], dtype=np.int16).reshape(height, width).copy()
+        doorless_grid = np.asarray(doorless_spec["data"], dtype=np.int16).reshape(height, width)
     except (KeyError, TypeError, ValueError, OSError, RuntimeError):
         return map_spec
 
@@ -299,9 +251,7 @@ def clear_exported_door_artifacts_from_map_spec(
         **map_spec,
         "data": grid.reshape(-1).astype(int).tolist(),
         "cleared_exported_door_artifact_cells": int(np.count_nonzero(artifact_mask)),
-        "doorless_reference": str(
-            doorless_spec.get("source") or doorless_trav_map_filename
-        ),
+        "doorless_reference": str(doorless_spec.get("source") or doorless_trav_map_filename),
     }
     if "grid" in map_spec:
         cleared["grid"] = grid
@@ -318,13 +268,6 @@ def clear_exported_object_artifacts_from_map_spec(
     obstacle_inflation_radius_m: float = 0.0,
     objectless_trav_map_filename: str = "floor_trav_no_obj_0.png",
 ) -> dict[str, Any]:
-    """Clear only exported object cells inside the supplied old footprints.
-
-    The objectless map identifies cells that belong to exported objects while
-    preserving walls and other static geometry.  Restricting that difference
-    to moved-object regions prevents clearing a wall that overlaps an object's
-    coarse AABB.
-    """
     if not regions:
         return map_spec
     try:
@@ -336,18 +279,12 @@ def clear_exported_object_artifacts_from_map_spec(
         )
         width = int(map_spec["width"])
         height = int(map_spec["height"])
-        if width != int(objectless_spec["width"]) or height != int(
-            objectless_spec["height"]
-        ):
+        if width != int(objectless_spec["width"]) or height != int(objectless_spec["height"]):
             return map_spec
         if map_spec.get("origin") != objectless_spec.get("origin"):
             return map_spec
-        grid = (
-            np.asarray(map_spec["data"], dtype=np.int16).reshape(height, width).copy()
-        )
-        objectless_grid = np.asarray(objectless_spec["data"], dtype=np.int16).reshape(
-            height, width
-        )
+        grid = np.asarray(map_spec["data"], dtype=np.int16).reshape(height, width).copy()
+        objectless_grid = np.asarray(objectless_spec["data"], dtype=np.int16).reshape(height, width)
         resolution = float(map_spec["resolution"])
         origin = map_spec["origin"]
         origin_x = float(origin["x"])
@@ -385,9 +322,7 @@ def clear_exported_object_artifacts_from_map_spec(
         **map_spec,
         "data": grid.reshape(-1).astype(int).tolist(),
         "cleared_exported_object_artifact_cells": int(np.count_nonzero(clear_mask)),
-        "objectless_reference": str(
-            objectless_spec.get("source") or objectless_trav_map_filename
-        ),
+        "objectless_reference": str(objectless_spec.get("source") or objectless_trav_map_filename),
     }
     cleared["dynamic_map_update"] = _dynamic_update_metadata(
         map_spec,
@@ -406,7 +341,6 @@ def stamp_obstacles_into_map_spec(
     *,
     default_half_extent_m: float = 0.5,
 ) -> dict[str, Any]:
-    """Return a copy with polygon or legacy AABB footprints marked occupied."""
     if not obstacles:
         return map_spec
     try:
@@ -468,7 +402,6 @@ def clear_regions_from_map_spec(
     *,
     default_half_extent_m: float = 0.5,
 ) -> dict[str, Any]:
-    """Return a copy with polygon or legacy AABB regions marked free."""
     if not regions:
         return map_spec
     try:
@@ -754,7 +687,6 @@ def occupancy_grid_update_from_specs(
     previous: dict[str, Any],
     current: dict[str, Any],
 ) -> dict[str, Any] | None:
-    """Build the smallest OccupancyGridUpdate window between two map specs."""
     try:
         width = int(current["width"])
         height = int(current["height"])
@@ -764,12 +696,8 @@ def occupancy_grid_update_from_specs(
             return None
         if float(current["resolution"]) != float(previous["resolution"]):
             return None
-        previous_grid = np.asarray(previous["data"], dtype=np.int16).reshape(
-            height, width
-        )
-        current_grid = np.asarray(current["data"], dtype=np.int16).reshape(
-            height, width
-        )
+        previous_grid = np.asarray(previous["data"], dtype=np.int16).reshape(height, width)
+        current_grid = np.asarray(current["data"], dtype=np.int16).reshape(height, width)
     except (KeyError, TypeError, ValueError):
         return None
     changed = previous_grid != current_grid
@@ -815,7 +743,6 @@ def diagnose_empty_path(
     start_xy: dict[str, float],
     goal_xy: dict[str, float],
 ) -> str:
-    """Classify an empty planner result using the composed occupancy grid."""
     start_cell = world_to_map_cell(map_spec=map_spec, point_xy=start_xy)
     goal_cell = world_to_map_cell(map_spec=map_spec, point_xy=goal_xy)
     if start_cell is None:
@@ -884,9 +811,7 @@ def world_to_map_cell(
     return row, col
 
 
-def map_cell_to_world(
-    *, map_spec: dict[str, Any], row: int, col: int
-) -> dict[str, float]:
+def map_cell_to_world(*, map_spec: dict[str, Any], row: int, col: int) -> dict[str, float]:
     resolution = float(map_spec["resolution"])
     origin = map_spec["origin"]
     return {
@@ -912,11 +837,7 @@ def point_has_clearance(
     row, col = cell
     radius_cells = max(
         0,
-        int(
-            math.ceil(
-                max(0.0, float(clearance_radius_m)) / float(map_spec["resolution"])
-            )
-        ),
+        int(math.ceil(max(0.0, float(clearance_radius_m)) / float(map_spec["resolution"]))),
     )
     row_min = max(0, row - radius_cells)
     row_max = min(free_mask.shape[0], row + radius_cells + 1)
@@ -926,12 +847,12 @@ def point_has_clearance(
     if patch.size == 0:
         return False
     radius_m = max(0.0, float(clearance_radius_m))
-    row_offsets = (
-        np.arange(row_min, row_max, dtype=np.float64) - float(row)
-    ) * float(map_spec["resolution"])
-    col_offsets = (
-        np.arange(col_min, col_max, dtype=np.float64) - float(col)
-    ) * float(map_spec["resolution"])
+    row_offsets = (np.arange(row_min, row_max, dtype=np.float64) - float(row)) * float(
+        map_spec["resolution"]
+    )
+    col_offsets = (np.arange(col_min, col_max, dtype=np.float64) - float(col)) * float(
+        map_spec["resolution"]
+    )
     offset_y, offset_x = np.meshgrid(row_offsets, col_offsets, indexing="ij")
     disk = np.hypot(offset_x, offset_y) <= radius_m + 1e-9
     return bool(np.all(patch[disk]))
@@ -982,8 +903,6 @@ def segment_has_clearance(
 
 
 class PersistentNav2RuntimeBridgeClient:
-    """Drive a long-lived ROS-side worker that owns Nav2 planner/controller servers."""
-
     def __init__(
         self,
         *,
@@ -997,9 +916,7 @@ class PersistentNav2RuntimeBridgeClient:
         self.action_name = str(action_name).strip() or "compute_path_to_pose"
         default_worker = Path(__file__).resolve().parent / "runtime_worker.py"
         self.worker_script = (
-            Path(worker_script).expanduser()
-            if worker_script is not None
-            else default_worker
+            Path(worker_script).expanduser() if worker_script is not None else default_worker
         )
         self._process: subprocess.Popen[str] | None = None
         self._configured_scene_signature: tuple[str, str, str, str, str, str] | None = None
@@ -1055,9 +972,7 @@ class PersistentNav2RuntimeBridgeClient:
                 "obstacles": obstacles or [],
                 "clear_regions": clear_regions or [],
                 "clear_exported_door_artifacts": bool(clear_exported_door_artifacts),
-                "clear_exported_object_artifacts": bool(
-                    clear_exported_object_artifacts
-                ),
+                "clear_exported_object_artifacts": bool(clear_exported_object_artifacts),
                 "object_clear_regions": object_clear_regions or [],
             },
             sort_keys=True,
@@ -1108,8 +1023,6 @@ class PersistentNav2RuntimeBridgeClient:
         if clear_regions:
             map_spec = clear_regions_from_map_spec(map_spec, clear_regions)
         if obstacles:
-            # Runtime obstacles (e.g. closed doors); the worker republishes the
-            # map so Nav2's static layer picks the change up mid-run.
             map_spec = stamp_obstacles_into_map_spec(map_spec, obstacles)
         map_spec = {
             **map_spec,
@@ -1121,9 +1034,7 @@ class PersistentNav2RuntimeBridgeClient:
             and self._configured_base_signature == base_signature
             and isinstance(self._configured_map_spec, dict)
         ):
-            update = occupancy_grid_update_from_specs(
-                self._configured_map_spec, map_spec
-            )
+            update = occupancy_grid_update_from_specs(self._configured_map_spec, map_spec)
             if update is not None and int(update.get("changed_cell_count", 0)) > 0:
                 response = self._send_request(
                     {
@@ -1161,9 +1072,7 @@ class PersistentNav2RuntimeBridgeClient:
                     "map": map_spec,
                 }
             )
-        response_ok = not isinstance(response, dict) or str(
-            response.get("status") or "ok"
-        ) == "ok"
+        response_ok = not isinstance(response, dict) or str(response.get("status") or "ok") == "ok"
         if response_ok:
             self._configured_scene_signature = scene_signature
             self._configured_base_signature = base_signature
@@ -1307,15 +1216,11 @@ class PersistentNav2RuntimeBridgeClient:
                     stderr_tail = process.stderr.read().strip()
                 except Exception:
                     stderr_tail = ""
-            raise RuntimeError(
-                stderr_tail or "Nav2 runtime worker exited without a response"
-            )
+            raise RuntimeError(stderr_tail or "Nav2 runtime worker exited without a response")
 
         response = json.loads(response_line)
         if response.get("status") == "error" and not tolerate_errors:
-            raise RuntimeError(
-                str(response.get("error") or "nav2_runtime_bridge_error")
-            )
+            raise RuntimeError(str(response.get("error") or "nav2_runtime_bridge_error"))
         return response
 
 

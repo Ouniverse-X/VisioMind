@@ -1,5 +1,3 @@
-"""Runtime interaction control helpers owned by the Brain agent body."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -46,10 +44,14 @@ class RuntimeInteractionControlPolicy:
             navigation_state=navigation_state,
         )
 
-        latest_result = execution_state.get("latest_result", {}) if isinstance(execution_state, dict) else {}
+        latest_result = (
+            execution_state.get("latest_result", {}) if isinstance(execution_state, dict) else {}
+        )
         latest_agent = cls.canonical_agent_label(latest_result.get("agent"))
         latest_scene_report = (
-            dict(latest_result.get("scene_report") or execution_state.get("last_scene_report") or {})
+            dict(
+                latest_result.get("scene_report") or execution_state.get("last_scene_report") or {}
+            )
             if isinstance(execution_state, dict)
             else {}
         )
@@ -65,7 +67,11 @@ class RuntimeInteractionControlPolicy:
         if latest_task_complete:
             return []
 
-        if has_current_room and navigation_runtime.target_room_available(target_hints) and not in_target_room:
+        if (
+            has_current_room
+            and navigation_runtime.target_room_available(target_hints)
+            and not in_target_room
+        ):
             return [
                 cls.build_interaction_room_navigation_subtask(
                     target_hints=target_hints,
@@ -168,7 +174,10 @@ class RuntimeInteractionControlPolicy:
             agent=AgentName.NAVIGATION,
             action="navigate",
             target=target,
-            parameters={"instruction": f"navigate to {target_instruction}", "mode": "to_target_room"},
+            parameters={
+                "instruction": f"navigate to {target_instruction}",
+                "mode": "to_target_room",
+            },
             context={"task_description": task_description, "navigation_reason": "room_mismatch"},
         )
 
@@ -293,7 +302,9 @@ class RuntimeInteractionControlPolicy:
         ):
             value = guidance.get(key)
             if isinstance(value, list) and value:
-                compact[key] = [dict(item) if isinstance(item, dict) else item for item in value[:5]]
+                compact[key] = [
+                    dict(item) if isinstance(item, dict) else item for item in value[:5]
+                ]
         return compact
 
     @staticmethod

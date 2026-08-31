@@ -1,5 +1,3 @@
-"""Interaction-target extraction helpers for the Brain agent."""
-
 from __future__ import annotations
 
 import re
@@ -14,7 +12,16 @@ def interaction_target_hints(*, request: TaskRequest, subtasks: list[Subtask]) -
     hints: dict[str, str] = {}
     metadata = request.metadata if isinstance(request.metadata, dict) else {}
 
-    for key in ("object", "part", "room", "region", "room_name", "room_id", "room_label", "canonical_room_name"):
+    for key in (
+        "object",
+        "part",
+        "room",
+        "region",
+        "room_name",
+        "room_id",
+        "room_label",
+        "canonical_room_name",
+    ):
         value = metadata.get(f"target_{key}") or metadata.get(key)
         if isinstance(value, str) and value.strip():
             hints[key] = value.strip()
@@ -92,7 +99,12 @@ def infer_object_from_text(task_description: str) -> str | None:
     )
     if en_match:
         value = en_match.group("object").strip()
-        for suffix in (" in the living room", " in the kitchen", " in the bedroom", " in the bathroom"):
+        for suffix in (
+            " in the living room",
+            " in the kitchen",
+            " in the bedroom",
+            " in the bathroom",
+        ):
             if value.endswith(suffix):
                 value = value[: -len(suffix)].strip()
         return value or None
@@ -108,5 +120,7 @@ def interaction_seed_instruction(target: dict[str, Any]) -> str:
             break
 
     if target_name:
-        return f"Inspect the {target_name} and determine whether the object or target part is visible."
+        return (
+            f"Inspect the {target_name} and determine whether the object or target part is visible."
+        )
     return "Inspect the target scene and determine whether the object or target part is visible."

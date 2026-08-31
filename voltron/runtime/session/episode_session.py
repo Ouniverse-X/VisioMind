@@ -1,5 +1,3 @@
-"""Episode-session helpers for runtime recording lifecycle."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -9,8 +7,6 @@ from typing import Any, Callable
 
 @dataclass
 class EpisodeSession:
-    """Active runtime episode recording session."""
-
     record_dir: Path
     record_file_path: Path
     record_file: Any

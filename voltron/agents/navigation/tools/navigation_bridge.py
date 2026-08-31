@@ -1,13 +1,9 @@
-"""Execution bridge for translating navigator outputs into policy/runtime inputs."""
-
 from __future__ import annotations
 
 from typing import Any
 
 
 class GoalConditionedNavigationBridge:
-    """Inject structured navigation outputs into policy options and runtime artifacts."""
-
     def build_policy_options(
         self,
         *,
@@ -53,7 +49,9 @@ class GoalConditionedNavigationBridge:
             if isinstance(grounded_goal.get("grounding_candidates"), list):
                 artifacts["grounding_candidates"] = list(grounded_goal["grounding_candidates"])
             if isinstance(grounded_goal.get("selected_grounding_candidate"), dict):
-                artifacts["selected_grounding_candidate"] = dict(grounded_goal["selected_grounding_candidate"])
+                artifacts["selected_grounding_candidate"] = dict(
+                    grounded_goal["selected_grounding_candidate"]
+                )
         if path_plan:
             artifacts["path_plan"] = dict(path_plan)
             waypoints = path_plan.get("waypoints")

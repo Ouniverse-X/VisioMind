@@ -1,5 +1,3 @@
-"""Structured operator feedback models for runtime interaction surfaces."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -8,8 +6,6 @@ from typing import Any
 
 @dataclass(frozen=True)
 class OperatorFeedback:
-    """Serializable operator-facing feedback payload."""
-
     message: str
     severity: str = "info"
     metadata: dict[str, Any] = field(default_factory=dict)

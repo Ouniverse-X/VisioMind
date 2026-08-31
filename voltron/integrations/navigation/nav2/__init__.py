@@ -1,5 +1,3 @@
-"""Nav2 integration surface."""
-
 from .navigator import Nav2NavigatorAdapter
 from .policy import Nav2PolicyAdapter
 

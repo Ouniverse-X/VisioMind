@@ -1,5 +1,3 @@
-"""Per-subtask step-running helpers for closed-loop orchestration."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -143,7 +141,9 @@ def run_subtask_control_loop(
             control_step=control_step,
             result=dict(result.result),
             runtime_artifacts=(
-                dict(result.runtime_artifacts) if isinstance(result.runtime_artifacts, dict) else None
+                dict(result.runtime_artifacts)
+                if isinstance(result.runtime_artifacts, dict)
+                else None
             ),
         )
         orchestrator._emit_event(

@@ -1,5 +1,3 @@
-"""Closed-loop example entrypoint helpers."""
+from . import main, parser
 
-from . import main, mocks, parser
-
-__all__ = ["main", "mocks", "parser"]
+__all__ = ["main", "parser"]

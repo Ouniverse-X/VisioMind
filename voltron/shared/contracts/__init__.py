@@ -1,5 +1,3 @@
-"""Canonical shared contracts for cross-layer Voltron protocols."""
-
 from .agent import AgentRequest, EpisodeSubtaskAgent, SubtaskAgent
 from .camera import CameraCaptureAdapter, CameraFrame
 from .capability import (

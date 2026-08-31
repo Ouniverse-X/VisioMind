@@ -1,5 +1,3 @@
-"""Action-step execution and terminal response helpers for BEHAVIOR."""
-
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -133,8 +131,6 @@ def build_vision_step_response(
             feedback=RuntimeFeedback(
                 step_count=step_count,
                 extras={
-                    # A Vision observation finishes this Vision subtask even when
-                    # it is not allowed to claim the overall task is complete.
                     "task_complete": task_complete,
                     "subtask_completed": True,
                     "subtask_succeeded": True,
@@ -179,16 +175,6 @@ def build_action_missing_response(
 
 
 def _verified_action_free_placement(result: Any) -> dict[str, Any] | None:
-    """Return terminal placement evidence for a successful action-free result.
-
-    A placement skill applies its last simulator action on the preceding
-    control cycle.  Its terminal ``AgentResult`` therefore intentionally has
-    no fresh action.  Treating that result as a missing action either replays
-    a stale command or turns a physically verified placement into a runtime
-    failure.  The narrow checks below keep ordinary empty ACTION results on
-    the existing ``RUNTIME_ACTION_MISSING`` path.
-    """
-
     payload = getattr(result, "result", None)
     artifacts = getattr(result, "runtime_artifacts", None)
     if not isinstance(payload, dict) or not isinstance(artifacts, dict):
@@ -223,15 +209,6 @@ def _verified_action_free_placement(result: Any) -> dict[str, Any] | None:
 
 
 def _verified_action_free_grasp(result: Any) -> dict[str, Any] | None:
-    """Return evidence for a physically verified, action-free grasp terminal.
-
-    AnyGrasp applies its last control action before its generator emits the
-    terminal result.  A successful pick is also an intermediate task state,
-    so the overall BDDL goal is intentionally still false.  These strict
-    checks let the runtime finish the pick subtask without replaying a stale
-    action or waiting for the later placement goal.
-    """
-
     payload = getattr(result, "result", None)
     artifacts = getattr(result, "runtime_artifacts", None)
     if not isinstance(payload, dict) or not isinstance(artifacts, dict):
@@ -284,8 +261,6 @@ def build_action_terminal_success_response(
     control_step: int | None,
     step_count: int,
 ) -> dict[str, Any]:
-    """Build the terminal runtime response for a verified placement."""
-
     result_payload = dict(getattr(result, "result", {}) or {})
     placement_strategy = evidence.get("placement_strategy") or evidence.get("strategy")
     extras = {
@@ -342,8 +317,6 @@ def build_grasp_terminal_success_response(
     control_step: int | None,
     step_count: int,
 ) -> dict[str, Any]:
-    """Build a terminal runtime response for a verified AnyGrasp pick."""
-
     result_payload = dict(getattr(result, "result", {}) or {})
     extras = {
         "action_terminal_success": True,
@@ -354,9 +327,7 @@ def build_grasp_terminal_success_response(
         "object_in_hand": result_payload.get("object_in_hand"),
         "target_object": result_payload.get("target_object"),
         "skill_source": result_payload.get("skill_source"),
-        "last_applied_action_keys": list(
-            evidence.get("last_applied_action_keys", [])
-        ),
+        "last_applied_action_keys": list(evidence.get("last_applied_action_keys", [])),
         "physical_evidence": dict(evidence),
     }
     return {
@@ -720,8 +691,6 @@ def build_standard_step_response(
                         "task_success": True,
                         "environment_terminated": bool(terminated),
                         "environment_truncated": bool(truncated),
-                        # The completion monitor may use this as evidence, but
-                        # it must not advance the subtask without Brain/Vision.
                         "environment_success_evidence_only": True,
                     },
                 ),
@@ -933,11 +902,7 @@ def build_final_step_response(
             feedback_factory=feedback_factory,
         )
 
-    if (
-        _agent_value(subtask) == "ACTION"
-        and action_progress is not None
-        and not subtask_completed
-    ):
+    if _agent_value(subtask) == "ACTION" and action_progress is not None and not subtask_completed:
         return build_vla_step_response(
             subtask=subtask,
             attempt=attempt,
@@ -986,13 +951,6 @@ def _logging_completion_state(
     truncated: bool,
     environment_success_evidence_only: bool,
 ) -> dict[str, Any]:
-    """Return completion fields for step/progress logs.
-
-    When environment success is evidence-only, the raw simulator signal should
-    be available to the monitor but must not make runtime logs look like the
-    subtask has already advanced.
-    """
-
     env_success_only = (
         environment_success_evidence_only
         and subtask_completed

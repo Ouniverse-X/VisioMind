@@ -1,5 +1,3 @@
-"""Robot-footprint-aware portal crossing and egress helpers."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -28,7 +26,6 @@ def required_egress_depth_m(
     *,
     default_depth_m: float = DEFAULT_PORTAL_EGRESS_DEPTH_M,
 ) -> float:
-    """Depth needed before the footprint can safely begin a lateral turn."""
     if not has_portal_frame(anchor):
         return 0.0
     normal_axis = str(anchor["portal_normal_axis"])
@@ -50,9 +47,9 @@ def target_side_depth_m(*, pose: dict[str, Any], anchor: dict[str, Any]) -> floa
         return None
     normal_axis = str(anchor["portal_normal_axis"])
     try:
-        return (
-            float(pose[normal_axis]) - float(anchor["portal_boundary_value"])
-        ) * _normal_sign(anchor)
+        return (float(pose[normal_axis]) - float(anchor["portal_boundary_value"])) * _normal_sign(
+            anchor
+        )
     except (KeyError, TypeError, ValueError):
         return None
 
@@ -68,9 +65,7 @@ def pose_has_sufficient_egress(
     required_depth = required_egress_depth_m(
         anchor,
         default_depth_m=(
-            DEFAULT_PORTAL_EGRESS_DEPTH_M
-            if required_depth_m is None
-            else required_depth_m
+            DEFAULT_PORTAL_EGRESS_DEPTH_M if required_depth_m is None else required_depth_m
         ),
     )
     if depth is None or depth < required_depth:
@@ -84,12 +79,9 @@ def pose_has_sufficient_egress(
     except (KeyError, TypeError, ValueError):
         return True
     tolerance = max(0.0, float(span_tolerance_m))
-    return (
-        min(span_min, span_max) - tolerance
-        <= pose_span
-        <= max(span_min, span_max) + tolerance
-        and abs(pose_span - anchor_span) <= max(tolerance, 0.22)
-    )
+    return min(span_min, span_max) - tolerance <= pose_span <= max(
+        span_min, span_max
+    ) + tolerance and abs(pose_span - anchor_span) <= max(tolerance, 0.22)
 
 
 def egress_waypoint(
@@ -97,7 +89,6 @@ def egress_waypoint(
     anchor: dict[str, Any],
     path_points: list[dict[str, float]],
 ) -> dict[str, Any] | None:
-    """Choose a mostly-straight point past the frame from the validated Nav2 path."""
     if not has_portal_frame(anchor):
         return None
     normal_axis = str(anchor["portal_normal_axis"])

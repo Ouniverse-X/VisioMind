@@ -1,5 +1,3 @@
-"""MemoryAgent task-level experience consolidation flow."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -32,9 +30,7 @@ def consolidate_completed_episode(
 
     try:
         if episode_context is None:
-            episode_context = backend.get_completed_episode_context(
-                episode_id=episode_id
-            )
+            episode_context = backend.get_completed_episode_context(episode_id=episode_id)
         else:
             episode_context = dict(episode_context)
         if reflection_evidence is not None:
@@ -45,9 +41,7 @@ def consolidate_completed_episode(
                 episode_context.get("episode_id") or episode_id or ""
             )
         _augment_with_rule_derived_experience(extraction, episode_context)
-        extraction = validate_extraction_result(
-            extraction, episode_context, backend=backend
-        )
+        extraction = validate_extraction_result(extraction, episode_context, backend=backend)
         writeback = write_experience(
             backend=backend,
             episode_context=episode_context,
@@ -87,9 +81,7 @@ def _augment_with_rule_derived_experience(
     selected = interaction.get("selected_candidate")
     selected = selected if isinstance(selected, dict) else {}
     environment_outcome = interaction.get("environment_outcome")
-    environment_outcome = (
-        environment_outcome if isinstance(environment_outcome, dict) else {}
-    )
+    environment_outcome = environment_outcome if isinstance(environment_outcome, dict) else {}
     environment_outcome = _merged_final_environment_outcome(
         environment_outcome,
         episode_context=episode_context,
@@ -112,9 +104,7 @@ def _augment_with_rule_derived_experience(
     )
     candidate_id = str(selected.get("candidate_id") or "selected_candidate")
     candidate_signature = selected.get("candidate_signature")
-    candidate_signature = (
-        dict(candidate_signature) if isinstance(candidate_signature, dict) else {}
-    )
+    candidate_signature = dict(candidate_signature) if isinstance(candidate_signature, dict) else {}
     visual = interaction.get("visual_affordance")
     visual = visual if isinstance(visual, dict) else {}
     distance = interaction.get("distance_context")
@@ -192,8 +182,6 @@ def _successful_object_approach_prior(
 
     signature = candidate.get("candidate_signature")
     if isinstance(signature, dict):
-        # The HEMS object-approach store builds signatures from candidate fields.
-        # Keep explicit runtime signatures queryable without re-deriving geometry.
         for key, value in signature.items():
             candidate.setdefault(key, value)
         candidate["candidate_signature"] = dict(signature)
@@ -327,7 +315,9 @@ def _compact_completion_criterion(item: dict[str, Any]) -> dict[str, Any]:
     )
 
 
-def _completion_hint_summary(episode_context: dict[str, Any], criteria: list[dict[str, Any]]) -> str:
+def _completion_hint_summary(
+    episode_context: dict[str, Any], criteria: list[dict[str, Any]]
+) -> str:
     task = str(episode_context.get("task_description") or "similar tasks").strip()
     description = str(criteria[0].get("description") or "").strip()
     if description:
@@ -394,7 +384,6 @@ def _merged_final_environment_outcome(
     environment = final_state.get("environment")
     environment = environment if isinstance(environment, dict) else {}
 
-    # Final simulator state is the source of truth; intermediate action feedback can be stale.
     for key in ("task_success", "task_progress", "step_count", "goal_status"):
         value = final_state.get(key)
         if value is None:
@@ -426,9 +415,7 @@ def _mismatch_conditions(mismatch: dict[str, Any]) -> dict[str, Any]:
         {
             "vlm_reported_success": mismatch.get("vlm_reported_success"),
             "success_confirmation_count": mismatch.get("success_confirmation_count"),
-            "success_confirmation_threshold": mismatch.get(
-                "success_confirmation_threshold"
-            ),
+            "success_confirmation_threshold": mismatch.get("success_confirmation_threshold"),
             "subtask_completion_reason": mismatch.get("subtask_completion_reason"),
             "environment_task_success": mismatch.get("environment_task_success"),
         }

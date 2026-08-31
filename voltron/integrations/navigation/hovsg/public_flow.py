@@ -1,5 +1,3 @@
-"""Canonical public entry boundary for the HOV-SG navigator facade."""
-
 from __future__ import annotations
 
 from copy import deepcopy

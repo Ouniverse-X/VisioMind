@@ -1,5 +1,3 @@
-"""Shared runtime feedback models."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -8,8 +6,6 @@ from typing import Any, Mapping
 
 @dataclass(frozen=True)
 class NavigationRuntimeState:
-    """Typed navigation/runtime status shared across closed-loop components."""
-
     active_waypoint_index: int | None = None
     global_waypoint_index: int | None = None
     dense_waypoint_index: int | None = None
@@ -86,8 +82,6 @@ class NavigationRuntimeState:
 
 @dataclass(frozen=True)
 class RuntimeFeedback:
-    """Typed environment/runtime feedback consumed by orchestrator and planner logic."""
-
     step_count: int | None = None
     reward: float | None = None
     task_progress: float | None = None
@@ -152,7 +146,11 @@ class RuntimeFeedback:
             if key not in cls._BASE_KEYS and key not in NavigationRuntimeState._KEYS
         }
         payload = {key: value.get(key) for key in cls._BASE_KEYS}
-        if all(item in (None, "", {}) for item in payload.values()) and navigation is None and not extras:
+        if (
+            all(item in (None, "", {}) for item in payload.values())
+            and navigation is None
+            and not extras
+        ):
             return None
         return cls(
             step_count=payload.get("step_count"),
@@ -179,8 +177,6 @@ class RuntimeFeedback:
 
 @dataclass
 class SubtaskStepOutcome:
-    """Result returned by the runtime environment after one agent step."""
-
     done: bool
     success: bool | None = None
     failure_reason: str | None = None

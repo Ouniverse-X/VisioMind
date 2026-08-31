@@ -1,17 +1,23 @@
-"""Localization, observation, and action bridge helpers for BEHAVIOR runtime."""
-
 from __future__ import annotations
 
 from typing import Any
 
 import numpy as np
 
-from voltron.integrations.simulator.behavior.observation import frames as behavior_observation_frames
+from voltron.integrations.simulator.behavior.observation import (
+    frames as behavior_observation_frames,
+)
 from voltron.integrations.simulator.behavior.observation import robot_state as behavior_robot_state
-from voltron.integrations.simulator.behavior.tools import navigation_success as behavior_navigation_success
-from voltron.integrations.simulator.behavior.tools import runtime_actions as behavior_runtime_actions
+from voltron.integrations.simulator.behavior.tools import (
+    navigation_success as behavior_navigation_success,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    runtime_actions as behavior_runtime_actions,
+)
 from voltron.integrations.simulator.behavior.tools import runtime_inputs as behavior_runtime_inputs
-from voltron.integrations.simulator.behavior.tools import runtime_localization as behavior_runtime_localization
+from voltron.integrations.simulator.behavior.tools import (
+    runtime_localization as behavior_runtime_localization,
+)
 from voltron.shared.context import Subtask
 from voltron.shared.enums import TaskType
 from voltron.shared.results import AgentResult
@@ -51,7 +57,9 @@ def build_vln_runtime_inputs(
     )
 
 
-def extract_scene_id(*, last_info: dict[str, Any], last_obs: dict[str, Any], scene_id: str | None) -> str | None:
+def extract_scene_id(
+    *, last_info: dict[str, Any], last_obs: dict[str, Any], scene_id: str | None
+) -> str | None:
     return behavior_runtime_localization.extract_scene_id(
         last_info=last_info,
         last_obs=last_obs,

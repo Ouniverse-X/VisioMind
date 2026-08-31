@@ -1,10 +1,10 @@
-"""Reward and completion-state helpers for BEHAVIOR execution."""
-
 from __future__ import annotations
 
 from typing import Any, Callable
 
-from voltron.integrations.simulator.behavior.artifacts import process_logger as behavior_process_logger
+from voltron.integrations.simulator.behavior.artifacts import (
+    process_logger as behavior_process_logger,
+)
 
 
 def resolve_step_completion_state(

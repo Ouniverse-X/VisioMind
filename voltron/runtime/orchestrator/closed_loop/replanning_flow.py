@@ -1,5 +1,3 @@
-"""Replanning helpers for the closed-loop orchestrator."""
-
 from __future__ import annotations
 
 import json

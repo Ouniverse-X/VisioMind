@@ -1,5 +1,3 @@
-"""AnyGrasp RGB-D detection and non-blocking CuRobo execution skill."""
-
 from __future__ import annotations
 
 import copy
@@ -32,13 +30,6 @@ def _world_vertical_grasp_rotation(
     *,
     jaw_axis: str = "minor",
 ) -> tuple[np.ndarray, dict[str, Any]]:
-    """Build an AnyGrasp-frame rotation with a world-vertical approach.
-
-    AnyGrasp uses rotation columns ``(+X approach, +Y jaw articulation, +Z)``.
-    The horizontal jaw direction is estimated from the target mask footprint so
-    the detector still supplies grasp position / depth while execution uses a
-    robot-compatible top-down orientation.
-    """
     points_camera = np.asarray(target_points_camera, dtype=np.float64).reshape(-1, 3)
     camera_pose = np.asarray(camera_pose_world, dtype=np.float64)
     original_rotation = np.asarray(original_rotation_camera, dtype=np.float64)
@@ -65,16 +56,13 @@ def _world_vertical_grasp_rotation(
     jaw_norm = float(np.linalg.norm(jaw_world))
     if jaw_norm <= 1e-9:
         original_jaw_world = camera_rotation @ original_rotation[:, 1]
-        jaw_world = np.array(
-            [original_jaw_world[0], original_jaw_world[1], 0.0], dtype=np.float64
-        )
+        jaw_world = np.array([original_jaw_world[0], original_jaw_world[1], 0.0], dtype=np.float64)
         jaw_norm = float(np.linalg.norm(jaw_world))
     if jaw_norm <= 1e-9:
         jaw_world = np.array([0.0, 1.0, 0.0], dtype=np.float64)
     else:
         jaw_world /= jaw_norm
 
-    # Resolve PCA's sign ambiguity using the detector's original jaw direction.
     original_jaw_world = camera_rotation @ original_rotation[:, 1]
     original_jaw_xy = np.array(
         [original_jaw_world[0], original_jaw_world[1], 0.0], dtype=np.float64
@@ -94,9 +82,7 @@ def _world_vertical_grasp_rotation(
         "footprint_eigenvalues_m2": eigenvalues.tolist(),
         "world_approach": approach_world.tolist(),
         "world_jaw_direction": jaw_world.tolist(),
-        "original_world_approach": (
-            camera_rotation @ original_rotation[:, 0]
-        ).tolist(),
+        "original_world_approach": (camera_rotation @ original_rotation[:, 0]).tolist(),
     }
     return rotation_camera, audit
 
@@ -105,11 +91,6 @@ def _open_jaw_clearance_passes(
     evidence: dict[str, Any],
     minimum_clearance_m: float,
 ) -> bool:
-    """Require continuous target geometry to fit with usable clearance.
-
-    A zero-clearance containment check is numerically valid but physically
-    brittle: millimetre-scale pose error then produces a one-sided collision.
-    """
     clearance = evidence.get("open_jaw_continuous_inner_clearance_m")
     return bool(
         evidence.get("available", False)
@@ -122,12 +103,18 @@ def _open_jaw_clearance_passes(
 
 
 class AnyGraspSkill(PolicyBackedVLASkill):
-    """Target-conditioned AnyGrasp skill with explicit, observable fallback."""
-
     skill_id = "anygrasp_manipulation_skill"
     supported_actions = (
-        "pick_up", "grasp", "lift", "take", "hold",
-        "place", "place_inside", "put_inside", "drop", "release",
+        "pick_up",
+        "grasp",
+        "lift",
+        "take",
+        "hold",
+        "place",
+        "place_inside",
+        "put_inside",
+        "drop",
+        "release",
     )
 
     def __init__(
@@ -190,7 +177,6 @@ class AnyGraspSkill(PolicyBackedVLASkill):
         self._builtin_attempted = False
         self._last_execution_error = None
 
-
     def _get_detector(self) -> Any | None:
         if self._detector is not None:
             return self._detector
@@ -198,6 +184,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             return None
         try:
             from voltron.integrations.manipulation.anygrasp import AnyGraspDetector
+
             detector = AnyGraspDetector(self._anygrasp_config)
             if not detector.ping():
                 raise RuntimeError("AnyGrasp health check failed or detector is not loaded")
@@ -220,38 +207,27 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             if robot is None:
                 raise RuntimeError("OmniGibson robot is unavailable")
             from voltron.integrations.manipulation.anygrasp.grasp_executor import GraspExecutor
+
             self._executor = GraspExecutor(
                 robot=robot,
                 arm=self._anygrasp_config.get("arm"),
                 curobo_batch_size=int(self._anygrasp_config.get("curobo_batch_size", 1)),
-                pregrasp_offset_m=float(
-                    self._anygrasp_config.get("pregrasp_offset_m", 0.08)
-                ),
+                pregrasp_offset_m=float(self._anygrasp_config.get("pregrasp_offset_m", 0.08)),
                 whole_body_standoff_m=float(
                     self._anygrasp_config.get("whole_body_standoff_m", 0.35)
                 ),
                 lift_height_m=float(self._anygrasp_config.get("lift_height_m", 0.15)),
-                post_lift_yaw_deg=float(
-                    self._anygrasp_config.get("post_lift_yaw_deg", 0.0)
-                ),
-                post_lift_yaw_cycles=int(
-                    self._anygrasp_config.get("post_lift_yaw_cycles", 0)
-                ),
-                post_lift_place_back=bool(
-                    self._anygrasp_config.get("post_lift_place_back", False)
-                ),
+                post_lift_yaw_deg=float(self._anygrasp_config.get("post_lift_yaw_deg", 0.0)),
+                post_lift_yaw_cycles=int(self._anygrasp_config.get("post_lift_yaw_cycles", 0)),
+                post_lift_place_back=bool(self._anygrasp_config.get("post_lift_place_back", False)),
                 place_back_clearance_m=float(
                     self._anygrasp_config.get("place_back_clearance_m", 0.015)
                 ),
-                place_back_retreat_m=float(
-                    self._anygrasp_config.get("place_back_retreat_m", 0.08)
-                ),
+                place_back_retreat_m=float(self._anygrasp_config.get("place_back_retreat_m", 0.08)),
                 skip_standoff_if_within_m=float(
                     self._anygrasp_config.get("skip_standoff_if_within_m", 0.20)
                 ),
-                constrained_approach=bool(
-                    self._anygrasp_config.get("constrained_approach", True)
-                ),
+                constrained_approach=bool(self._anygrasp_config.get("constrained_approach", True)),
                 retry_unconstrained_approach=bool(
                     self._anygrasp_config.get("retry_unconstrained_approach", True)
                 ),
@@ -259,43 +235,27 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     self._anygrasp_config.get("approach_segment_max_m", 0.0)
                 ),
                 approach_target_displacement_tolerance_m=float(
-                    self._anygrasp_config.get(
-                        "approach_target_displacement_tolerance_m", 0.02
-                    )
+                    self._anygrasp_config.get("approach_target_displacement_tolerance_m", 0.02)
                 ),
                 close_target_displacement_tolerance_m=float(
-                    self._anygrasp_config.get(
-                        "close_target_displacement_tolerance_m", 0.01
-                    )
+                    self._anygrasp_config.get("close_target_displacement_tolerance_m", 0.01)
                 ),
                 approach_goal_position_tolerance_m=float(
-                    self._anygrasp_config.get(
-                        "approach_goal_position_tolerance_m", 0.015
-                    )
+                    self._anygrasp_config.get("approach_goal_position_tolerance_m", 0.015)
                 ),
                 live_open_jaw_y_correction_max_m=float(
-                    self._anygrasp_config.get(
-                        "live_open_jaw_y_correction_max_m", 0.0
-                    )
+                    self._anygrasp_config.get("live_open_jaw_y_correction_max_m", 0.0)
                 ),
-                grasping_mode_override=self._anygrasp_config.get(
-                    "grasping_mode_override"
-                ),
+                grasping_mode_override=self._anygrasp_config.get("grasping_mode_override"),
                 collision_workspace_radius_m=self._anygrasp_config.get(
                     "collision_workspace_radius_m"
                 ),
-                verification_steps=int(
-                    self._anygrasp_config.get("verification_steps", 5)
-                ),
+                verification_steps=int(self._anygrasp_config.get("verification_steps", 5)),
                 verification_min_target_z_rise_m=float(
-                    self._anygrasp_config.get(
-                        "verification_min_target_z_rise_m", 0.03
-                    )
+                    self._anygrasp_config.get("verification_min_target_z_rise_m", 0.03)
                 ),
                 verification_relative_offset_tolerance_m=float(
-                    self._anygrasp_config.get(
-                        "verification_relative_offset_tolerance_m", 0.01
-                    )
+                    self._anygrasp_config.get("verification_relative_offset_tolerance_m", 0.01)
                 ),
                 verification_relative_orientation_tolerance_deg=float(
                     self._anygrasp_config.get(
@@ -303,9 +263,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     )
                 ),
                 verification_require_attachment_valid=bool(
-                    self._anygrasp_config.get(
-                        "verification_require_attachment_valid", True
-                    )
+                    self._anygrasp_config.get("verification_require_attachment_valid", True)
                 ),
                 physical_require_bilateral_contact_before_lift=bool(
                     self._anygrasp_config.get(
@@ -355,6 +313,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
     def _get_og_robot() -> Any | None:
         try:
             import omnigibson as og
+
             if og.sim is None or not og.sim.scenes or not og.sim.scenes[0].robots:
                 return None
             return og.sim.scenes[0].robots[0]
@@ -398,6 +357,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                 else float(self._anygrasp_config["target_depth_outlier_m"])
             ),
         )
+
     def _invalidate_candidate_batch(self) -> None:
         self._candidate_queue.clear()
         self._candidate_packet = None
@@ -417,9 +377,9 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             camera_rotation @ np.asarray(candidate.translation, dtype=float).reshape(3)
             + camera_pose[:3, 3]
         )
-        approach_world = (
-            camera_rotation @ np.asarray(candidate.approach_direction, dtype=float).reshape(3)
-        )
+        approach_world = camera_rotation @ np.asarray(
+            candidate.approach_direction, dtype=float
+        ).reshape(3)
         values = np.concatenate([translation_world, approach_world])
         return tuple(np.round(values, 3).tolist())
 
@@ -443,21 +403,12 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             if callable(release_planner):
                 release_planner()
             packet = self._capture_observation(subtask)
-            max_world_approach_z = self._anygrasp_config.get(
-                "candidate_max_world_approach_z"
-            )
-            min_candidate_width = float(
-                self._anygrasp_config.get("candidate_min_width_m", 0.0)
-            )
+            max_world_approach_z = self._anygrasp_config.get("candidate_max_world_approach_z")
+            min_candidate_width = float(self._anygrasp_config.get("candidate_min_width_m", 0.0))
             if max_world_approach_z is not None:
                 max_world_approach_z = float(max_world_approach_z)
-                if (
-                    not np.isfinite(max_world_approach_z)
-                    or not -1.0 <= max_world_approach_z <= 1.0
-                ):
-                    raise ValueError(
-                        "candidate_max_world_approach_z must be finite and in [-1, 1]"
-                    )
+                if not np.isfinite(max_world_approach_z) or not -1.0 <= max_world_approach_z <= 1.0:
+                    raise ValueError("candidate_max_world_approach_z must be finite and in [-1, 1]")
             if not np.isfinite(min_candidate_width) or min_candidate_width < 0.0:
                 raise ValueError("candidate_min_width_m must be finite and non-negative")
 
@@ -465,14 +416,10 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             if camera_pose.shape != (4, 4) or not np.isfinite(camera_pose).all():
                 raise ValueError("candidate camera pose must be a finite 4x4 transform")
             force_world_vertical = bool(
-                self._anygrasp_config.get(
-                    "candidate_force_world_vertical_approach", False
-                )
+                self._anygrasp_config.get("candidate_force_world_vertical_approach", False)
             )
 
-            physical_mode = (
-                self._anygrasp_config.get("grasping_mode_override") == "physical"
-            )
+            physical_mode = self._anygrasp_config.get("grasping_mode_override") == "physical"
             collision_geometry_enabled = bool(
                 self._anygrasp_config.get(
                     "candidate_target_collision_geometry_enabled", physical_mode
@@ -506,9 +453,9 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     raise RuntimeError(
                         "target collision geometry gate received no finite boundary points"
                     )
-                collision_target_points_camera = (
-                    world_points - camera_pose[:3, 3]
-                ) @ camera_pose[:3, :3]
+                collision_target_points_camera = (world_points - camera_pose[:3, 3]) @ camera_pose[
+                    :3, :3
+                ]
                 collision_geometry_audit.update(
                     {
                         "available": True,
@@ -527,20 +474,9 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             approach = subtask.parameters.get("approach_direction")
             if approach is None:
                 approach = self._anygrasp_config.get("approach_direction")
-            approach_thresh = float(
-                self._anygrasp_config.get("approach_thresh", np.pi)
-            )
-            if (
-                approach is None
-                and max_world_approach_z is not None
-                and not force_world_vertical
-            ):
-                # The detector expects a camera-frame vector. Applying this request
-                # server-side ensures top_k is taken from downward grasps rather than
-                # from high-scoring grasps that approach the tabletop from below.
-                approach = camera_pose[:3, :3].T @ np.array(
-                    [0.0, 0.0, -1.0], dtype=np.float64
-                )
+            approach_thresh = float(self._anygrasp_config.get("approach_thresh", np.pi))
+            if approach is None and max_world_approach_z is not None and not force_world_vertical:
+                approach = camera_pose[:3, :3].T @ np.array([0.0, 0.0, -1.0], dtype=np.float64)
                 downward_thresh = float(np.arccos(np.clip(-max_world_approach_z, -1.0, 1.0)))
                 approach_thresh = min(approach_thresh, downward_thresh)
                 logger.warning(
@@ -564,9 +500,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             if perception_audit_dir:
                 audit_root = Path(str(perception_audit_dir)).expanduser()
                 audit_root.mkdir(parents=True, exist_ok=True)
-                candidate_audit_path = audit_root / (
-                    f"candidates_{time.time_ns()}.json"
-                )
+                candidate_audit_path = audit_root / (f"candidates_{time.time_ns()}.json")
                 candidate_audit_path.write_text(
                     json.dumps(
                         {
@@ -581,7 +515,9 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     ),
                     encoding="utf-8",
                 )
-                logger.info("AnyGrasp candidate perception audit written to %s", candidate_audit_path)
+                logger.info(
+                    "AnyGrasp candidate perception audit written to %s", candidate_audit_path
+                )
             self._pending_candidate_detection_audit = {
                 "event": "anygrasp_skill_candidate_funnel_audit",
                 "detector_audit": (
@@ -596,13 +532,19 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     "score": float(candidate.score),
                     "original_camera_translation": np.asarray(
                         candidate.translation, dtype=np.float64
-                    ).reshape(3).tolist(),
+                    )
+                    .reshape(3)
+                    .tolist(),
                     "original_camera_rotation": np.asarray(
                         candidate.rotation_matrix, dtype=np.float64
-                    ).reshape(3, 3).tolist(),
+                    )
+                    .reshape(3, 3)
+                    .tolist(),
                     "original_camera_approach": np.asarray(
                         candidate.approach_direction, dtype=np.float64
-                    ).reshape(3).tolist(),
+                    )
+                    .reshape(3)
+                    .tolist(),
                     "width": float(candidate.width),
                     "depth": float(candidate.depth),
                     "height": float(candidate.height),
@@ -626,9 +568,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     "candidate_target_centroid_tolerance_m"
                 )
                 centroid_tolerance = (
-                    None
-                    if centroid_tolerance_raw is None
-                    else float(centroid_tolerance_raw)
+                    None if centroid_tolerance_raw is None else float(centroid_tolerance_raw)
                 )
                 if not np.isfinite(anchor_tolerance) or anchor_tolerance <= 0.0:
                     raise ValueError("target_anchor_tolerance_m must be finite and positive")
@@ -647,8 +587,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     centroid_distance = float(np.linalg.norm(anchor - target_centroid))
                     anchor_passed = anchor_distance <= anchor_tolerance
                     centroid_passed = (
-                        centroid_tolerance is None
-                        or centroid_distance <= centroid_tolerance
+                        centroid_tolerance is None or centroid_distance <= centroid_tolerance
                     )
                     if anchor_passed and centroid_passed:
                         target_candidates.append(candidate)
@@ -668,18 +607,14 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     raise ValueError(
                         "candidate_force_world_vertical_approach requires target mask points"
                     )
-                jaw_axis = self._anygrasp_config.get(
-                    "candidate_world_vertical_jaw_axis", "minor"
-                )
+                jaw_axis = self._anygrasp_config.get("candidate_world_vertical_jaw_axis", "minor")
                 orientation_audits = []
                 for candidate in candidates:
-                    rotation_camera, orientation_audit = (
-                        _world_vertical_grasp_rotation(
-                            target_points,
-                            camera_pose,
-                            candidate.rotation_matrix,
-                            jaw_axis=jaw_axis,
-                        )
+                    rotation_camera, orientation_audit = _world_vertical_grasp_rotation(
+                        target_points,
+                        camera_pose,
+                        candidate.rotation_matrix,
+                        jaw_axis=jaw_axis,
                     )
                     candidate.rotation_matrix = rotation_camera.astype(np.float32)
                     setattr(
@@ -688,9 +623,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                         orientation_audit,
                     )
                     orientation_audits.append(orientation_audit)
-                self._pending_candidate_detection_audit[
-                    "world_vertical_orientation"
-                ] = {
+                self._pending_candidate_detection_audit["world_vertical_orientation"] = {
                     "enabled": True,
                     "jaw_axis": str(jaw_axis),
                     "candidate_count": int(len(candidates)),
@@ -716,24 +649,16 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                         "target collision geometry gate requires RGB-D target mask points"
                     )
                 target_reference_points = collision_target_points_camera
-                target_reference_geometry_source = (
-                    "target_collision_boundary_points_world"
-                )
+                target_reference_geometry_source = "target_collision_boundary_points_world"
             collision_geometry_audit.update(
                 {
-                    "target_cross_section_geometry_source": (
-                        target_cross_section_geometry_source
-                    ),
+                    "target_cross_section_geometry_source": (target_cross_section_geometry_source),
                     "target_cross_section_point_count": (
                         0 if target_points is None else int(len(target_points))
                     ),
-                    "target_reference_geometry_source": (
-                        target_reference_geometry_source
-                    ),
+                    "target_reference_geometry_source": (target_reference_geometry_source),
                     "target_reference_point_count": (
-                        0
-                        if target_reference_points is None
-                        else int(len(target_reference_points))
+                        0 if target_reference_points is None else int(len(target_reference_points))
                     ),
                     "candidate_bounds_gate": {
                         "required_axis_overlaps": ["x", "y", "z"],
@@ -759,9 +684,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                 raise ValueError("candidate_canonical_depth_base_m must be finite and non-negative")
 
             inner_line_gate_enabled = bool(
-                self._anygrasp_config.get(
-                    "candidate_inner_line_gate_enabled", physical_mode
-                )
+                self._anygrasp_config.get("candidate_inner_line_gate_enabled", physical_mode)
             )
             inner_line_margin_m = float(
                 self._anygrasp_config.get("candidate_inner_line_margin_m", 0.0)
@@ -776,14 +699,10 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                 self._anygrasp_config.get("candidate_inner_line_min_overlap_m", 0.0)
             )
             inner_line_require_center = bool(
-                self._anygrasp_config.get(
-                    "candidate_inner_line_require_center_straddle", False
-                )
+                self._anygrasp_config.get("candidate_inner_line_require_center_straddle", False)
             )
             min_open_jaw_clearance_m = float(
-                self._anygrasp_config.get(
-                    "candidate_min_open_jaw_clearance_m", 0.0
-                )
+                self._anygrasp_config.get("candidate_min_open_jaw_clearance_m", 0.0)
             )
             if not np.isfinite(inner_line_margin_m) or inner_line_margin_m < 0.0:
                 raise ValueError("candidate_inner_line_margin_m must be finite and non-negative")
@@ -800,36 +719,26 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                 raise ValueError(
                     "candidate_inner_line_min_overlap_m must be finite and non-negative"
                 )
-            if (
-                not np.isfinite(min_open_jaw_clearance_m)
-                or min_open_jaw_clearance_m < 0.0
-            ):
+            if not np.isfinite(min_open_jaw_clearance_m) or min_open_jaw_clearance_m < 0.0:
                 raise ValueError(
-                    "candidate_min_open_jaw_clearance_m must be finite and "
-                    "non-negative"
+                    "candidate_min_open_jaw_clearance_m must be finite and non-negative"
                 )
             depth_fit_enabled = bool(
-                self._anygrasp_config.get(
-                    "candidate_fit_depth_to_robot_inner_line", False
+                self._anygrasp_config.get("candidate_fit_depth_to_robot_inner_line", False)
+            )
+            depth_fit_min_m = float(self._anygrasp_config.get("candidate_fit_depth_min_m", 0.005))
+            depth_fit_step_m = float(self._anygrasp_config.get("candidate_fit_depth_step_m", 0.005))
+            depth_fit_max_raw = self._anygrasp_config.get("candidate_fit_depth_max_m")
+            depth_fit_max_m = None if depth_fit_max_raw is None else float(depth_fit_max_raw)
+            depth_fit_selection_mode = (
+                str(
+                    self._anygrasp_config.get(
+                        "candidate_fit_depth_selection_mode", "shallowest_pass"
+                    )
                 )
+                .strip()
+                .lower()
             )
-            depth_fit_min_m = float(
-                self._anygrasp_config.get("candidate_fit_depth_min_m", 0.005)
-            )
-            depth_fit_step_m = float(
-                self._anygrasp_config.get("candidate_fit_depth_step_m", 0.005)
-            )
-            depth_fit_max_raw = self._anygrasp_config.get(
-                "candidate_fit_depth_max_m"
-            )
-            depth_fit_max_m = (
-                None if depth_fit_max_raw is None else float(depth_fit_max_raw)
-            )
-            depth_fit_selection_mode = str(
-                self._anygrasp_config.get(
-                    "candidate_fit_depth_selection_mode", "shallowest_pass"
-                )
-            ).strip().lower()
             if not np.isfinite(depth_fit_min_m) or depth_fit_min_m <= 0.0:
                 raise ValueError("candidate_fit_depth_min_m must be finite and positive")
             if not np.isfinite(depth_fit_step_m) or depth_fit_step_m <= 0.0:
@@ -860,29 +769,22 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     )
 
             non_target_collision_audit_enabled = bool(
-                self._anygrasp_config.get(
-                    "candidate_non_target_collision_audit_enabled", False
-                )
+                self._anygrasp_config.get("candidate_non_target_collision_audit_enabled", False)
             )
             non_target_collision_margin_m = float(
-                self._anygrasp_config.get(
-                    "candidate_non_target_collision_margin_m", 0.0
-                )
+                self._anygrasp_config.get("candidate_non_target_collision_margin_m", 0.0)
             )
             if (
                 not np.isfinite(non_target_collision_margin_m)
                 or non_target_collision_margin_m < 0.0
             ):
                 raise ValueError(
-                    "candidate_non_target_collision_margin_m must be finite and "
-                    "non-negative"
+                    "candidate_non_target_collision_margin_m must be finite and non-negative"
                 )
             non_target_collision_preflight = None
             if non_target_collision_audit_enabled:
                 if non_target_points is None or not len(non_target_points):
-                    raise ValueError(
-                        "non-target collision audit requires non-target scene points"
-                    )
+                    raise ValueError("non-target collision audit requires non-target scene points")
                 executor = self._executor or self._get_executor()
                 non_target_collision_preflight = getattr(
                     executor, "candidate_non_target_collision_evidence", None
@@ -900,21 +802,15 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             if not isinstance(raw_preferred_detector_ranks, (list, tuple)):
                 raise ValueError("candidate_preferred_detector_ranks must be a list")
             if any(
-                isinstance(rank, bool)
-                or not isinstance(rank, (int, np.integer))
-                or int(rank) <= 0
+                isinstance(rank, bool) or not isinstance(rank, (int, np.integer)) or int(rank) <= 0
                 for rank in raw_preferred_detector_ranks
             ):
                 raise ValueError(
                     "candidate_preferred_detector_ranks must contain positive integers"
                 )
-            preferred_detector_ranks = tuple(
-                int(rank) for rank in raw_preferred_detector_ranks
-            )
+            preferred_detector_ranks = tuple(int(rank) for rank in raw_preferred_detector_ranks)
             if len(set(preferred_detector_ranks)) != len(preferred_detector_ranks):
-                raise ValueError(
-                    "candidate_preferred_detector_ranks must contain unique ranks"
-                )
+                raise ValueError("candidate_preferred_detector_ranks must contain unique ranks")
             preferred_rank_order = {
                 rank: order for order, rank in enumerate(preferred_detector_ranks)
             }
@@ -922,13 +818,9 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             recenter_enabled = bool(
                 self._anygrasp_config.get("candidate_recenter_to_target_centroid", False)
             )
-            raw_recenter_axes = self._anygrasp_config.get(
-                "candidate_recenter_axes", ["y", "z"]
-            )
+            raw_recenter_axes = self._anygrasp_config.get("candidate_recenter_axes", ["y", "z"])
             if isinstance(raw_recenter_axes, str):
-                recenter_axes = tuple(
-                    axis.strip().lower() for axis in raw_recenter_axes.split(",")
-                )
+                recenter_axes = tuple(axis.strip().lower() for axis in raw_recenter_axes.split(","))
             elif isinstance(raw_recenter_axes, (list, tuple)):
                 recenter_axes = tuple(str(axis).strip().lower() for axis in raw_recenter_axes)
             else:
@@ -942,27 +834,20 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     f"candidate_recenter_axes contains invalid axes: {sorted(invalid_axes)}"
                 )
             if depth_fit_enabled and recenter_enabled and "x" in recenter_axes:
-                raise ValueError(
-                    "candidate depth fitting is incompatible with X-axis recentering"
-                )
-            recenter_reference = str(
-                self._anygrasp_config.get(
-                    "candidate_recenter_reference", "target_centroid"
-                )
-            ).strip().lower()
+                raise ValueError("candidate depth fitting is incompatible with X-axis recentering")
+            recenter_reference = (
+                str(self._anygrasp_config.get("candidate_recenter_reference", "target_centroid"))
+                .strip()
+                .lower()
+            )
             if recenter_reference not in {"target_centroid", "axial_centroid"}:
                 raise ValueError(
                     "candidate_recenter_reference must be target_centroid or axial_centroid"
                 )
-            recenter_max_raw = self._anygrasp_config.get(
-                "candidate_recenter_max_translation_m"
-            )
-            recenter_max_translation = (
-                None if recenter_max_raw is None else float(recenter_max_raw)
-            )
+            recenter_max_raw = self._anygrasp_config.get("candidate_recenter_max_translation_m")
+            recenter_max_translation = None if recenter_max_raw is None else float(recenter_max_raw)
             if recenter_max_translation is not None and (
-                not np.isfinite(recenter_max_translation)
-                or recenter_max_translation < 0.0
+                not np.isfinite(recenter_max_translation) or recenter_max_translation < 0.0
             ):
                 raise ValueError(
                     "candidate_recenter_max_translation_m must be finite and non-negative"
@@ -1002,9 +887,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                         "target_cross_section_geometry_source": (
                             target_cross_section_geometry_source
                         ),
-                        "target_reference_geometry_source": (
-                            target_reference_geometry_source
-                        ),
+                        "target_reference_geometry_source": (target_reference_geometry_source),
                         "target_point_count": 0,
                         "target_cross_section_point_count": 0,
                         "target_reference_point_count": 0,
@@ -1036,15 +919,11 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                             "available": False,
                             "gate_passed": not collision_geometry_enabled,
                         },
-                        "collision_bounds_gate_passed": (
-                            not collision_geometry_enabled
-                        ),
+                        "collision_bounds_gate_passed": (not collision_geometry_enabled),
                         "recenter_applied": False,
                     }
                 local_points = (target_points - translation) @ rotation
-                reference_local_points = (
-                    target_reference_points - translation
-                ) @ rotation
+                reference_local_points = (target_reference_points - translation) @ rotation
                 width = max(0.0, float(candidate.width))
                 height = max(0.0, float(candidate.height))
                 depth = max(0.0, float(candidate.depth))
@@ -1053,9 +932,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     & (local_points[:, 0] < depth)
                     & (np.abs(local_points[:, 2]) < height / 2.0)
                 )
-                inner_mask = axial_height_mask & (
-                    np.abs(local_points[:, 1]) < width / 2.0
-                )
+                inner_mask = axial_height_mask & (np.abs(local_points[:, 1]) < width / 2.0)
                 axial_points = local_points[axial_height_mask]
                 inner_points = local_points[inner_mask]
                 y_min = float(axial_points[:, 1].min()) if len(axial_points) else None
@@ -1064,9 +941,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     y_min is not None and y_max is not None and y_min <= 0.0 <= y_max
                 )
                 center_offset = (
-                    abs((y_min + y_max) / 2.0)
-                    if y_min is not None and y_max is not None
-                    else None
+                    abs((y_min + y_max) / 2.0) if y_min is not None and y_max is not None else None
                 )
                 reference_bounds_min = reference_local_points.min(axis=0)
                 reference_bounds_max = reference_local_points.max(axis=0)
@@ -1074,9 +949,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     [-canonical_depth_base_m, -width / 2.0, -height / 2.0],
                     dtype=np.float64,
                 )
-                jaw_bounds_max = np.array(
-                    [depth, width / 2.0, height / 2.0], dtype=np.float64
-                )
+                jaw_bounds_max = np.array([depth, width / 2.0, height / 2.0], dtype=np.float64)
                 bounds_overlaps = np.maximum(
                     0.0,
                     np.minimum(reference_bounds_max, jaw_bounds_max)
@@ -1126,9 +999,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     "gate_passed": collision_bounds_gate_passed,
                 }
                 target_centroid_local = np.mean(reference_local_points, axis=0)
-                axial_centroid_local = (
-                    np.mean(axial_points, axis=0) if len(axial_points) else None
-                )
+                axial_centroid_local = np.mean(axial_points, axis=0) if len(axial_points) else None
                 axial_centroid_camera = (
                     translation + rotation @ axial_centroid_local
                     if axial_centroid_local is not None
@@ -1139,9 +1010,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     if axial_centroid_camera is not None
                     else None
                 )
-                inner_centroid_local = (
-                    np.mean(inner_points, axis=0) if len(inner_points) else None
-                )
+                inner_centroid_local = np.mean(inner_points, axis=0) if len(inner_points) else None
                 inner_centroid_camera = (
                     translation + rotation @ inner_centroid_local
                     if inner_centroid_local is not None
@@ -1170,12 +1039,8 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                 ]
                 return {
                     "target_geometry_source": target_cross_section_geometry_source,
-                    "target_cross_section_geometry_source": (
-                        target_cross_section_geometry_source
-                    ),
-                    "target_reference_geometry_source": (
-                        target_reference_geometry_source
-                    ),
+                    "target_cross_section_geometry_source": (target_cross_section_geometry_source),
+                    "target_reference_geometry_source": (target_reference_geometry_source),
                     "target_point_count": int(len(target_points)),
                     "target_cross_section_point_count": int(len(target_points)),
                     "target_reference_point_count": int(len(target_reference_points)),
@@ -1186,9 +1051,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     "center_straddled": center_straddled,
                     "target_center_offset_y_m": center_offset,
                     "target_span_y_m": (
-                        y_max - y_min
-                        if y_min is not None and y_max is not None
-                        else None
+                        y_max - y_min if y_min is not None and y_max is not None else None
                     ),
                     "target_local_bounds": reference_local_bounds,
                     "target_cross_section_local_bounds": cross_section_local_bounds,
@@ -1235,9 +1098,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                         "available": False,
                         "gate_enabled": True,
                         "gate_passed": False,
-                        "target_geometry_source": (
-                            target_cross_section_geometry_source
-                        ),
+                        "target_geometry_source": (target_cross_section_geometry_source),
                         "reason": "RGB-D target mask points are unavailable",
                     }
                 target_local_points = (target_points - translation) @ rotation
@@ -1246,16 +1107,10 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     target_local_points,
                     margin_m=inner_line_margin_m,
                 )
-                line_count = int(
-                    evidence.get("target_points_in_inner_line_count", 0)
-                )
-                line_fraction = float(
-                    evidence.get("target_points_in_inner_line_fraction", 0.0)
-                )
+                line_count = int(evidence.get("target_points_in_inner_line_count", 0))
+                line_fraction = float(evidence.get("target_points_in_inner_line_fraction", 0.0))
                 line_overlap = float(evidence.get("target_inner_line_overlap_m", 0.0))
-                line_centered = bool(
-                    evidence.get("inner_line_center_straddled", False)
-                )
+                line_centered = bool(evidence.get("inner_line_center_straddled", False))
                 passed = bool(
                     evidence.get("available", False)
                     and line_count >= inner_line_min_points
@@ -1267,9 +1122,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     {
                         "gate_enabled": True,
                         "gate_passed": passed,
-                        "target_geometry_source": (
-                            target_cross_section_geometry_source
-                        ),
+                        "target_geometry_source": (target_cross_section_geometry_source),
                         "required_target_points": inner_line_min_points,
                         "required_target_fraction": inner_line_min_fraction,
                         "required_overlap_m": inner_line_min_overlap_m,
@@ -1296,9 +1149,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                         "gate_passed": False,
                         "reason": "target collision boundary points are unavailable",
                     }
-                target_local_points = (
-                    target_reference_points - translation
-                ) @ rotation
+                target_local_points = (target_reference_points - translation) @ rotation
                 evidence = inner_line_preflight(
                     candidate,
                     target_local_points,
@@ -1314,9 +1165,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                         "gate_passed": passed,
                         "target_geometry_source": target_reference_geometry_source,
                         "requires_continuous_cross_section_geometry": True,
-                        "required_minimum_inner_clearance_m": (
-                            min_open_jaw_clearance_m
-                        ),
+                        "required_minimum_inner_clearance_m": (min_open_jaw_clearance_m),
                         "sampled_point_count_is_diagnostic_only": True,
                         "uses_tunable_point_count_threshold": False,
                     }
@@ -1327,16 +1176,10 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                 geometry: dict[str, Any],
             ) -> tuple[bool, bool, bool]:
                 dense_passed = bool(
-                    int(geometry["inner_target_point_count"])
-                    >= min_inner_points
-                    and (
-                        not require_center_straddle
-                        or bool(geometry["center_straddled"])
-                    )
+                    int(geometry["inner_target_point_count"]) >= min_inner_points
+                    and (not require_center_straddle or bool(geometry["center_straddled"]))
                 )
-                collision_passed = bool(
-                    geometry.get("collision_bounds_gate_passed", False)
-                )
+                collision_passed = bool(geometry.get("collision_bounds_gate_passed", False))
                 combined_passed = dense_passed and collision_passed
                 geometry["dense_target_volume_gate"] = {
                     "gate_passed": dense_passed,
@@ -1353,10 +1196,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                 ).reshape(3)
                 approach_world /= np.linalg.norm(approach_world) + 1e-12
                 approach_world_z = float(approach_world[2])
-                if (
-                    max_world_approach_z is not None
-                    and approach_world_z > max_world_approach_z
-                ):
+                if max_world_approach_z is not None and approach_world_z > max_world_approach_z:
                     rejected_approach += 1
                     continue
                 if float(candidate.width) < min_candidate_width:
@@ -1370,9 +1210,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     continue
                 original_translation = translation.copy()
                 original_geometry = target_geometry_for(candidate, rotation, translation)
-                original_snapshot = dict(
-                    getattr(candidate, "anygrasp_original_snapshot", {})
-                )
+                original_snapshot = dict(getattr(candidate, "anygrasp_original_snapshot", {}))
                 original_geometry["candidate_original_snapshot"] = original_snapshot
                 target_geometry = original_geometry
 
@@ -1390,9 +1228,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                             recenter_reference,
                         )
                         continue
-                    recenter_reference_local = np.asarray(
-                        reference_value, dtype=np.float64
-                    )
+                    recenter_reference_local = np.asarray(reference_value, dtype=np.float64)
                     jaw_box_center_local = np.asarray(
                         original_geometry["jaw_box_center_local"], dtype=np.float64
                     )
@@ -1400,8 +1236,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     for axis in recenter_axes:
                         axis_index = axis_indices[axis]
                         recenter_delta_local[axis_index] = (
-                            recenter_reference_local[axis_index]
-                            - jaw_box_center_local[axis_index]
+                            recenter_reference_local[axis_index] - jaw_box_center_local[axis_index]
                         )
                     recenter_delta_camera = rotation @ recenter_delta_local
                     recenter_distance = float(np.linalg.norm(recenter_delta_camera))
@@ -1429,9 +1264,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                             "recenter_axes": list(recenter_axes),
                             "recenter_reference": recenter_reference,
                             "recenter_reference_local": recenter_reference_local.tolist(),
-                            "recenter_original_translation_camera": (
-                                original_translation.tolist()
-                            ),
+                            "recenter_original_translation_camera": (original_translation.tolist()),
                             "recenter_delta_local": recenter_delta_local.tolist(),
                             "recenter_delta_camera": recenter_delta_camera.tolist(),
                             "recenter_translation_m": recenter_distance,
@@ -1465,9 +1298,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                 if depth_fit_enabled:
                     sdk_depth = float(original_snapshot.get("depth", candidate.depth))
                     probe_ceiling_depth = (
-                        sdk_depth
-                        if depth_fit_max_m is None
-                        else min(sdk_depth, depth_fit_max_m)
+                        sdk_depth if depth_fit_max_m is None else min(sdk_depth, depth_fit_max_m)
                     )
                     depth_fit_audit: dict[str, Any] = {
                         "enabled": True,
@@ -1547,13 +1378,9 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                         open_jaw_passed, open_jaw_evidence = open_jaw_gate_for(
                             probe_candidate, rotation, probe_translation
                         )
-                        probe_geometry["robot_open_jaw_containment"] = (
-                            open_jaw_evidence
-                        )
+                        probe_geometry["robot_open_jaw_containment"] = open_jaw_evidence
                         open_jaw_y_fit: dict[str, Any] = {
-                            "enabled": bool(
-                                recenter_enabled and "y" in recenter_axes
-                            ),
+                            "enabled": bool(recenter_enabled and "y" in recenter_axes),
                             "attempted": False,
                             "applied": False,
                             "axis": "y",
@@ -1578,36 +1405,21 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                             and isinstance(open_y_interval, (list, tuple))
                             and len(open_y_interval) == 2
                         ):
-                            target_y = np.asarray(
-                                continuous_y_bounds, dtype=np.float64
-                            )
-                            open_y = np.asarray(
-                                open_y_interval, dtype=np.float64
-                            )
+                            target_y = np.asarray(continuous_y_bounds, dtype=np.float64)
+                            open_y = np.asarray(open_y_interval, dtype=np.float64)
                             target_span_y = float(target_y[1] - target_y[0])
                             open_span_y = float(open_y[1] - open_y[0])
-                            shift_local_y = float(
-                                target_y.mean() - open_y.mean()
-                            )
-                            shift_local = np.array(
-                                [0.0, shift_local_y, 0.0], dtype=np.float64
-                            )
+                            shift_local_y = float(target_y.mean() - open_y.mean())
+                            shift_local = np.array([0.0, shift_local_y, 0.0], dtype=np.float64)
                             shift_camera = rotation @ shift_local
-                            proposed_translation = (
-                                probe_translation + shift_camera
-                            )
+                            proposed_translation = probe_translation + shift_camera
                             cumulative_recenter = float(
-                                np.linalg.norm(
-                                    proposed_translation - original_translation
-                                )
+                                np.linalg.norm(proposed_translation - original_translation)
                             )
-                            fits_open_span = bool(
-                                target_span_y <= open_span_y + 1e-8
-                            )
+                            fits_open_span = bool(target_span_y <= open_span_y + 1e-8)
                             within_recenter_limit = bool(
                                 recenter_max_translation is None
-                                or cumulative_recenter
-                                <= recenter_max_translation
+                                or cumulative_recenter <= recenter_max_translation
                             )
                             open_jaw_y_fit.update(
                                 {
@@ -1617,13 +1429,9 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                                     "shift_local_y_m": shift_local_y,
                                     "shift_camera_m": shift_camera.tolist(),
                                     "cumulative_recenter_m": cumulative_recenter,
-                                    "maximum_recenter_m": (
-                                        recenter_max_translation
-                                    ),
+                                    "maximum_recenter_m": (recenter_max_translation),
                                     "fits_open_span": fits_open_span,
-                                    "within_recenter_limit": (
-                                        within_recenter_limit
-                                    ),
+                                    "within_recenter_limit": (within_recenter_limit),
                                 }
                             )
                             if fits_open_span and within_recenter_limit:
@@ -1645,9 +1453,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                                     rotation,
                                     proposed_translation,
                                 )
-                                proposed_geometry["robot_inner_grasp_line"] = (
-                                    proposed_line_evidence
-                                )
+                                proposed_geometry["robot_inner_grasp_line"] = proposed_line_evidence
                                 (
                                     proposed_open_jaw_passed,
                                     proposed_open_jaw_evidence,
@@ -1656,9 +1462,9 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                                     rotation,
                                     proposed_translation,
                                 )
-                                proposed_geometry[
-                                    "robot_open_jaw_containment"
-                                ] = proposed_open_jaw_evidence
+                                proposed_geometry["robot_open_jaw_containment"] = (
+                                    proposed_open_jaw_evidence
+                                )
                                 proposed_combined_passed = bool(
                                     proposed_target_volume_passed
                                     and proposed_line_passed
@@ -1669,43 +1475,25 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                                         "proposed_target_volume_passed": (
                                             proposed_target_volume_passed
                                         ),
-                                        "proposed_inner_line_passed": (
-                                            proposed_line_passed
-                                        ),
-                                        "proposed_open_jaw_passed": (
-                                            proposed_open_jaw_passed
-                                        ),
-                                        "proposed_combined_passed": (
-                                            proposed_combined_passed
-                                        ),
+                                        "proposed_inner_line_passed": (proposed_line_passed),
+                                        "proposed_open_jaw_passed": (proposed_open_jaw_passed),
+                                        "proposed_combined_passed": (proposed_combined_passed),
                                     }
                                 )
                                 if proposed_combined_passed:
                                     probe_translation = proposed_translation
                                     probe_geometry = proposed_geometry
-                                    target_volume_passed = (
-                                        proposed_target_volume_passed
-                                    )
-                                    dense_target_volume_passed = (
-                                        proposed_dense_passed
-                                    )
-                                    collision_bounds_passed = (
-                                        proposed_collision_passed
-                                    )
+                                    target_volume_passed = proposed_target_volume_passed
+                                    dense_target_volume_passed = proposed_dense_passed
+                                    collision_bounds_passed = proposed_collision_passed
                                     line_passed = proposed_line_passed
                                     line_evidence = proposed_line_evidence
-                                    open_jaw_passed = (
-                                        proposed_open_jaw_passed
-                                    )
-                                    open_jaw_evidence = (
-                                        proposed_open_jaw_evidence
-                                    )
+                                    open_jaw_passed = proposed_open_jaw_passed
+                                    open_jaw_evidence = proposed_open_jaw_evidence
                                     open_jaw_y_fit["applied"] = True
                         probe_geometry["open_jaw_y_fit"] = open_jaw_y_fit
                         combined_passed = bool(
-                            target_volume_passed
-                            and line_passed
-                            and open_jaw_passed
+                            target_volume_passed and line_passed and open_jaw_passed
                         )
                         any_target_volume_passed |= target_volume_passed
                         any_target_volume_and_inner_line_passed |= bool(
@@ -1713,13 +1501,10 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                         )
                         any_all_gates_passed |= combined_passed
                         any_dense_collision_rejection |= bool(
-                            dense_target_volume_passed
-                            and not collision_bounds_passed
+                            dense_target_volume_passed and not collision_bounds_passed
                         )
 
-                        cross_section_bounds = line_evidence.get(
-                            "target_cross_section_x_bounds_m"
-                        )
+                        cross_section_bounds = line_evidence.get("target_cross_section_x_bounds_m")
                         target_cross_section_center_m = None
                         if (
                             isinstance(cross_section_bounds, (list, tuple))
@@ -1727,12 +1512,8 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                         ):
                             bounds_array = np.asarray(cross_section_bounds, dtype=float)
                             if np.all(np.isfinite(bounds_array)):
-                                target_cross_section_center_m = float(
-                                    bounds_array.mean()
-                                )
-                        inner_line_center_m = line_evidence.get(
-                            "inner_line_center_x_m"
-                        )
+                                target_cross_section_center_m = float(bounds_array.mean())
+                        inner_line_center_m = line_evidence.get("inner_line_center_x_m")
                         if inner_line_center_m is not None:
                             inner_line_center_m = float(inner_line_center_m)
                             if not np.isfinite(inner_line_center_m):
@@ -1743,41 +1524,26 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                             and inner_line_center_m is not None
                         ):
                             center_offset_m = abs(
-                                inner_line_center_m
-                                - target_cross_section_center_m
+                                inner_line_center_m - target_cross_section_center_m
                             )
-                        overlap_m = float(
-                            line_evidence.get("target_inner_line_overlap_m", 0.0)
-                        )
+                        overlap_m = float(line_evidence.get("target_inner_line_overlap_m", 0.0))
                         overlap_fraction = float(
-                            line_evidence.get(
-                                "target_inner_line_overlap_fraction", 0.0
-                            )
+                            line_evidence.get("target_inner_line_overlap_fraction", 0.0)
                         )
                         line_target_count = int(
-                            line_evidence.get(
-                                "target_points_in_inner_line_count", 0
-                            )
+                            line_evidence.get("target_points_in_inner_line_count", 0)
                         )
-                        collision_bounds_evidence = probe_geometry.get(
-                            "collision_bounds_gate", {}
-                        )
+                        collision_bounds_evidence = probe_geometry.get("collision_bounds_gate", {})
                         probe_audit = {
                             "depth_m": float(probe_depth),
-                            "effective_translation_camera": (
-                                probe_translation.tolist()
-                            ),
+                            "effective_translation_camera": (probe_translation.tolist()),
                             "open_jaw_y_fit": open_jaw_y_fit,
                             "target_volume_passed": target_volume_passed,
-                            "dense_target_volume_passed": (
-                                dense_target_volume_passed
-                            ),
+                            "dense_target_volume_passed": (dense_target_volume_passed),
                             "target_cross_section_geometry_source": (
                                 target_cross_section_geometry_source
                             ),
-                            "target_reference_geometry_source": (
-                                target_reference_geometry_source
-                            ),
+                            "target_reference_geometry_source": (target_reference_geometry_source),
                             "collision_bounds_passed": collision_bounds_passed,
                             "collision_local_bounds": collision_bounds_evidence.get(
                                 "target_reference_bounds_m"
@@ -1786,64 +1552,40 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                                 collision_bounds_evidence.get("axis_overlap_m")
                             ),
                             "collision_positive_axis_overlap": (
-                                collision_bounds_evidence.get(
-                                    "positive_axis_overlap"
-                                )
+                                collision_bounds_evidence.get("positive_axis_overlap")
                             ),
                             "collision_y_center_straddled": (
-                                collision_bounds_evidence.get(
-                                    "y_center_straddled"
-                                )
+                                collision_bounds_evidence.get("y_center_straddled")
                             ),
                             "collision_z_center_straddled": (
-                                collision_bounds_evidence.get(
-                                    "z_center_straddled"
-                                )
+                                collision_bounds_evidence.get("z_center_straddled")
                             ),
                             "inner_target_point_count": int(
                                 probe_geometry["inner_target_point_count"]
                             ),
-                            "target_center_straddled": bool(
-                                probe_geometry["center_straddled"]
-                            ),
-                            "inner_line_available": bool(
-                                line_evidence.get("available", False)
-                            ),
+                            "target_center_straddled": bool(probe_geometry["center_straddled"]),
+                            "inner_line_available": bool(line_evidence.get("available", False)),
                             "inner_line_passed": line_passed,
                             "inner_line_target_point_count": line_target_count,
                             "inner_line_target_fraction": float(
-                                line_evidence.get(
-                                    "target_points_in_inner_line_fraction", 0.0
-                                )
+                                line_evidence.get("target_points_in_inner_line_fraction", 0.0)
                             ),
                             "inner_line_overlap_m": overlap_m,
                             "inner_line_overlap_fraction": overlap_fraction,
                             "inner_line_center_m": inner_line_center_m,
-                            "target_cross_section_center_m": (
-                                target_cross_section_center_m
-                            ),
+                            "target_cross_section_center_m": (target_cross_section_center_m),
                             "inner_line_center_offset_m": center_offset_m,
                             "inner_line_center_straddled": bool(
-                                line_evidence.get(
-                                    "inner_line_center_straddled", False
-                                )
+                                line_evidence.get("inner_line_center_straddled", False)
                             ),
-                            "open_jaw_available": bool(
-                                open_jaw_evidence.get("available", False)
-                            ),
+                            "open_jaw_available": bool(open_jaw_evidence.get("available", False)),
                             "open_jaw_passed": open_jaw_passed,
-                            "open_jaw_gap_m": open_jaw_evidence.get(
-                                "open_jaw_gap_m"
-                            ),
+                            "open_jaw_gap_m": open_jaw_evidence.get("open_jaw_gap_m"),
                             "open_jaw_sampled_cross_section_point_count": (
-                                open_jaw_evidence.get(
-                                    "open_jaw_target_cross_section_point_count"
-                                )
+                                open_jaw_evidence.get("open_jaw_target_cross_section_point_count")
                             ),
                             "open_jaw_sampled_cross_section_y_bounds_m": (
-                                open_jaw_evidence.get(
-                                    "open_jaw_target_cross_section_y_bounds_m"
-                                )
+                                open_jaw_evidence.get("open_jaw_target_cross_section_y_bounds_m")
                             ),
                             "open_jaw_continuous_cross_section_intersects": (
                                 open_jaw_evidence.get(
@@ -1856,9 +1598,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                                 )
                             ),
                             "open_jaw_continuous_inner_clearance_m": (
-                                open_jaw_evidence.get(
-                                    "open_jaw_continuous_inner_clearance_m"
-                                )
+                                open_jaw_evidence.get("open_jaw_continuous_inner_clearance_m")
                             ),
                             "open_jaw_geometry_method": open_jaw_evidence.get(
                                 "open_jaw_geometry_method"
@@ -1873,9 +1613,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                         if combined_passed:
                             if depth_fit_selection_mode == "centered_coverage":
                                 selection_key = (
-                                    float("inf")
-                                    if center_offset_m is None
-                                    else center_offset_m,
+                                    float("inf") if center_offset_m is None else center_offset_m,
                                     -overlap_fraction,
                                     -overlap_m,
                                     -float(line_target_count),
@@ -1906,9 +1644,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                             "inner_line_center_offset_m": selected_probe_audit[
                                 "inner_line_center_offset_m"
                             ],
-                            "inner_line_overlap_m": selected_probe_audit[
-                                "inner_line_overlap_m"
-                            ],
+                            "inner_line_overlap_m": selected_probe_audit["inner_line_overlap_m"],
                             "inner_line_overlap_fraction": selected_probe_audit[
                                 "inner_line_overlap_fraction"
                             ],
@@ -1945,9 +1681,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                             )
                             rejected_open_jaw += 1
                         depth_fit_audit["rejection_stage"] = rejection_stage
-                        depth_fit_audit["any_target_volume_passed"] = (
-                            any_target_volume_passed
-                        )
+                        depth_fit_audit["any_target_volume_passed"] = any_target_volume_passed
                         depth_fit_audit["any_target_volume_and_inner_line_passed"] = (
                             any_target_volume_and_inner_line_passed
                         )
@@ -1987,9 +1721,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                         if key.startswith("recenter")
                     }
                     candidate.depth = selected_depth
-                    translation = np.asarray(
-                        selected_translation, dtype=np.float64
-                    ).reshape(3)
+                    translation = np.asarray(selected_translation, dtype=np.float64).reshape(3)
                     candidate.translation = translation.astype(np.float32)
                     selected_geometry["candidate_original_snapshot"] = original_snapshot
                     selected_geometry.update(recenter_audit)
@@ -2008,9 +1740,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
 
                 inner_count = int(target_geometry["inner_target_point_count"])
                 center_straddled = bool(target_geometry["center_straddled"])
-                jaw_center_distance = target_geometry[
-                    "jaw_box_center_to_target_centroid_m"
-                ]
+                jaw_center_distance = target_geometry["jaw_box_center_to_target_centroid_m"]
                 (
                     target_volume_passed,
                     dense_target_volume_passed,
@@ -2020,9 +1750,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     rejected_target_volume += 1
                     if dense_target_volume_passed and not collision_bounds_passed:
                         rejected_collision_bounds += 1
-                    collision_bounds_evidence = target_geometry.get(
-                        "collision_bounds_gate", {}
-                    )
+                    collision_bounds_evidence = target_geometry.get("collision_bounds_gate", {})
                     logger.warning(
                         "rejecting AnyGrasp candidate outside target closing volume: "
                         "inner_points=%d/%d required=%d center_straddled=%s required=%s "
@@ -2061,9 +1789,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                         inner_line_evidence.get("target_points_in_inner_line_count", 0)
                     )
                     line_fraction = float(
-                        inner_line_evidence.get(
-                            "target_points_in_inner_line_fraction", 0.0
-                        )
+                        inner_line_evidence.get("target_points_in_inner_line_fraction", 0.0)
                     )
                     line_overlap = float(
                         inner_line_evidence.get("target_inner_line_overlap_m", 0.0)
@@ -2073,9 +1799,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     )
                     if not line_passed:
                         rejected_inner_line += 1
-                        snapshot = getattr(
-                            candidate, "anygrasp_original_snapshot", {}
-                        )
+                        snapshot = getattr(candidate, "anygrasp_original_snapshot", {})
                         logger.warning(
                             "rejecting robot-incompatible AnyGrasp candidate: "
                             "rank=%s score=%.4f depth=%.4f original_translation=%s "
@@ -2097,35 +1821,25 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                             inner_line_min_overlap_m,
                             line_centered,
                             inner_line_require_center,
-                            inner_line_evidence.get(
-                                "effective_inner_line_x_interval_m"
-                            ),
+                            inner_line_evidence.get("effective_inner_line_x_interval_m"),
                             inner_line_evidence.get("target_cross_section_x_bounds_m"),
                             inner_line_evidence.get("unavailable_reason"),
                         )
                         continue
 
                 if collision_geometry_enabled:
-                    existing_open_jaw = target_geometry.get(
-                        "robot_open_jaw_containment"
-                    )
+                    existing_open_jaw = target_geometry.get("robot_open_jaw_containment")
                     if isinstance(existing_open_jaw, dict):
                         open_jaw_evidence = existing_open_jaw
-                        open_jaw_passed = bool(
-                            open_jaw_evidence.get("gate_passed", False)
-                        )
+                        open_jaw_passed = bool(open_jaw_evidence.get("gate_passed", False))
                     else:
                         open_jaw_passed, open_jaw_evidence = open_jaw_gate_for(
                             candidate, rotation, translation
                         )
-                        target_geometry["robot_open_jaw_containment"] = (
-                            open_jaw_evidence
-                        )
+                        target_geometry["robot_open_jaw_containment"] = open_jaw_evidence
                     if not open_jaw_passed:
                         rejected_open_jaw += 1
-                        snapshot = getattr(
-                            candidate, "anygrasp_original_snapshot", {}
-                        )
+                        snapshot = getattr(candidate, "anygrasp_original_snapshot", {})
                         logger.warning(
                             "rejecting AnyGrasp candidate outside actual open jaw: "
                             "rank=%s score=%.4f depth=%.4f available=%s "
@@ -2137,21 +1851,11 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                             float(candidate.depth),
                             bool(open_jaw_evidence.get("available", False)),
                             open_jaw_evidence.get("open_jaw_gap_m"),
-                            open_jaw_evidence.get(
-                                "open_jaw_target_cross_section_point_count"
-                            ),
-                            open_jaw_evidence.get(
-                                "open_jaw_target_cross_section_y_bounds_m"
-                            ),
-                            open_jaw_evidence.get(
-                                "open_jaw_continuous_cross_section_intersects"
-                            ),
-                            open_jaw_evidence.get(
-                                "open_jaw_continuous_cross_section_y_bounds_m"
-                            ),
-                            open_jaw_evidence.get(
-                                "open_jaw_continuous_inner_clearance_m"
-                            ),
+                            open_jaw_evidence.get("open_jaw_target_cross_section_point_count"),
+                            open_jaw_evidence.get("open_jaw_target_cross_section_y_bounds_m"),
+                            open_jaw_evidence.get("open_jaw_continuous_cross_section_intersects"),
+                            open_jaw_evidence.get("open_jaw_continuous_cross_section_y_bounds_m"),
+                            open_jaw_evidence.get("open_jaw_continuous_inner_clearance_m"),
                             open_jaw_evidence.get("target_between_open_fingers"),
                             open_jaw_evidence.get("unavailable_reason")
                             or open_jaw_evidence.get("reason"),
@@ -2159,43 +1863,31 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                         continue
 
                 if non_target_collision_audit_enabled:
-                    non_target_local_points = (
-                        non_target_points - translation
-                    ) @ rotation
+                    non_target_local_points = (non_target_points - translation) @ rotation
                     non_target_collision = non_target_collision_preflight(
                         candidate,
                         non_target_local_points,
                         margin_m=non_target_collision_margin_m,
                     )
-                    target_geometry["non_target_collision_audit"] = (
-                        non_target_collision
-                    )
+                    target_geometry["non_target_collision_audit"] = non_target_collision
                     logger.warning(
                         "AnyGrasp non-target collision audit: rank=%s depth=%.4f "
                         "available=%s points_in_component_aabb=%s/%d components=%s",
-                        getattr(candidate, "anygrasp_original_snapshot", {}).get(
-                            "rank"
-                        ),
+                        getattr(candidate, "anygrasp_original_snapshot", {}).get("rank"),
                         float(candidate.depth),
                         bool(non_target_collision.get("available", False)),
-                        non_target_collision.get(
-                            "non_target_points_in_any_component_aabb"
-                        ),
+                        non_target_collision.get("non_target_points_in_any_component_aabb"),
                         int(len(non_target_points)),
                         [
                             {
                                 "role": component.get("role"),
                                 "name": component.get("name"),
-                                "points": component.get(
-                                    "non_target_points_in_aabb"
-                                ),
+                                "points": component.get("non_target_points_in_aabb"),
                                 "distance_m": component.get(
                                     "minimum_non_target_distance_to_aabb_m"
                                 ),
                             }
-                            for component in non_target_collision.get(
-                                "components", []
-                            )
+                            for component in non_target_collision.get("components", [])
                         ],
                     )
 
@@ -2205,18 +1897,10 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             def detector_rank_preference(candidate: Any) -> int:
                 snapshot = getattr(candidate, "anygrasp_original_snapshot", {})
                 raw_rank = snapshot.get("rank") if isinstance(snapshot, dict) else None
-                if isinstance(raw_rank, bool) or not isinstance(
-                    raw_rank, (int, np.integer)
-                ):
+                if isinstance(raw_rank, bool) or not isinstance(raw_rank, (int, np.integer)):
                     return len(preferred_rank_order)
-                return preferred_rank_order.get(
-                    int(raw_rank), len(preferred_rank_order)
-                )
+                return preferred_rank_order.get(int(raw_rank), len(preferred_rank_order))
 
-            # The explicit detector-rank preference is a diagnostic ordering override,
-            # not a geometry gate. All candidates reaching this point already passed
-            # the target-volume and robot inner-line checks. Preserve the existing
-            # geometry ordering for candidates with the same preference priority.
             geometry_candidates.sort(
                 key=lambda item: (
                     detector_rank_preference(item[0]),
@@ -2308,18 +1992,14 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     target_geometry["target_local_bounds"],
                 )
 
-            min_translation = float(
-                self._anygrasp_config.get("candidate_min_translation_m", 0.015)
-            )
+            min_translation = float(self._anygrasp_config.get("candidate_min_translation_m", 0.015))
             min_angle_deg = float(
                 self._anygrasp_config.get("candidate_min_approach_angle_deg", 10.0)
             )
             if not np.isfinite(min_translation) or min_translation < 0.0:
                 raise ValueError("candidate_min_translation_m must be finite and non-negative")
             if not np.isfinite(min_angle_deg) or not 0.0 <= min_angle_deg <= 180.0:
-                raise ValueError(
-                    "candidate_min_approach_angle_deg must be finite and in [0, 180]"
-                )
+                raise ValueError("candidate_min_approach_angle_deg must be finite and in [0, 180]")
             min_angle = np.deg2rad(min_angle_deg)
 
             def is_similar(first: np.ndarray, second: np.ndarray) -> bool:
@@ -2375,8 +2055,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     "selection_mode": depth_fit_selection_mode,
                     "audited_candidate_count": len(depth_fit_audits),
                     "selected_candidate_count": sum(
-                        audit.get("selected_depth_m") is not None
-                        for audit in depth_fit_audits
+                        audit.get("selected_depth_m") is not None for audit in depth_fit_audits
                     ),
                     "candidates": depth_fit_audits,
                 },
@@ -2384,9 +2063,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     "enabled": non_target_collision_audit_enabled,
                     "margin_m": non_target_collision_margin_m,
                     "audited_candidate_count": (
-                        len(geometry_candidates)
-                        if non_target_collision_audit_enabled
-                        else 0
+                        len(geometry_candidates) if non_target_collision_audit_enabled else 0
                     ),
                     "candidates": [
                         {
@@ -2395,14 +2072,12 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                             ).get("rank"),
                             "score": float(candidate.score),
                             "sdk_original_depth_m": float(
-                                getattr(
-                                    candidate, "anygrasp_original_snapshot", {}
-                                ).get("depth", candidate.depth)
+                                getattr(candidate, "anygrasp_original_snapshot", {}).get(
+                                    "depth", candidate.depth
+                                )
                             ),
                             "effective_depth_m": float(candidate.depth),
-                            "evidence": geometry.get(
-                                "non_target_collision_audit"
-                            ),
+                            "evidence": geometry.get("non_target_collision_audit"),
                         }
                         for candidate, _world_z, geometry in geometry_candidates
                     ],
@@ -2473,6 +2148,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
 
         try:
             import omnigibson as og
+
             scene = og.sim.scenes[0]
             objects = list(getattr(scene, "objects", ()))
             target_normalized = normalized(target_name)
@@ -2528,8 +2204,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                     getattr(obj, "prim_path", ""),
                 )
                 if any(
-                    "".join(ch for ch in str(identity).lower() if ch.isalnum())
-                    == normalized_name
+                    "".join(ch for ch in str(identity).lower() if ch.isalnum()) == normalized_name
                     for identity in identities
                 ):
                     return obj
@@ -2604,12 +2279,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
         if outcome is None:
             self._last_execution_error = "placement execution produced neither action nor outcome"
             return None
-        # ``last_action`` has already been applied by the environment on the
-        # preceding control step.  A terminal placement result must not carry
-        # it as a fresh runtime action: doing so makes the closed-loop runner
-        # execute the stale frame once more and call this skill again after
-        # the gripper has released the object.  Keep only the action keys as
-        # audit evidence and return an action-free terminal result.
+
         evidence = getattr(outcome, "physical_evidence", None)
         if isinstance(evidence, dict):
             evidence.setdefault(
@@ -2618,9 +2288,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             )
         final_action: dict[str, Any] = {}
         self._active_execution = None
-        return self._build_place_result(
-            subtask, selection, outcome, final_action, start
-        )
+        return self._build_place_result(subtask, selection, outcome, final_action, start)
 
     def _start_place_execution(self, subtask: Subtask, executor: Any) -> bool:
         destination = self._find_scene_object_by_name(self._destination_name(subtask))
@@ -2637,21 +2305,15 @@ class AnyGraspSkill(PolicyBackedVLASkill):
         if raw_cell_index is None:
             raw_cell_index = subtask.parameters.get("cell_index")
         cell_index = None if raw_cell_index is None else int(raw_cell_index)
-        grid_shape = self._anygrasp_config.get(
-            "place_inside_grid_shape", [1, 3]
-        )
+        grid_shape = self._anygrasp_config.get("place_inside_grid_shape", [1, 3])
         if not isinstance(grid_shape, (list, tuple)) or len(grid_shape) != 2:
-            self._last_execution_error = (
-                "place_inside_grid_shape must contain [rows, columns]"
-            )
+            self._last_execution_error = "place_inside_grid_shape must contain [rows, columns]"
             return False
         self._active_execution = begin_place(
             destination,
             cell_index=cell_index,
             grid_shape=[int(value) for value in grid_shape],
-            cell_margin_m=float(
-                self._anygrasp_config.get("place_inside_cell_margin_m", 0.005)
-            ),
+            cell_margin_m=float(self._anygrasp_config.get("place_inside_cell_margin_m", 0.005)),
         )
         self._active_source = "anygrasp_place_inside"
         return True
@@ -2666,16 +2328,13 @@ class AnyGraspSkill(PolicyBackedVLASkill):
         if max_detection_batches > 20:
             raise ValueError("candidate_detection_refreshes must be at most 20")
         target_obj = self._find_target_object(subtask)
-        if target_obj is None and bool(
-            self._anygrasp_config.get("require_target_object", True)
-        ):
+        if target_obj is None and bool(self._anygrasp_config.get("require_target_object", True)):
             self._last_execution_error = (
                 f"target object '{self._target_name(subtask)}' not found in scene"
             )
             return False
         while (
-            not self._candidate_queue
-            and self._candidate_detection_batches < max_detection_batches
+            not self._candidate_queue and self._candidate_detection_batches < max_detection_batches
         ):
             previous_execution_error = self._last_execution_error
             candidates, packet = self._detect_candidates(subtask, target_obj)
@@ -2707,9 +2366,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             saved_audit = json.loads(json.dumps(audit))
             self._candidate_detection_audits.append(saved_audit)
             self._pending_candidate_detection_audit = None
-            logger.info(
-                "%s", json.dumps(saved_audit, sort_keys=True, separators=(",", ":"))
-            )
+            logger.info("%s", json.dumps(saved_audit, sort_keys=True, separators=(",", ":")))
             if self._candidate_detection_only and packet is not None:
                 self._last_execution_error = (
                     "AnyGrasp candidate detection-only audit completed; "
@@ -2750,7 +2407,6 @@ class AnyGraspSkill(PolicyBackedVLASkill):
         )
         self._active_source = "anygrasp_curobo"
         return True
-
 
     def _start_builtin_execution(self, subtask: Subtask, executor: Any) -> bool:
         if self._builtin_attempted:
@@ -2810,9 +2466,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
         start: float,
     ) -> AgentResult:
         target = self._target_name(subtask)
-        physical_grasp_verified = bool(
-            getattr(outcome, "physical_grasp_verified", False)
-        )
+        physical_grasp_verified = bool(getattr(outcome, "physical_grasp_verified", False))
         physical_evidence = dict(getattr(outcome, "physical_evidence", {}) or {})
         try:
             self.memory.record_action(
@@ -2866,7 +2520,6 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             latency_ms=self._latency_ms(start),
         )
 
-
     def _advance_pre_detection_release(
         self,
         subtask: Subtask,
@@ -2878,7 +2531,6 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             return None
         begin_release = getattr(executor, "begin_release", None)
         if not callable(begin_release):
-            # Preserve compatibility with external executors that pre-open internally.
             self._pre_detection_release_completed = True
             return None
         if self._pre_detection_release_execution is None:
@@ -2887,8 +2539,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             action, outcome = self._pre_detection_release_execution.advance()
         except Exception as exc:
             self._last_execution_error = (
-                "AnyGrasp pre-detection release generator failed: "
-                f"{type(exc).__name__}: {exc}"
+                f"AnyGrasp pre-detection release generator failed: {type(exc).__name__}: {exc}"
             )
             logger.warning(self._last_execution_error)
             self._pre_detection_release_execution = None
@@ -2915,9 +2566,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                 getattr(outcome, "physical_evidence", {}),
             )
         else:
-            self._last_execution_error = outcome.error or (
-                "AnyGrasp pre-detection release failed"
-            )
+            self._last_execution_error = outcome.error or ("AnyGrasp pre-detection release failed")
             self._pre_detection_release_failed = True
             logger.warning(self._last_execution_error)
         return None
@@ -2949,14 +2598,6 @@ class AnyGraspSkill(PolicyBackedVLASkill):
         self._active_execution = None
         self._active_source = ""
         if outcome.success:
-            # The final simulator action was already applied on the preceding
-            # control cycle.  Replaying it here makes the closed-loop runner
-            # execute the same subtask again while it waits for the overall
-            # BDDL goal (which normally cannot become true until PLACE_INSIDE).
-            # Return an action-free terminal grasp result and retain only the
-            # keys of the already-applied action as audit evidence.  The
-            # runtime accepts this narrow terminal form only when the full
-            # physical grasp evidence passes its independent checks.
             physical_evidence = getattr(outcome, "physical_evidence", None)
             if isinstance(physical_evidence, dict):
                 physical_evidence.setdefault(
@@ -2983,9 +2624,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
             "object_in_hand": getattr(outcome, "object_in_hand", None),
             "anygrasp_score": float(getattr(outcome, "anygrasp_score", 0.0)),
             "sim_steps": int(getattr(outcome, "total_sim_steps", 0)),
-            "physical_grasp_verified": bool(
-                getattr(outcome, "physical_grasp_verified", False)
-            ),
+            "physical_grasp_verified": bool(getattr(outcome, "physical_grasp_verified", False)),
             "grasp_pose_world": {
                 "position": np.asarray(
                     getattr(outcome, "grasp_pos_world", []), dtype=float
@@ -3054,14 +2693,7 @@ class AnyGraspSkill(PolicyBackedVLASkill):
                 result = self._advance_place_execution(subtask, selection, start)
                 if result is not None:
                     return result
-                # A placement may already have opened the gripper before an
-                # exception is raised while assembling terminal evidence.
-                # Starting a fresh PLACE_INSIDE in that state destroys the
-                # original failure context and reports the misleading error
-                # "no object is attached".  Placement is deliberately
-                # single-shot per subtask: surface the first execution error
-                # and let the orchestrator decide whether a new recovery
-                # subtask is safe.
+
                 return AgentResult(
                     subtask_id=subtask.subtask_id,
                     status=AgentStatus.FAILURE,

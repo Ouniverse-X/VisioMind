@@ -1,5 +1,3 @@
-"""Runtime primitives for the waypoint policy adapter."""
-
 from __future__ import annotations
 
 import math

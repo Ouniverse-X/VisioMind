@@ -1,5 +1,3 @@
-"""Agent assembly helpers for closed-loop runtime entrypoints."""
-
 from __future__ import annotations
 
 from voltron.agents import ActionAgent, BrainAgent, MemoryAgent, NavigationAgent, VisionAgent
@@ -7,7 +5,11 @@ from voltron.agents.action.body.step_verification import VisionBackedActionStepV
 from voltron.agents.action.skills import DefaultActionTaskPlanningSkill
 from voltron.agents.vision.body import VLMCompletionEvaluator
 from voltron.agents.action.tools.action_projection import ActionProjection
-from voltron.integrations.manipulation import Gr00tPolicyAdapter, OpenPICometPolicyAdapter, Pi05PolicyAdapter
+from voltron.integrations.manipulation import (
+    Gr00tPolicyAdapter,
+    OpenPICometPolicyAdapter,
+    Pi05PolicyAdapter,
+)
 from voltron.integrations.memory.hems.backend import HEMSAdapter
 from voltron.integrations.memory.service import MemoryAgentClient
 from voltron.integrations.vlm.service.client import VLMHttpAdapter
@@ -307,7 +309,9 @@ def build_closed_loop_orchestrator(
         if vision_completion_enabled
         else None
     )
-    task_planning_skill = DefaultActionTaskPlanningSkill() if action_internal_planning_enabled else None
+    task_planning_skill = (
+        DefaultActionTaskPlanningSkill() if action_internal_planning_enabled else None
+    )
     step_verifier = (
         VisionBackedActionStepVerifier(
             completion_evaluator=completion_evaluator
@@ -323,7 +327,8 @@ def build_closed_loop_orchestrator(
                 image_detail=vision_completion_image_detail,
             )
         )
-        if action_internal_planning_enabled and action_internal_step_completion_use_vision_completion_monitor
+        if action_internal_planning_enabled
+        and action_internal_step_completion_use_vision_completion_monitor
         else None
     )
     navigation_selector = backend_factory.build_vln_selector(
@@ -368,6 +373,7 @@ def build_closed_loop_orchestrator(
     skill_registry = None
     if anygrasp_config:
         from voltron.agents.action.skills import ActionSkillRegistry
+
         skill_registry = ActionSkillRegistry.build_default(
             memory=memory,
             policy=manipulation_policy,

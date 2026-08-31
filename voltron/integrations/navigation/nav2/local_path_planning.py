@@ -31,9 +31,7 @@ def plan_local_path(
 
     local_goal_position = navigator._waypoint_position(nav2_compute_goal)
     if isinstance(start_pose, dict) and local_goal_position is not None:
-        start_xy = navigator._world_pose_to_nav2_plane(
-            start_pose, vertical_axis=vertical_axis
-        )
+        start_xy = navigator._world_pose_to_nav2_plane(start_pose, vertical_axis=vertical_axis)
         goal_xy = navigator._world_pose_to_nav2_plane(
             local_goal_position, vertical_axis=vertical_axis
         )
@@ -70,8 +68,7 @@ def plan_local_path(
                     raise RuntimeError(path_response.get("error") or "empty_path")
                 nav2_raw_path_length = len(path_points)
                 nav2_raw_path_points = [
-                    {"x": float(point["x"]), "y": float(point["y"])}
-                    for point in path_points
+                    {"x": float(point["x"]), "y": float(point["y"])} for point in path_points
                 ]
                 path_target = nav2_compute_goal
                 if pre_transition_stage is None:
@@ -110,8 +107,7 @@ def plan_local_path(
                 if not path_points and nav2_path_clipped_for_clearance:
                     raise RuntimeError("room_exit_path")
                 nav2_path_points = [
-                    {"x": float(point["x"]), "y": float(point["y"])}
-                    for point in path_points
+                    {"x": float(point["x"]), "y": float(point["y"])} for point in path_points
                 ]
                 local_waypoints = navigator._world_waypoints_from_nav2_path(
                     path_points=path_points,

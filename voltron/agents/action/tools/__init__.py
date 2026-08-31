@@ -1,5 +1,3 @@
-"""Tool surfaces owned by the Action agent."""
-
 from .action_projection import ActionProjection, EmbodimentActionSpec
 from . import decision_flow
 from . import execution_runtime

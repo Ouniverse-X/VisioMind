@@ -1,5 +1,3 @@
-"""Canonical closed-loop runtime entrypoint for BEHAVIOR runs."""
-
 from __future__ import annotations
 
 import argparse
@@ -22,8 +20,6 @@ from voltron.shared.telemetry.payload_sanitizer import strip_image_payloads
 
 
 class _GraphModuleStderrFilter:
-    """Suppress verbose Torch graph dumps while preserving ordinary stderr."""
-
     _MARKER = "class GraphModule(torch.nn.Module):"
 
     def __init__(self, wrapped: Any):
@@ -72,7 +68,9 @@ def _expected_pi05_task_id(task_name: str) -> int | None:
     return int(value) if value is not None else None
 
 
-def _normalize_policy_task_id(*, policy_backend: str, env_id: str, task_id: int | None) -> int | None:
+def _normalize_policy_task_id(
+    *, policy_backend: str, env_id: str, task_id: int | None
+) -> int | None:
     backend = str(policy_backend).strip().lower()
     if backend not in {"pi05", "openpi_comet"}:
         return task_id
@@ -92,12 +90,15 @@ def _normalize_policy_task_id(*, policy_backend: str, env_id: str, task_id: int 
     return task_id
 
 
-def _normalize_pi05_task_id(*, policy_backend: str, env_id: str, pi05_task_id: int | None) -> int | None:
-    return _normalize_policy_task_id(policy_backend=policy_backend, env_id=env_id, task_id=pi05_task_id)
+def _normalize_pi05_task_id(
+    *, policy_backend: str, env_id: str, pi05_task_id: int | None
+) -> int | None:
+    return _normalize_policy_task_id(
+        policy_backend=policy_backend, env_id=env_id, task_id=pi05_task_id
+    )
 
 
 def format_console_result(result: dict[str, Any]) -> str:
-    """Render final CLI output without embedding bulky runtime payloads."""
     compact = _compact_console_result(strip_image_payloads(result))
     return json.dumps(compact, ensure_ascii=False, indent=2)
 
@@ -110,7 +111,9 @@ def _compact_console_result(result: dict[str, Any]) -> dict[str, Any]:
     }
     results = result.get("results")
     if isinstance(results, list):
-        compact["results"] = [_compact_console_subtask_result(item) for item in results if isinstance(item, dict)]
+        compact["results"] = [
+            _compact_console_subtask_result(item) for item in results if isinstance(item, dict)
+        ]
     final = result.get("final")
     if isinstance(final, dict):
         compact["final"] = _compact_console_final(final)
@@ -780,8 +783,6 @@ def configure_brain_interactive_planning(
     max_questions: int,
     reuse_memory_criteria_min_confidence: float,
 ) -> None:
-    """Apply CLI/config interactive-planning values to the assembled Brain."""
-
     skill = getattr(
         getattr(getattr(orchestrator, "brain_agent", None), "interactive_planning", None),
         "skill",
@@ -804,17 +805,13 @@ def run_closed_loop_task(
     input_fn: Any = input,
     output_fn: Any = print,
 ) -> dict[str, Any]:
-    """Run one task, optionally using Brain's terminal clarification flow first."""
-
     if not interactive_planning_enabled:
         return orchestrator.run_task(request=request, environment=environment)
 
     try:
         session = orchestrator.brain_agent.begin_interactive_prepare(request)
     except Exception as exc:
-        raise RuntimeError(
-            f"Brain could not prepare a detailed interactive plan: {exc}"
-        ) from exc
+        raise RuntimeError(f"Brain could not prepare a detailed interactive plan: {exc}") from exc
     _emit_brain_interactive_event(
         orchestrator,
         event_type="brain_text_plan_draft",
@@ -1150,8 +1147,12 @@ def main() -> None:
     )
 
     scene_id = hovsg_runtime["scene_id"]
-    environment = runtime_runtime_builder.build_behavior_environment(args=args, hovsg_runtime=hovsg_runtime)
-    orchestrator.event_sink = lambda event: _record_orchestrator_event_to_environment(environment, event)
+    environment = runtime_runtime_builder.build_behavior_environment(
+        args=args, hovsg_runtime=hovsg_runtime
+    )
+    orchestrator.event_sink = lambda event: _record_orchestrator_event_to_environment(
+        environment, event
+    )
     request = runtime_runtime_builder.build_task_request(
         args=args,
         scene_id=scene_id,

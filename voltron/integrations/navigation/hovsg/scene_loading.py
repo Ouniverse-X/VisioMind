@@ -1,5 +1,3 @@
-"""Scene and graph loading helpers for the HOV-SG navigation integration."""
-
 from __future__ import annotations
 
 import json
@@ -73,7 +71,9 @@ def resolve_vertical_axis(
     return "y"
 
 
-def resolve_scene_map_source(metadata: dict[str, Any], *, config: dict[str, Any] | None = None) -> str | None:
+def resolve_scene_map_source(
+    metadata: dict[str, Any], *, config: dict[str, Any] | None = None
+) -> str | None:
     config = dict(config or {})
     for candidate in (
         config.get("scene_map_source"),
@@ -110,7 +110,11 @@ def load_rooms(path: Path) -> dict[str, HOVSGRoomAsset]:
             name=metadata.get("name"),
             object_ids=[str(object_id) for object_id in metadata.get("objects", [])],
             centroid=position_from_metadata(metadata),
-            vertices=[point for point in metadata.get("vertices", []) if isinstance(point, list) and len(point) >= 3],
+            vertices=[
+                point
+                for point in metadata.get("vertices", [])
+                if isinstance(point, list) and len(point) >= 3
+            ],
             connected_room_ids=[],
         )
     return rooms
@@ -155,7 +159,9 @@ def load_room_adjacency(
             candidate_text = str(candidate or "").strip()
             if not candidate_text:
                 continue
-            candidate_room_id = candidate_text if candidate_text in rooms else room_id_by_name.get(candidate_text)
+            candidate_room_id = (
+                candidate_text if candidate_text in rooms else room_id_by_name.get(candidate_text)
+            )
             if candidate_room_id is not None and candidate_room_id != room_id:
                 connected_room_ids.add(candidate_room_id)
         adjacency[room_id].update(connected_room_ids)
@@ -234,17 +240,23 @@ def validate_scene_map_nav_graph_topology(*, scene: HOVSGSceneAsset) -> None:
     details: list[str] = []
     if missing_in_nav:
         details.append(
-            "missing_in_nav_graph=" + ", ".join(format_room_edge(scene, edge) for edge in sorted(missing_in_nav))
+            "missing_in_nav_graph="
+            + ", ".join(format_room_edge(scene, edge) for edge in sorted(missing_in_nav))
         )
     if unexpected_in_nav:
         details.append(
             "unexpected_in_nav_graph="
             + ", ".join(format_room_edge(scene, edge) for edge in sorted(unexpected_in_nav))
         )
-    raise ValueError(f"Scene map / nav graph topology mismatch for scene '{scene.scene_id}': " + "; ".join(details))
+    raise ValueError(
+        f"Scene map / nav graph topology mismatch for scene '{scene.scene_id}': "
+        + "; ".join(details)
+    )
 
 
-def resolve_room_id_from_nav_node_attrs(attrs: dict[str, Any], room_id_by_name: dict[str, str]) -> str | None:
+def resolve_room_id_from_nav_node_attrs(
+    attrs: dict[str, Any], room_id_by_name: dict[str, str]
+) -> str | None:
     room_id = attrs.get("room_id")
     if isinstance(room_id, (str, int)):
         return str(room_id)
@@ -257,8 +269,12 @@ def resolve_room_id_from_nav_node_attrs(attrs: dict[str, Any], room_id_by_name: 
 def format_room_edge(scene: HOVSGSceneAsset, edge: tuple[str, str]) -> str:
     left_room = scene.rooms.get(edge[0])
     right_room = scene.rooms.get(edge[1])
-    left_name = left_room.name if left_room is not None and isinstance(left_room.name, str) else edge[0]
-    right_name = right_room.name if right_room is not None and isinstance(right_room.name, str) else edge[1]
+    left_name = (
+        left_room.name if left_room is not None and isinstance(left_room.name, str) else edge[0]
+    )
+    right_name = (
+        right_room.name if right_room is not None and isinstance(right_room.name, str) else edge[1]
+    )
     return f"{left_name}<->{right_name}"
 
 
@@ -272,13 +288,15 @@ def load_objects(path: Path) -> dict[str, HOVSGObjectAsset]:
             room_id=str(metadata["room_id"]),
             name=metadata.get("name"),
             centroid=position_from_metadata(metadata),
-            vertices=[point for point in metadata.get("vertices", []) if isinstance(point, list) and len(point) >= 3],
+            vertices=[
+                point
+                for point in metadata.get("vertices", [])
+                if isinstance(point, list) and len(point) >= 3
+            ],
             navigation_role=(
                 str(metadata["navigation_role"])
                 if metadata.get("navigation_role")
-                else navigation_role_from_category(
-                    metadata.get("category") or metadata.get("name")
-                )
+                else navigation_role_from_category(metadata.get("category") or metadata.get("name"))
             ),
         )
     return objects

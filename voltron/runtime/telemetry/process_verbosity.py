@@ -1,5 +1,3 @@
-"""Process-log verbosity filtering for runtime JSONL events."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -34,8 +32,6 @@ def filter_process_event_for_verbosity(
     verbose: bool,
     memory_diagnostics: bool = False,
 ) -> tuple[str, dict[str, Any]] | None:
-    """Return a filtered event record, or None when quiet logs should skip it."""
-
     if event == "memory_diagnostic" and not memory_diagnostics:
         return None
     if event == "orchestrator_task_final":
@@ -56,8 +52,6 @@ def filter_process_event_for_verbosity(
 
 
 def _compact_task_final_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    """Drop large scene-map snapshots from the terminal telemetry event."""
-
     compact = dict(payload)
     environment = compact.get("environment")
     if not isinstance(environment, dict):

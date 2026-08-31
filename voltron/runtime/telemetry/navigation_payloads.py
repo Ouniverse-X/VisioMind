@@ -1,5 +1,3 @@
-"""Compact navigation payloads for high-frequency telemetry."""
-
 from __future__ import annotations
 
 import hashlib
@@ -87,9 +85,7 @@ def summarize_agent_result_for_event(result: dict[str, Any]) -> dict[str, Any]:
     ):
         if key in result:
             value = result.get(key)
-            summary[key] = (
-                value[:1000] if key == "message" and isinstance(value, str) else value
-            )
+            summary[key] = value[:1000] if key == "message" and isinstance(value, str) else value
 
     for key in ("grounded_goal", "nav_goal"):
         value = result.get(key)
@@ -120,9 +116,7 @@ def summarize_agent_result_for_event(result: dict[str, Any]) -> dict[str, Any]:
         isinstance(entry, dict) for entry in candidate_audit
     ):
         try:
-            summary["candidate_detection_audit"] = json.loads(
-                json.dumps(candidate_audit)
-            )
+            summary["candidate_detection_audit"] = json.loads(json.dumps(candidate_audit))
         except (TypeError, ValueError):
             pass
 
@@ -136,24 +130,17 @@ def build_navigation_candidates_snapshot(
     result: dict[str, Any],
 ) -> dict[str, Any] | None:
     candidates = [
-        summarize_candidate(candidate)
-        for candidate in _resolve_object_approach_candidates(result)
+        summarize_candidate(candidate) for candidate in _resolve_object_approach_candidates(result)
     ]
     candidates = [candidate for candidate in candidates if candidate]
     selected = _resolve_selected_object_approach(result)
-    selected_summary = (
-        summarize_candidate(selected) if isinstance(selected, dict) else {}
-    )
+    selected_summary = summarize_candidate(selected) if isinstance(selected, dict) else {}
     if not candidates and not selected_summary:
         return None
 
     goal = result.get("grounded_goal") or result.get("nav_goal")
     target = summarize_goal(goal) if isinstance(goal, dict) else {}
-    if (
-        target
-        and isinstance(selected, dict)
-        and isinstance(selected.get("object_position"), dict)
-    ):
+    if target and isinstance(selected, dict) and isinstance(selected.get("object_position"), dict):
         target.setdefault("position", dict(selected["object_position"]))
 
     return {
@@ -202,8 +189,6 @@ def build_nav2_path_snapshot(
     result: dict[str, Any],
     runtime_artifacts: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
-    """Build a path-debug snapshot from the full Navigation runtime artifacts."""
-
     path_plan = _resolve_path_plan(result=result, runtime_artifacts=runtime_artifacts)
     if path_plan is None:
         return None
@@ -279,9 +264,7 @@ def build_nav2_path_snapshot(
 
     waypoints = path_plan.get("waypoints")
     if isinstance(waypoints, list):
-        snapshot["waypoints"] = [
-            dict(point) for point in waypoints if isinstance(point, dict)
-        ]
+        snapshot["waypoints"] = [dict(point) for point in waypoints if isinstance(point, dict)]
 
     nav2_environment = path_plan.get("nav2_environment")
     if isinstance(nav2_environment, dict):
@@ -327,9 +310,7 @@ def build_nav2_path_snapshot(
         goal = path_plan.get("goal")
         if isinstance(goal, dict):
             selected_approach = goal.get("selected_object_approach")
-    if not isinstance(selected_approach, dict) and isinstance(
-        candidate_validation, dict
-    ):
+    if not isinstance(selected_approach, dict) and isinstance(candidate_validation, dict):
         selected_approach = candidate_validation.get("selected_candidate")
     if isinstance(selected_approach, dict):
         selected_summary = summarize_candidate(selected_approach)
@@ -346,9 +327,7 @@ def build_nav2_path_snapshot(
 def nav2_path_snapshot_signature(snapshot: dict[str, Any] | None) -> str | None:
     if not isinstance(snapshot, dict):
         return None
-    signature_payload = {
-        key: value for key, value in snapshot.items() if key != "control_step"
-    }
+    signature_payload = {key: value for key, value in snapshot.items() if key != "control_step"}
     encoded = json.dumps(
         signature_payload,
         ensure_ascii=False,
@@ -392,9 +371,7 @@ def summarize_goal(goal: dict[str, Any]) -> dict[str, Any]:
         summary["grounding_candidate_count"] = len(grounding_candidates)
     selected = goal.get("selected_grounding_candidate")
     if isinstance(selected, dict) and selected:
-        summary["selected_grounding_candidate"] = summarize_grounding_selection(
-            selected
-        )
+        summary["selected_grounding_candidate"] = summarize_grounding_selection(selected)
     return summary
 
 
@@ -405,9 +382,7 @@ def summarize_candidate(candidate: Any) -> dict[str, Any]:
     object_position = candidate.get("object_position")
     if isinstance(object_position, dict):
         summary["object_position"] = {
-            axis: object_position.get(axis)
-            for axis in ("x", "y", "z")
-            if axis in object_position
+            axis: object_position.get(axis) for axis in ("x", "y", "z") if axis in object_position
         }
     evidence = candidate.get("nearby_object_evidence")
     if isinstance(evidence, dict):
@@ -499,9 +474,7 @@ def _resolve_object_approach_candidates(result: dict[str, Any]) -> list[dict[str
             continue
         candidates = container.get("object_approach_candidates")
         if isinstance(candidates, list):
-            return [
-                candidate for candidate in candidates if isinstance(candidate, dict)
-            ]
+            return [candidate for candidate in candidates if isinstance(candidate, dict)]
     return []
 
 
@@ -518,9 +491,7 @@ def _resolve_selected_object_approach(result: dict[str, Any]) -> dict[str, Any] 
 def _navigation_candidate_containers(result: dict[str, Any]) -> tuple[Any, ...]:
     return (
         result,
-        result.get("grounded_goal")
-        if isinstance(result.get("grounded_goal"), dict)
-        else None,
+        result.get("grounded_goal") if isinstance(result.get("grounded_goal"), dict) else None,
         result.get("nav_goal") if isinstance(result.get("nav_goal"), dict) else None,
         result.get("path_plan") if isinstance(result.get("path_plan"), dict) else None,
         result.get("prepared_navigation_payload")

@@ -1,5 +1,3 @@
-"""Execution flow helpers for the Brain agent body."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -18,10 +16,15 @@ def build_execution_state_payload(
         latest_result,
         environment_state=context.runtime_state.get("environment"),
     )
-    serialized_recent_results = [planning_runtime.serialize_result(item) for item in context.results[-5:]]
+    serialized_recent_results = [
+        planning_runtime.serialize_result(item) for item in context.results[-5:]
+    ]
     last_scene_report = planning_runtime.last_scene_report(context.results)
     navigation_state = navigation_runtime.resolve_navigation_state(
-        execution_state={"latest_result": serialized_latest, "recent_results": serialized_recent_results},
+        execution_state={
+            "latest_result": serialized_latest,
+            "recent_results": serialized_recent_results,
+        },
         environment_state=context.runtime_state.get("environment"),
     )
     navigation_report = navigation_runtime.build_navigation_report(

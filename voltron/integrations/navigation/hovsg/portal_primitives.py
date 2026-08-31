@@ -1,5 +1,3 @@
-"""Low-level geometric primitives for HOV-SG portal planning."""
-
 from __future__ import annotations
 
 import math
@@ -8,12 +6,18 @@ from typing import Any
 from .models import HOVSGRoomAsset, HOVSGSceneAsset
 
 
-def room_polygon_2d(adapter: Any, scene: HOVSGSceneAsset, room: HOVSGRoomAsset) -> list[tuple[float, float]]:
-    projected = [adapter._project_horizontal(scene, {"x": v[0], "y": v[1], "z": v[2]}) for v in room.vertices]
+def room_polygon_2d(
+    adapter: Any, scene: HOVSGSceneAsset, room: HOVSGRoomAsset
+) -> list[tuple[float, float]]:
+    projected = [
+        adapter._project_horizontal(scene, {"x": v[0], "y": v[1], "z": v[2]}) for v in room.vertices
+    ]
     return [point for point in projected if point is not None]
 
 
-def polygon_segments(polygon: list[tuple[float, float]]) -> list[tuple[tuple[float, float], tuple[float, float]]]:
+def polygon_segments(
+    polygon: list[tuple[float, float]],
+) -> list[tuple[tuple[float, float], tuple[float, float]]]:
     if len(polygon) < 2:
         return []
     segments: list[tuple[tuple[float, float], tuple[float, float]]] = []
@@ -223,9 +227,17 @@ def lift_horizontal_point(
         return None
     vertical_value = float(centroid[scene.vertical_axis])
     if scene.vertical_axis == "x":
-        return {"x": vertical_value, "y": float(horizontal_point[0]), "z": float(horizontal_point[1])}
+        return {
+            "x": vertical_value,
+            "y": float(horizontal_point[0]),
+            "z": float(horizontal_point[1]),
+        }
     if scene.vertical_axis == "y":
-        return {"x": float(horizontal_point[0]), "y": vertical_value, "z": float(horizontal_point[1])}
+        return {
+            "x": float(horizontal_point[0]),
+            "y": vertical_value,
+            "z": float(horizontal_point[1]),
+        }
     return {"x": float(horizontal_point[0]), "y": float(horizontal_point[1]), "z": vertical_value}
 
 

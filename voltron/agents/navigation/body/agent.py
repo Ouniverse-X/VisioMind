@@ -1,5 +1,3 @@
-"""Navigation agent for base navigation execution."""
-
 from __future__ import annotations
 
 import re
@@ -7,7 +5,9 @@ import time
 from typing import Any
 
 from voltron.agents.action.tools.action_projection import ActionProjection
-from voltron.agents.navigation.body.object_approach_selection import HeuristicNavigationApproachPointSelector
+from voltron.agents.navigation.body.object_approach_selection import (
+    HeuristicNavigationApproachPointSelector,
+)
 from voltron.agents.navigation.body.skill_routing import HeuristicNavigationSkillSelector
 from voltron.agents.navigation.tools.navigation_bridge import GoalConditionedNavigationBridge
 from voltron.agents.navigation.tools.runtime import execution_context as runtime_execution_context
@@ -172,8 +172,6 @@ def _candidate_satisfies_affordance(candidate: dict[str, Any], required_terms: l
 
 
 class NavigationAgent:
-    """Execute navigation subtasks with an optional scene-aware navigation backend."""
-
     def __init__(
         self,
         memory: MemoryAdapter,
@@ -193,7 +191,9 @@ class NavigationAgent:
         self.execution_bridge = execution_bridge or GoalConditionedNavigationBridge()
         self.selector = selector or HeuristicNavigationSkillSelector()
         self.skill_registry = skill_registry or NavigationSkillRegistry.build_default(memory=memory)
-        self.approach_point_selector = approach_point_selector or HeuristicNavigationApproachPointSelector()
+        self.approach_point_selector = (
+            approach_point_selector or HeuristicNavigationApproachPointSelector()
+        )
         self.goal_interpreter = goal_interpreter
         self._map_state: dict[str, Any] = {}
         self._last_path_plan: dict[str, Any] | None = None
@@ -212,7 +212,6 @@ class NavigationAgent:
                 latency_ms=self._latency_ms(start),
             )
 
-        # Optional memory read for planner feedback/traceability.
         target_region = str(subtask.target.get("region", ""))
         if target_region:
             _ = self.memory.find_object(target_region, top_k=1)
@@ -262,11 +261,16 @@ class NavigationAgent:
                     observation=observation,
                     backend_state=backend_state,
                 )
-                start_state, backend_state = self._apply_route_localization_override_to_replan_start(
-                    start_state=start_state,
-                    backend_state=backend_state,
+                start_state, backend_state = (
+                    self._apply_route_localization_override_to_replan_start(
+                        start_state=start_state,
+                        backend_state=backend_state,
+                    )
                 )
-                if isinstance(backend_state, dict) and backend_state.get("localization_guard") is not None:
+                if (
+                    isinstance(backend_state, dict)
+                    and backend_state.get("localization_guard") is not None
+                ):
                     self._merge_map_state(backend_state)
                     self._refresh_navigation_context(nav_context, backend_state=backend_state)
                 backend_bundle = self._resolve_grounded_goal_bundle(
@@ -305,7 +309,10 @@ class NavigationAgent:
                     grounded_goal=grounded_goal,
                     path_plan=path_plan,
                 )
-                current_region = runtime_observation.extract_runtime_region(backend_state=backend_state) or current_region
+                current_region = (
+                    runtime_observation.extract_runtime_region(backend_state=backend_state)
+                    or current_region
+                )
             except Exception as exc:
                 return AgentResult(
                     subtask_id=subtask.subtask_id,
@@ -339,7 +346,9 @@ class NavigationAgent:
                     target_region=target_region,
                     pose=pose,
                     orientation=orientation,
-                    nav_feedback=runtime_observation.extract_nav_feedback(subtask=subtask, observation=observation),
+                    nav_feedback=runtime_observation.extract_nav_feedback(
+                        subtask=subtask, observation=observation
+                    ),
                     obstacles=subtask.parameters.get("obstacles", []),
                     policy_info=info,
                     grounded_goal=grounded_goal,
@@ -348,7 +357,9 @@ class NavigationAgent:
                     prepared_navigation_payload=prepared_navigation_payload,
                     object_approach_selection=object_approach_selection,
                     selected_object_approach=selected_object_approach,
-                    navigator_backend_name=type(self.navigator).__name__ if self.navigator is not None else None,
+                    navigator_backend_name=type(self.navigator).__name__
+                    if self.navigator is not None
+                    else None,
                 )
             )
         except Exception as exc:
@@ -365,7 +376,9 @@ class NavigationAgent:
             projected_action=nav_action,
             policy_info=info,
             memory_update=nav_stats,
-            navigator_backend_name=type(self.navigator).__name__ if self.navigator is not None else None,
+            navigator_backend_name=type(self.navigator).__name__
+            if self.navigator is not None
+            else None,
             grounded_goal=grounded_goal,
             scene_id=scene_id,
             path_plan=path_plan,
@@ -390,14 +403,9 @@ class NavigationAgent:
             latency_ms=self._latency_ms(start),
         )
 
-    def run_episode(self, *, subtask: Subtask, context: ExecutionContext, runtime: Any) -> AgentResult:
-        """Run a complete navigation episode owned by the Navigation agent.
-
-        The first control step performs language interpretation, grounding, and path planning.
-        Later control steps reuse the prepared navigation objective and only invoke the
-        low-level policy unless the runtime asks for a recovery/replan.
-        """
-
+    def run_episode(
+        self, *, subtask: Subtask, context: ExecutionContext, runtime: Any
+    ) -> AgentResult:
         static_parameters = dict(subtask.parameters)
         episode_state: dict[str, Any] | None = None
         last_result: AgentResult | None = None
@@ -410,9 +418,13 @@ class NavigationAgent:
                 control_step=control_step,
             )
             if episode_state is not None:
-                self._merge_episode_policy_runtime_state(subtask=subtask, episode_state=episode_state)
+                self._merge_episode_policy_runtime_state(
+                    subtask=subtask, episode_state=episode_state
+                )
 
-            if episode_state is None or self._episode_requires_replan(subtask, episode_state=episode_state):
+            if episode_state is None or self._episode_requires_replan(
+                subtask, episode_state=episode_state
+            ):
                 result = self.execute(subtask, context)
             else:
                 result = self._execute_navigation_policy_step(
@@ -421,7 +433,9 @@ class NavigationAgent:
                     episode_state=episode_state,
                 )
             if result.status == AgentStatus.SUCCESS:
-                episode_state = self._navigation_episode_state_from_result(result, previous_state=episode_state)
+                episode_state = self._navigation_episode_state_from_result(
+                    result, previous_state=episode_state
+                )
 
             last_result = runtime.publish_agent_result(
                 subtask=subtask,
@@ -439,7 +453,9 @@ class NavigationAgent:
                     )
                 return result
 
-            step_outcome = runtime.apply_agent_result(subtask=subtask, result=result, context=context)
+            step_outcome = runtime.apply_agent_result(
+                subtask=subtask, result=result, context=context
+            )
             if getattr(step_outcome, "feedback", None):
                 runtime.update_feedback(
                     subtask=subtask,
@@ -479,11 +495,11 @@ class NavigationAgent:
         return int((time.time() - start) * 1000)
 
     @staticmethod
-    def _episode_requires_replan(subtask: Subtask, episode_state: dict[str, Any] | None = None) -> bool:
+    def _episode_requires_replan(
+        subtask: Subtask, episode_state: dict[str, Any] | None = None
+    ) -> bool:
         policy_runtime_state = (
-            episode_state.get("policy_runtime_state")
-            if isinstance(episode_state, dict)
-            else None
+            episode_state.get("policy_runtime_state") if isinstance(episode_state, dict) else None
         )
         if isinstance(policy_runtime_state, dict) and bool(
             policy_runtime_state.get("requires_replan")
@@ -494,10 +510,14 @@ class NavigationAgent:
         if isinstance(observation, dict):
             nav_feedback = observation.get("nav_feedback")
             if isinstance(nav_feedback, dict) and bool(
-                nav_feedback.get("stuck") or nav_feedback.get("collision") or nav_feedback.get("path_invalid")
+                nav_feedback.get("stuck")
+                or nav_feedback.get("collision")
+                or nav_feedback.get("path_invalid")
             ):
                 return True
-            grounded_goal = episode_state.get("grounded_goal") if isinstance(episode_state, dict) else None
+            grounded_goal = (
+                episode_state.get("grounded_goal") if isinstance(episode_state, dict) else None
+            )
             if (
                 isinstance(episode_state, dict)
                 and runtime_object_approach.should_use_object_approach_flow(
@@ -510,7 +530,9 @@ class NavigationAgent:
                 )
             ):
                 return True
-        grounded_goal = episode_state.get("grounded_goal") if isinstance(episode_state, dict) else None
+        grounded_goal = (
+            episode_state.get("grounded_goal") if isinstance(episode_state, dict) else None
+        )
         if (
             isinstance(episode_state, dict)
             and runtime_object_approach.should_use_object_approach_flow(
@@ -535,7 +557,11 @@ class NavigationAgent:
             return True
         path_backend = str(path_plan.get("path_backend") or "").strip().lower()
         nav2_error = str(path_plan.get("nav2_error") or "").strip().lower()
-        return not has_waypoints and path_backend == "fallback_blocked_for_clearance" and bool(nav2_error)
+        return (
+            not has_waypoints
+            and path_backend == "fallback_blocked_for_clearance"
+            and bool(nav2_error)
+        )
 
     def _path_unavailable_result(
         self,
@@ -565,9 +591,13 @@ class NavigationAgent:
         previous = dict(previous_state or {})
         policy_runtime_state: dict[str, Any] = {}
         policy_runtime_state.update(
-            runtime_observation.extract_policy_runtime_artifacts(result.runtime_artifacts.get("policy_info"))
+            runtime_observation.extract_policy_runtime_artifacts(
+                result.runtime_artifacts.get("policy_info")
+            )
         )
-        policy_runtime_state.update(runtime_observation.extract_policy_runtime_artifacts(result.runtime_artifacts))
+        policy_runtime_state.update(
+            runtime_observation.extract_policy_runtime_artifacts(result.runtime_artifacts)
+        )
         return {
             "grounded_goal": dict(
                 result.runtime_artifacts.get("grounded_goal")
@@ -584,10 +614,15 @@ class NavigationAgent:
             ),
             "navigation_skill_selection": result.runtime_artifacts.get("navigation_skill_selection")
             or previous.get("navigation_skill_selection"),
-            "interpreted_goal": result.runtime_artifacts.get("interpreted_goal") or previous.get("interpreted_goal"),
-            "navigation_grounding_context": result.runtime_artifacts.get("navigation_grounding_context")
+            "interpreted_goal": result.runtime_artifacts.get("interpreted_goal")
+            or previous.get("interpreted_goal"),
+            "navigation_grounding_context": result.runtime_artifacts.get(
+                "navigation_grounding_context"
+            )
             or previous.get("navigation_grounding_context"),
-            "prepared_navigation_payload": result.runtime_artifacts.get("prepared_navigation_payload")
+            "prepared_navigation_payload": result.runtime_artifacts.get(
+                "prepared_navigation_payload"
+            )
             or previous.get("prepared_navigation_payload"),
             "object_approach_selection": result.runtime_artifacts.get("object_approach_selection")
             or previous.get("object_approach_selection"),
@@ -597,7 +632,9 @@ class NavigationAgent:
         }
 
     @staticmethod
-    def _merge_episode_policy_runtime_state(*, subtask: Subtask, episode_state: dict[str, Any]) -> None:
+    def _merge_episode_policy_runtime_state(
+        *, subtask: Subtask, episode_state: dict[str, Any]
+    ) -> None:
         policy_runtime_state = episode_state.get("policy_runtime_state")
         if not isinstance(policy_runtime_state, dict) or not policy_runtime_state:
             return
@@ -641,7 +678,10 @@ class NavigationAgent:
                     previous_map_state=previous_map_state,
                 )
                 self._merge_map_state(backend_state)
-                current_region = runtime_observation.extract_runtime_region(backend_state=backend_state) or current_region
+                current_region = (
+                    runtime_observation.extract_runtime_region(backend_state=backend_state)
+                    or current_region
+                )
             except Exception as exc:
                 return AgentResult(
                     subtask_id=subtask.subtask_id,
@@ -687,7 +727,9 @@ class NavigationAgent:
                     target_region=str(subtask.target.get("region", "")),
                     pose=pose,
                     orientation=orientation,
-                    nav_feedback=runtime_observation.extract_nav_feedback(subtask=subtask, observation=observation),
+                    nav_feedback=runtime_observation.extract_nav_feedback(
+                        subtask=subtask, observation=observation
+                    ),
                     obstacles=subtask.parameters.get("obstacles", []),
                     policy_info=info,
                     grounded_goal=grounded_goal,
@@ -696,7 +738,9 @@ class NavigationAgent:
                     prepared_navigation_payload=episode_state.get("prepared_navigation_payload"),
                     object_approach_selection=episode_state.get("object_approach_selection"),
                     selected_object_approach=episode_state.get("selected_object_approach"),
-                    navigator_backend_name=type(self.navigator).__name__ if self.navigator is not None else None,
+                    navigator_backend_name=type(self.navigator).__name__
+                    if self.navigator is not None
+                    else None,
                 )
             )
         except Exception as exc:
@@ -713,7 +757,9 @@ class NavigationAgent:
             projected_action=nav_action,
             policy_info=info,
             memory_update=nav_stats,
-            navigator_backend_name=type(self.navigator).__name__ if self.navigator is not None else None,
+            navigator_backend_name=type(self.navigator).__name__
+            if self.navigator is not None
+            else None,
             grounded_goal=grounded_goal,
             scene_id=scene_id,
             path_plan=path_plan,
@@ -785,7 +831,9 @@ class NavigationAgent:
         if not isinstance(path_plan, dict):
             return backend_state
 
-        current_room = self._normalized_room_label(backend_state.get("current_room") or backend_state.get("current_region"))
+        current_room = self._normalized_room_label(
+            backend_state.get("current_room") or backend_state.get("current_region")
+        )
         previous_room = self._normalized_room_label(
             previous_map_state.get("current_room") or previous_map_state.get("current_region")
         )
@@ -815,7 +863,11 @@ class NavigationAgent:
         if not previous_room or current_room == previous_room:
             return backend_state
 
-        if active_segment_rooms and previous_room in active_segment_rooms and current_room not in active_segment_rooms:
+        if (
+            active_segment_rooms
+            and previous_room in active_segment_rooms
+            and current_room not in active_segment_rooms
+        ):
             return self._localization_guarded_state(
                 backend_state=backend_state,
                 previous_map_state=previous_map_state,
@@ -846,7 +898,9 @@ class NavigationAgent:
         if not isinstance(override, dict):
             return None
         rejected_room = self._normalized_room_label(override.get("rejected_room"))
-        kept_room = self._normalized_room_label(override.get("current_room") or override.get("current_region"))
+        kept_room = self._normalized_room_label(
+            override.get("current_room") or override.get("current_region")
+        )
         if not rejected_room:
             return None
         if rejected_room in active_segment_rooms:
@@ -872,7 +926,9 @@ class NavigationAgent:
         override = self._route_localization_override
         if not isinstance(override, dict):
             return start_state, backend_state
-        current_room = self._normalized_room_label(start_state.get("current_room") or start_state.get("current_region"))
+        current_room = self._normalized_room_label(
+            start_state.get("current_room") or start_state.get("current_region")
+        )
         rejected_room = self._normalized_room_label(override.get("rejected_room"))
         if not current_room or not rejected_room or current_room != rejected_room:
             return start_state, backend_state
@@ -905,8 +961,10 @@ class NavigationAgent:
                 stabilized[key] = previous_map_state[key]
         stabilized["localization_guard"] = {
             "reason": reason,
-            "rejected_room": backend_state.get("current_room") or backend_state.get("current_region"),
-            "kept_room": previous_map_state.get("current_room") or previous_map_state.get("current_region"),
+            "rejected_room": backend_state.get("current_room")
+            or backend_state.get("current_region"),
+            "kept_room": previous_map_state.get("current_room")
+            or previous_map_state.get("current_region"),
             "distance_to_route_m": round(float(distance), 3),
         }
         self._route_localization_override = {
@@ -917,7 +975,8 @@ class NavigationAgent:
         self._route_localization_override.update(
             {
                 "reason": reason,
-                "rejected_room": backend_state.get("current_room") or backend_state.get("current_region"),
+                "rejected_room": backend_state.get("current_room")
+                or backend_state.get("current_region"),
             }
         )
         return stabilized
@@ -947,7 +1006,13 @@ class NavigationAgent:
             if isinstance(transition_anchor, dict):
                 visit_waypoint(transition_anchor)
 
-        for key in ("local_goal", "execution_goal", "nav2_compute_goal", "transition_anchor", "goal"):
+        for key in (
+            "local_goal",
+            "execution_goal",
+            "nav2_compute_goal",
+            "transition_anchor",
+            "goal",
+        ):
             visit_waypoint(path_plan.get(key))
         for key in ("waypoints", "global_waypoints", "dense_waypoints"):
             values = path_plan.get(key)
@@ -1093,7 +1158,9 @@ class NavigationAgent:
             subtask=subtask,
         )
         if cached_object_approach is not None:
-            restored = runtime_object_approach.restore_cached_object_approach_state(cached_object_approach)
+            restored = runtime_object_approach.restore_cached_object_approach_state(
+                cached_object_approach
+            )
             grounded_goal = restored["grounded_goal"]
             navigation_skill_selection = restored["navigation_skill_selection"]
             prepared_navigation_payload = restored["prepared_navigation_payload"]
@@ -1124,7 +1191,9 @@ class NavigationAgent:
             if grounding_selection is not None:
                 grounded_goal = grounding_selection
                 nav_context["grounded_goal"] = dict(grounded_goal)
-            if runtime_object_approach.should_use_object_approach_flow(subtask=subtask, grounded_goal=grounded_goal):
+            if runtime_object_approach.should_use_object_approach_flow(
+                subtask=subtask, grounded_goal=grounded_goal
+            ):
                 history = runtime_object_approach.prime_object_approach_history(
                     memory=self.memory,
                     subtask=subtask,
@@ -1135,9 +1204,13 @@ class NavigationAgent:
                     context.runtime_state["object_approach_history"] = history
 
                 selection = self._select_navigation_skill(subtask=subtask, context=context)
-                navigation_skill_selection = runtime_object_approach.serialize_skill_selection(selection)
+                navigation_skill_selection = runtime_object_approach.serialize_skill_selection(
+                    selection
+                )
                 context.runtime_state["navigation_grounded_goal_for_skill"] = dict(grounded_goal)
-                skill = self._resolve_navigation_skill(subtask=subtask, context=context, selection=selection)
+                skill = self._resolve_navigation_skill(
+                    subtask=subtask, context=context, selection=selection
+                )
                 if skill is not None:
                     prepared_navigation_payload = dict(
                         skill.prepare(
@@ -1149,11 +1222,13 @@ class NavigationAgent:
                             navigation_context=nav_context,
                         )
                     )
-                grounded_goal, object_approach_selection, selected_object_approach = self._select_object_approach_candidate(
-                    subtask=subtask,
-                    context=context,
-                    grounded_goal=grounded_goal,
-                    prepared_navigation_payload=prepared_navigation_payload,
+                grounded_goal, object_approach_selection, selected_object_approach = (
+                    self._select_object_approach_candidate(
+                        subtask=subtask,
+                        context=context,
+                        grounded_goal=grounded_goal,
+                        prepared_navigation_payload=prepared_navigation_payload,
+                    )
                 )
                 runtime_object_approach.store_cached_object_approach_state(
                     context=context,
@@ -1167,7 +1242,9 @@ class NavigationAgent:
                     navigation_grounding_context=navigation_grounding_context,
                 )
             else:
-                runtime_object_approach.clear_cached_object_approach_state(context=context, subtask=subtask)
+                runtime_object_approach.clear_cached_object_approach_state(
+                    context=context, subtask=subtask
+                )
 
         should_plan_path = not runtime_object_approach.should_reuse_cached_path_plan(
             cached_object_approach=cached_object_approach,
@@ -1182,9 +1259,7 @@ class NavigationAgent:
                 context=nav_context,
             )
             nav2_selected = (
-                path_plan.get("selected_object_approach")
-                if isinstance(path_plan, dict)
-                else None
+                path_plan.get("selected_object_approach") if isinstance(path_plan, dict) else None
             )
             if isinstance(nav2_selected, dict) and nav2_selected:
                 previous_selected = selected_object_approach
@@ -1193,9 +1268,7 @@ class NavigationAgent:
                     **grounded_goal,
                     "selected_object_approach": dict(selected_object_approach),
                 }
-                context.runtime_state["selected_object_approach"] = dict(
-                    selected_object_approach
-                )
+                context.runtime_state["selected_object_approach"] = dict(selected_object_approach)
                 if isinstance(object_approach_selection, dict):
                     object_approach_selection = {
                         **object_approach_selection,
@@ -1205,13 +1278,13 @@ class NavigationAgent:
                             if isinstance(previous_selected, dict)
                             else None
                         ),
-                        "selected_candidate_id": selected_object_approach.get(
-                            "candidate_id"
-                        ),
+                        "selected_candidate_id": selected_object_approach.get("candidate_id"),
                         "source": selected_object_approach.get("selection_source")
                         or "nav2_candidate_validation",
                     }
-            if runtime_object_approach.should_use_object_approach_flow(subtask=subtask, grounded_goal=grounded_goal):
+            if runtime_object_approach.should_use_object_approach_flow(
+                subtask=subtask, grounded_goal=grounded_goal
+            ):
                 runtime_object_approach.store_cached_object_approach_state(
                     context=context,
                     subtask=subtask,
@@ -1265,11 +1338,17 @@ class NavigationAgent:
         grounded_goal: dict[str, Any],
     ) -> dict[str, Any] | None:
         candidates = grounded_goal.get("grounding_candidates")
-        if self.goal_interpreter is None or not isinstance(candidates, list) or len(candidates) <= 1:
+        if (
+            self.goal_interpreter is None
+            or not isinstance(candidates, list)
+            or len(candidates) <= 1
+        ):
             return None
         selection_context = dict(nav_context)
         selection_context["grounded_goal"] = dict(grounded_goal)
-        original_candidates = [dict(candidate) for candidate in candidates if isinstance(candidate, dict)]
+        original_candidates = [
+            dict(candidate) for candidate in candidates if isinstance(candidate, dict)
+        ]
         required_affordance_terms = _required_affordance_terms(
             instruction=instruction,
             nav_context=nav_context,
@@ -1340,7 +1419,9 @@ class NavigationAgent:
             )
         if len(selection_context["grounding_candidates"]) <= 1:
             return None
-        decision = self._interpret_navigation_goal(instruction=instruction, nav_context=selection_context)
+        decision = self._interpret_navigation_goal(
+            instruction=instruction, nav_context=selection_context
+        )
         if not isinstance(decision, dict):
             return None
         selected = decision.get("selected_grounding_candidate")
@@ -1424,9 +1505,11 @@ class NavigationAgent:
         if not candidates:
             return next_goal, object_approach_selection, selected_object_approach
 
-        candidates, room_rejected_candidates = runtime_object_approach.filter_candidates_for_goal_room(
-            candidates=[dict(candidate) for candidate in candidates],
-            goal=next_goal,
+        candidates, room_rejected_candidates = (
+            runtime_object_approach.filter_candidates_for_goal_room(
+                candidates=[dict(candidate) for candidate in candidates],
+                goal=next_goal,
+            )
         )
         filtered_navigation_payload = dict(prepared_navigation_payload)
         filtered_navigation_payload["candidates"] = candidates
@@ -1451,7 +1534,8 @@ class NavigationAgent:
         elif selected_candidate is None:
             next_goal["object_approach_selection_failed"] = True
             next_goal["object_approach_selection_failure_reason"] = str(
-                object_approach_selection.get("reason") or "object-approach candidate selection failed"
+                object_approach_selection.get("reason")
+                or "object-approach candidate selection failed"
             )
             context.runtime_state.pop("selected_object_approach", None)
 

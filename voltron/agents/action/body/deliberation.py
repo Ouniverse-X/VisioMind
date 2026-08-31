@@ -1,5 +1,3 @@
-"""High-level deliberation logic owned by the Action agent body."""
-
 from __future__ import annotations
 
 import json
@@ -65,8 +63,6 @@ class OpenAIActionDeliberatorConfig:
 
 
 class OpenAICompatibleActionDeliberator:
-    """Internal Action deliberator backed by an OpenAI-compatible endpoint."""
-
     def __init__(self, config: OpenAIActionDeliberatorConfig) -> None:
         self.config = config
         self.session = requests.Session()
@@ -91,7 +87,9 @@ class OpenAICompatibleActionDeliberator:
 
     def _request_chat_completion(self, user_prompt: str) -> str:
         url = self._completion_url(self.config.base_url)
-        api_key = self.config.api_key or os.getenv(self.config.api_key_env) or os.getenv("OPENAI_API_KEY")
+        api_key = (
+            self.config.api_key or os.getenv(self.config.api_key_env) or os.getenv("OPENAI_API_KEY")
+        )
 
         headers = {"Content-Type": "application/json"}
         if api_key:
@@ -111,7 +109,9 @@ class OpenAICompatibleActionDeliberator:
 
         for attempt in range(1, attempts + 1):
             try:
-                response = self.session.post(url, headers=headers, json=payload, timeout=self.config.timeout_s)
+                response = self.session.post(
+                    url, headers=headers, json=payload, timeout=self.config.timeout_s
+                )
                 if response.status_code in _RETRIABLE_STATUS_CODES and attempt < attempts:
                     time.sleep(max(0.0, float(self.config.retry_backoff_s)))
                     continue
@@ -145,7 +145,9 @@ class OpenAICompatibleActionDeliberator:
                     f"Action deliberator HTTP {status_code or 'unknown'} on attempt {attempt}/{attempts}: {detail}"
                 ) from exc
             except requests.exceptions.RequestException as exc:
-                raise RuntimeError(f"Action deliberator request failed calling {url}: {exc}") from exc
+                raise RuntimeError(
+                    f"Action deliberator request failed calling {url}: {exc}"
+                ) from exc
         else:
             raise RuntimeError(f"Action deliberator request failed without response: {last_error}")
 
@@ -160,7 +162,9 @@ class OpenAICompatibleActionDeliberator:
         message = choices[0].get("message") or {}
         content = message.get("content")
         if isinstance(content, list):
-            content = "".join(item.get("text", "") if isinstance(item, dict) else str(item) for item in content)
+            content = "".join(
+                item.get("text", "") if isinstance(item, dict) else str(item) for item in content
+            )
         if not isinstance(content, str) or not content.strip():
             raise ValueError("Action deliberator response content is empty")
         return content

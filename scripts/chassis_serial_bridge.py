@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
-"""ROS 2 Chassis Serial Bridge for ASR-01 Mobile Platform.
 
-This node implements the custom 15-byte serial protocol to control the Mecanum
-chassis and the lift mechanism via a serial connection. It subscribes to
-geometry_msgs/Twist for velocity commands and std_msgs/Float64 for lift commands,
-maps them to motor speeds and direction bitmask, and sends them to the MCU at 50Hz.
-It also reads feedback from the chassis serial port and publishes Odometry and
-JointState.
-"""
 
 from __future__ import annotations
 
@@ -15,7 +7,6 @@ import argparse
 import math
 import struct
 import sys
-import time
 
 try:
     import serial
@@ -23,9 +14,6 @@ except ImportError:
     print("Warning: 'pyserial' is not installed. Running in simulation/mock mode.", file=sys.stderr)
     serial = None
 
-import numpy as np
-
-# ROS 2 imports
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist, Quaternion, TransformStamped
@@ -36,45 +24,40 @@ import tf2_ros
 
 
 class ChassisSerialBridge(Node):
-    """ROS 2 Node that bridges ROS 2 velocity/lift commands to the ASR-01 serial protocol."""
-
     def __init__(self, port: str = "/dev/ttyUSB_chassis", baudrate: int = 115200) -> None:
         super().__init__("chassis_serial_bridge")
 
-        # Declare parameters
         self.declare_parameter("port", port)
         self.declare_parameter("baudrate", baudrate)
-        self.declare_parameter("send_interval_ms", 20)  # 20ms (50Hz)
-        self.declare_parameter("wheel_radius", 0.076)   # 76mm Mecanum wheels (radius in meters)
-        self.declare_parameter("lx", 0.25)              # Half distance between front and rear axles (meters)
-        self.declare_parameter("ly", 0.25)              # Half distance between left and right wheels (meters)
-        self.declare_parameter("lift_lead", 0.01)       # Lift lead (meters per revolution)
-        self.declare_parameter("debug_mode", False)     # Set Checksum byte to 0x00 to bypass MCU verification
+        self.declare_parameter("send_interval_ms", 20)
+        self.declare_parameter("wheel_radius", 0.076)
+        self.declare_parameter("lx", 0.25)
+        self.declare_parameter("ly", 0.25)
+        self.declare_parameter("lift_lead", 0.01)
+        self.declare_parameter("debug_mode", False)
 
-        # Get parameter values
         self.port = self.get_parameter("port").get_parameter_value().string_value
         self.baudrate = self.get_parameter("baudrate").get_parameter_value().integer_value
-        self.send_interval = self.get_parameter("send_interval_ms").get_parameter_value().integer_value / 1000.0
+        self.send_interval = (
+            self.get_parameter("send_interval_ms").get_parameter_value().integer_value / 1000.0
+        )
         self.wheel_radius = self.get_parameter("wheel_radius").get_parameter_value().double_value
         self.lx = self.get_parameter("lx").get_parameter_value().double_value
         self.ly = self.get_parameter("ly").get_parameter_value().double_value
         self.lift_lead = self.get_parameter("lift_lead").get_parameter_value().double_value
         self.debug_mode = self.get_parameter("debug_mode").get_parameter_value().boolean_value
 
-        # Robot kinematic variables
         self.cmd_vx = 0.0
         self.cmd_vy = 0.0
         self.cmd_wz = 0.0
-        self.cmd_lift_vel = 0.0  # m/s
+        self.cmd_lift_vel = 0.0
 
-        # Odometry state
         self.x = 0.0
         self.y = 0.0
         self.th = 0.0
         self.lift_height = 0.0
         self.last_time = self.get_clock().now()
 
-        # Initialize Serial Port
         self.ser = None
         if serial is not None:
             try:
@@ -84,27 +67,30 @@ class ChassisSerialBridge(Node):
                     timeout=0.05,
                     bytesize=serial.EIGHTBITS,
                     parity=serial.PARITY_NONE,
-                    stopbits=serial.STOPBITS_ONE
+                    stopbits=serial.STOPBITS_ONE,
                 )
-                self.get_logger().info(f"Opened chassis serial port {self.port} at {self.baudrate} baud.")
+                self.get_logger().info(
+                    f"Opened chassis serial port {self.port} at {self.baudrate} baud."
+                )
             except Exception as e:
-                self.get_logger().error(f"Failed to open serial port {self.port}: {e}. Falling back to Mock mode.")
+                self.get_logger().error(
+                    f"Failed to open serial port {self.port}: {e}. Falling back to Mock mode."
+                )
         else:
             self.get_logger().warn("Running in MOCK mode (serial library not found).")
 
-        # Publishers & Subscribers
         self.odom_pub = self.create_publisher(Odometry, "odom", 10)
         self.joint_pub = self.create_publisher(JointState, "joint_states", 10)
 
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self._cmd_vel_callback, 10)
-        self.lift_cmd_sub = self.create_subscription(Float64, "lift_cmd", self._lift_cmd_callback, 10)
+        self.lift_cmd_sub = self.create_subscription(
+            Float64, "lift_cmd", self._lift_cmd_callback, 10
+        )
 
-        # TF Broadcaster
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
-        # Timers
         self.write_timer = self.create_timer(self.send_interval, self._send_control_frame)
-        self.read_timer = self.create_timer(0.01, self._read_feedback_frame)  # Read faster (100Hz)
+        self.read_timer = self.create_timer(0.01, self._read_feedback_frame)
 
     def _cmd_vel_callback(self, msg: Twist) -> None:
         self.cmd_vx = msg.linear.x
@@ -115,11 +101,6 @@ class ChassisSerialBridge(Node):
         self.cmd_lift_vel = msg.data
 
     def _send_control_frame(self) -> None:
-        """Calculate wheel/lift speeds and pack them into the 15-byte protocol frame."""
-        # 1. Kinematics mapping: Twist -> Mecanum Wheel Angular Velocities (rad/s)
-        # Standard Mecanum inverse kinematics formulas:
-        # A: Front Left, B: Rear Left, C: Front Right, D: Rear Right
-        # V_wheel = (vx +/- vy +/- (lx+ly)*wz) / R
         r = self.wheel_radius
         l_sum = self.lx + self.ly
 
@@ -128,59 +109,40 @@ class ChassisSerialBridge(Node):
         w_c = (self.cmd_vx + self.cmd_vy + l_sum * self.cmd_wz) / r
         w_d = (self.cmd_vx - self.cmd_vy + l_sum * self.cmd_wz) / r
 
-        # Lift motor angular velocity (rad/s)
-        # speed (m/s) -> rev/s -> rad/s
         w_lift = (self.cmd_lift_vel / self.lift_lead) * (2.0 * math.pi)
 
-        # Convert to revolutions per second (r/s)
         rps_a = w_a / (2.0 * math.pi)
         rps_b = w_b / (2.0 * math.pi)
         rps_c = w_c / (2.0 * math.pi)
         rps_d = w_d / (2.0 * math.pi)
         rps_lift = w_lift / (2.0 * math.pi)
 
-        # 2. Extract directions and absolute speeds (unit: 1 = 0.1 r/s)
         dir_mask = 0x00
 
-        # Wheel A
         if rps_a < 0:
-            dir_mask |= 0x01  # Bit 0: A motor backward
+            dir_mask |= 0x01
         val_a = min(65535, int(abs(rps_a) * 10.0))
 
-        # Wheel B
         if rps_b < 0:
-            dir_mask |= 0x02  # Bit 1: B motor backward
+            dir_mask |= 0x02
         val_b = min(65535, int(abs(rps_b) * 10.0))
 
-        # Wheel C
         if rps_c < 0:
-            dir_mask |= 0x04  # Bit 2: C motor backward
+            dir_mask |= 0x04
         val_c = min(65535, int(abs(rps_c) * 10.0))
 
-        # Wheel D
         if rps_d < 0:
-            dir_mask |= 0x08  # Bit 3: D motor backward
+            dir_mask |= 0x08
         val_d = min(65535, int(abs(rps_d) * 10.0))
 
-        # Lift motor
         if rps_lift < 0:
-            dir_mask |= 0x10  # Bit 4: Lift motor descend
+            dir_mask |= 0x10
         val_lift = min(65535, int(abs(rps_lift) * 10.0))
 
-        # 3. Assemble the 15-byte frame
-        # Byte 0-1: 包头 (0xA5 0x5A)
-        # Byte 2: 工作模式 (0x00: 速度模式)
-        # Byte 3: 方向定义字节
-        # Byte 4-5: A速度 (Big Endian)
-        # Byte 6-7: B速度 (Big Endian)
-        # Byte 8-9: C速度 (Big Endian)
-        # Byte 10-11: D速度 (Big Endian)
-        # Byte 12-13: 升降速度 (Big Endian)
-        # Byte 14: 校验和 (或 0x00 调试模式)
         frame = bytearray(15)
         frame[0] = 0xA5
         frame[1] = 0x5A
-        frame[2] = 0x00  # Speed mode
+        frame[2] = 0x00
         frame[3] = dir_mask
 
         struct.pack_into(">H", frame, 4, val_a)
@@ -192,11 +154,9 @@ class ChassisSerialBridge(Node):
         if self.debug_mode:
             frame[14] = 0x00
         else:
-            # Checksum: Byte 0 to 13 accumulative sum modulo 256
             checksum = sum(frame[:14]) & 0xFF
             frame[14] = checksum
 
-        # 4. Write to serial port
         if self.ser and self.ser.is_open:
             try:
                 self.ser.write(frame)
@@ -204,44 +164,38 @@ class ChassisSerialBridge(Node):
             except Exception as e:
                 self.get_logger().error(f"Serial write error: {e}")
         else:
-            # Mock print for simulation
             if self.get_parameter("debug_mode").value:
                 self.get_logger().debug(f"Mock serial TX: {frame.hex()}")
 
     def _read_feedback_frame(self) -> None:
-        """Read serial feedback from chassis, update kinematics and publish TF/Odom."""
         current_time = self.get_clock().now()
         dt = (current_time - self.last_time).nanoseconds / 1e9
         if dt <= 0.0:
             return
 
         feedback_received = False
-        # Read parameters from serial (mocked in simulation mode)
+
         if self.ser and self.ser.is_open:
             try:
                 if self.ser.in_waiting >= 15:
                     header = self.ser.read(2)
-                    if header == b"\xa5\x5a" or header == b"\x5a\xa5": # sync bytes
+                    if header == b"\xa5\x5a" or header == b"\x5a\xa5":
                         payload = self.ser.read(13)
-                        # Parse speed feedback (mocked here, in reality we unpack actual speeds)
-                        # Assume we unpack 5 motor actual speeds
+
                         dir_mask = payload[1]
                         speeds = struct.unpack(">hhhhh", payload[2:12])
 
-                        # Convert 0.1 rps to rad/s
                         w_fb = []
                         for i in range(4):
                             spd = speeds[i] * 0.1 * (2.0 * math.pi)
-                            if (dir_mask & (1 << i)):
+                            if dir_mask & (1 << i):
                                 spd = -spd
                             w_fb.append(spd)
 
-                        # Lift feedback
                         spd_lift = speeds[4] * 0.1 * self.lift_lead
-                        if (dir_mask & 0x10):
+                        if dir_mask & 0x10:
                             spd_lift = -spd_lift
 
-                        # Compute chassis velocities from wheel velocities (Forward Kinematics)
                         r = self.wheel_radius
                         l_sum = self.lx + self.ly
                         vx = (w_fb[0] + w_fb[1] + w_fb[2] + w_fb[3]) * r / 4.0
@@ -253,14 +207,12 @@ class ChassisSerialBridge(Node):
             except Exception as e:
                 self.get_logger().error(f"Serial read error: {e}")
 
-        # If in Mock mode or serial read failed, integrate commanded velocities directly
         if not feedback_received:
             vx = self.cmd_vx
             vy = self.cmd_vy
             wz = self.cmd_wz
             self.lift_height += self.cmd_lift_vel * dt
 
-        # Integrate Odometry
         delta_x = (vx * math.cos(self.th) - vy * math.sin(self.th)) * dt
         delta_y = (vx * math.sin(self.th) + vy * math.cos(self.th)) * dt
         delta_th = wz * dt
@@ -269,32 +221,26 @@ class ChassisSerialBridge(Node):
         self.y += delta_y
         self.th += delta_th
 
-        # Limit lift height
         self.lift_height = max(0.0, min(0.5, self.lift_height))
 
-        # Publish Odometry message
         odom = Odometry()
         odom.header.stamp = current_time.to_msg()
         odom.header.frame_id = "odom"
         odom.child_frame_id = "base_footprint"
 
-        # Position
         odom.pose.pose.position.x = self.x
         odom.pose.pose.position.y = self.y
         odom.pose.pose.position.z = 0.0
 
-        # Quaternion orientaton
         q = self._euler_to_quaternion(0.0, 0.0, self.th)
         odom.pose.pose.orientation = q
 
-        # Velocities
         odom.twist.twist.linear.x = vx
         odom.twist.twist.linear.y = vy
         odom.twist.twist.angular.z = wz
 
         self.odom_pub.publish(odom)
 
-        # Publish TF
         t = TransformStamped()
         t.header.stamp = current_time.to_msg()
         t.header.frame_id = "odom"
@@ -305,7 +251,6 @@ class ChassisSerialBridge(Node):
         t.transform.rotation = q
         self.tf_broadcaster.sendTransform(t)
 
-        # Publish Joint State for the lift joint
         joint_state = JointState()
         joint_state.header.stamp = current_time.to_msg()
         joint_state.name = ["lift_joint"]
@@ -332,7 +277,6 @@ class ChassisSerialBridge(Node):
         return q
 
     def destroy_node(self) -> None:
-        # Send stop command before shutdown
         if self.ser and self.ser.is_open:
             stop_frame = bytearray(15)
             stop_frame[0] = 0xA5
@@ -344,8 +288,12 @@ class ChassisSerialBridge(Node):
 
 def main(args: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", default="/dev/ttyUSB_chassis", help="Chassis serial port device path")
-    parser.add_argument("--baudrate", type=int, default=115200, help="Baud rate for serial communication")
+    parser.add_argument(
+        "--port", default="/dev/ttyUSB_chassis", help="Chassis serial port device path"
+    )
+    parser.add_argument(
+        "--baudrate", type=int, default=115200, help="Baud rate for serial communication"
+    )
     parsed_args, ros_args = parser.parse_known_args(args)
 
     rclpy.init(args=ros_args)

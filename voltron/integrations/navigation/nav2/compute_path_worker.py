@@ -1,5 +1,3 @@
-"""ROS-sourced worker that queries Nav2 ComputePathToPose and prints JSON."""
-
 from __future__ import annotations
 
 import json

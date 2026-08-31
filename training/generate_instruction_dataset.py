@@ -1,10 +1,3 @@
-"""Generate a deterministic bilingual industrial-command dataset.
-
-Templates, object aliases, and destinations are deliberately separated from
-the runtime parser so evaluation measures paraphrase generalization rather
-than replaying hard-coded command strings.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -14,7 +7,17 @@ import random
 
 
 OBJECTS_ZH = ("螺丝刀", "内六角扳手", "扳手", "滚柱", "螺栓", "螺母", "手电筒", "钳子", "电钻")
-OBJECTS_EN = ("screwdriver", "allen wrench", "wrench", "roller", "bolt", "nut", "flashlight", "pliers", "power drill")
+OBJECTS_EN = (
+    "screwdriver",
+    "allen wrench",
+    "wrench",
+    "roller",
+    "bolt",
+    "nut",
+    "flashlight",
+    "pliers",
+    "power drill",
+)
 DESTINATIONS_ZH = ("料箱", "工具箱", "包装箱", "托盘")
 DESTINATIONS_EN = ("parts bin", "toolbox", "packing box", "tray")
 POSITIONS_ZH = ("左侧的", "右侧的", "前面的", "最近的", "")
@@ -128,12 +131,16 @@ TEST_TEMPLATES = {
 
 def _render(template: str, rng: random.Random) -> str:
     chinese = any("\u4e00" <= char <= "\u9fff" for char in template)
-    rendered = template.format(
-        object=rng.choice(OBJECTS_ZH if chinese else OBJECTS_EN),
-        destination=rng.choice(DESTINATIONS_ZH if chinese else DESTINATIONS_EN),
-        position=rng.choice(POSITIONS_ZH if chinese else POSITIONS_EN),
-        cell=rng.randint(1, 6),
-    ).replace("  ", " ").strip()
+    rendered = (
+        template.format(
+            object=rng.choice(OBJECTS_ZH if chinese else OBJECTS_EN),
+            destination=rng.choice(DESTINATIONS_ZH if chinese else DESTINATIONS_EN),
+            position=rng.choice(POSITIONS_ZH if chinese else POSITIONS_EN),
+            cell=rng.randint(1, 6),
+        )
+        .replace("  ", " ")
+        .strip()
+    )
     if chinese:
         prefix = rng.choice(("", "请", "现在", "麻烦", "操作员要求："))
         suffix = rng.choice(("", "。", "，谢谢", "，完成后报告状态"))
@@ -154,9 +161,7 @@ def generate(templates: dict[str, tuple[str, ...]], count_per_template: int, see
                 attempts += 1
                 seen.add(_render(template, rng))
             for text in sorted(seen):
-                records.append(
-                    {"text": text, "intent": intent, "template_id": template_id}
-                )
+                records.append({"text": text, "intent": intent, "template_id": template_id})
     rng.shuffle(records)
     return records
 

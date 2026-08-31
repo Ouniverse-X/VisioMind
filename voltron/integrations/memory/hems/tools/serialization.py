@@ -1,12 +1,12 @@
-"""Serialization helpers for the HEMS backend."""
-
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
 from typing import Any, Callable
 
 
-def serialize_retrieval(*, retrieval_result: Any, serializer: Callable[[Any], Any]) -> dict[str, Any]:
+def serialize_retrieval(
+    *, retrieval_result: Any, serializer: Callable[[Any], Any]
+) -> dict[str, Any]:
     return {
         "query_type": retrieval_result.query_type,
         "query": serializer(retrieval_result.query),

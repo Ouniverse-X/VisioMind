@@ -1,5 +1,3 @@
-"""Canonical skill surface for the Action agent."""
-
 from . import execution, planning, registry
 from .execution import (
     ButtonInteractionSkill,

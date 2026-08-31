@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Qwen2.5 industrial planner and print its fixed JSON plan."""
+
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from visiomind.decision.qwen_plan_schema import (  # noqa: E402
+from visiomind.decision.qwen_plan_schema import (
     SYSTEM_PROMPT,
     extract_json_object,
     validate_plan,
@@ -45,8 +45,7 @@ def main() -> None:
 
     if not args.base_model.is_dir():
         parser.error(
-            "base model is missing; download Qwen/Qwen2.5-3B-Instruct to "
-            f"{args.base_model}"
+            f"base model is missing; download Qwen/Qwen2.5-3B-Instruct to {args.base_model}"
         )
     if not args.prompt_only and not (args.adapter / "adapter_config.json").is_file():
         parser.error(f"LoRA adapter is missing or incomplete: {args.adapter}")
@@ -75,9 +74,7 @@ def main() -> None:
         tokenize=False,
         add_generation_prompt=True,
     )
-    encoded = tokenizer(
-        prompt, return_tensors="pt", add_special_tokens=False
-    ).to(device)
+    encoded = tokenizer(prompt, return_tensors="pt", add_special_tokens=False).to(device)
     with torch.inference_mode():
         generated = model.generate(
             **encoded,

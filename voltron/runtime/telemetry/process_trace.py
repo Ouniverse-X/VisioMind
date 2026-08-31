@@ -1,5 +1,3 @@
-"""Structured process trace helpers for runtime telemetry."""
-
 from __future__ import annotations
 
 import json

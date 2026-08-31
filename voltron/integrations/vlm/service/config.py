@@ -1,5 +1,3 @@
-"""Configuration loading for the Voltron VLM service integration."""
-
 from __future__ import annotations
 
 import json
@@ -44,9 +42,13 @@ def load_backend_config(
             environ=env,
         )
         timeout_s = float(env.get("VLM_TIMEOUT_S") or merged.get("timeout_s") or DEFAULT_TIMEOUT_S)
-        max_retries = int(env.get("VLM_MAX_RETRIES") or merged.get("max_retries") or DEFAULT_MAX_RETRIES)
+        max_retries = int(
+            env.get("VLM_MAX_RETRIES") or merged.get("max_retries") or DEFAULT_MAX_RETRIES
+        )
         retry_backoff_s = float(
-            env.get("VLM_RETRY_BACKOFF_S") or merged.get("retry_backoff_s") or DEFAULT_RETRY_BACKOFF_S
+            env.get("VLM_RETRY_BACKOFF_S")
+            or merged.get("retry_backoff_s")
+            or DEFAULT_RETRY_BACKOFF_S
         )
         if not base_url:
             raise RuntimeError("OpenAI-compatible VLM backend requires base_url")
@@ -68,9 +70,13 @@ def load_backend_config(
             environ=env,
         )
         timeout_s = float(env.get("VLM_TIMEOUT_S") or merged.get("timeout_s") or DEFAULT_TIMEOUT_S)
-        max_retries = int(env.get("VLM_MAX_RETRIES") or merged.get("max_retries") or DEFAULT_MAX_RETRIES)
+        max_retries = int(
+            env.get("VLM_MAX_RETRIES") or merged.get("max_retries") or DEFAULT_MAX_RETRIES
+        )
         retry_backoff_s = float(
-            env.get("VLM_RETRY_BACKOFF_S") or merged.get("retry_backoff_s") or DEFAULT_RETRY_BACKOFF_S
+            env.get("VLM_RETRY_BACKOFF_S")
+            or merged.get("retry_backoff_s")
+            or DEFAULT_RETRY_BACKOFF_S
         )
         return VLMBackendConfig(
             provider="dashscope",

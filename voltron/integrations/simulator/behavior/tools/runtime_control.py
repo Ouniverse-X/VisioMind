@@ -1,5 +1,3 @@
-"""Runtime control helpers for reset and plan-update orchestration."""
-
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -25,7 +23,9 @@ def reset_runtime_session(
     sync_runtime_subtasks: Callable[[list[dict[str, Any]]], None],
     capture_reset_runtime_state: Callable[..., dict[str, Any]],
     record_frame: Callable[[dict[str, Any]], None],
-    localize_runtime_state: Callable[[dict[str, Any], dict[str, Any], dict[str, str | None]], dict[str, Any]],
+    localize_runtime_state: Callable[
+        [dict[str, Any], dict[str, Any], dict[str, str | None]], dict[str, Any]
+    ],
     extract_pose: Callable[[dict[str, Any], dict[str, Any]], dict[str, Any] | None],
     apply_post_reset_state: Callable[[Any, Any, Any], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:

@@ -1,5 +1,3 @@
-"""Planning-runtime helpers for the Brain agent."""
-
 from __future__ import annotations
 
 import math
@@ -69,7 +67,9 @@ def recent_plan_decisions(context: ExecutionContext) -> list[dict[str, Any]]:
 
 
 def build_runtime_namespace(context: ExecutionContext) -> dict[str, Any]:
-    metadata = context.task_request.metadata if isinstance(context.task_request.metadata, dict) else {}
+    metadata = (
+        context.task_request.metadata if isinstance(context.task_request.metadata, dict) else {}
+    )
     return {
         "trace_id": context.trace_id,
         "task_id": context.task_request.task_id,
@@ -79,7 +79,9 @@ def build_runtime_namespace(context: ExecutionContext) -> dict[str, Any]:
     }
 
 
-def serialize_result(result: Any, *, environment_state: dict[str, Any] | None = None) -> dict[str, Any]:
+def serialize_result(
+    result: Any, *, environment_state: dict[str, Any] | None = None
+) -> dict[str, Any]:
     payload = getattr(result, "result", {})
     scene_report = payload.get("scene_report")
     env_feedback = navigation_runtime.runtime_feedback_dict(payload.get("env_feedback"))
@@ -270,9 +272,7 @@ def _door_candidates(
         if value
     }
     explicit_candidates = path_plan.get("door_candidates")
-    explicit_candidates = (
-        explicit_candidates if isinstance(explicit_candidates, list) else []
-    )
+    explicit_candidates = explicit_candidates if isinstance(explicit_candidates, list) else []
     objects = _scene_objects(environment_state) + _scene_objects(path_plan)
     ranked: list[tuple[float, dict[str, Any]]] = []
     seen: set[str] = set()
@@ -305,7 +305,9 @@ def _door_candidates(
     for obj in objects:
         if not isinstance(obj, dict) or not _is_door_like(obj):
             continue
-        object_id = str(_first_non_empty(obj.get("id"), obj.get("object_id"), obj.get("name")) or "")
+        object_id = str(
+            _first_non_empty(obj.get("id"), obj.get("object_id"), obj.get("name")) or ""
+        )
         if object_id and object_id in seen:
             continue
         room_name = _first_non_empty(obj.get("room"), obj.get("room_name"), obj.get("region"))
@@ -334,9 +336,7 @@ def _portal_block_reason(path_plan: dict[str, Any]) -> str | None:
     reason = str(path_plan.get("reason") or "").strip().lower()
     diagnostics = path_plan.get("object_approach_diagnostics")
     diagnostics = diagnostics if isinstance(diagnostics, dict) else {}
-    selection_reason = str(
-        diagnostics.get("selection_failure_reason") or ""
-    ).strip().lower()
+    selection_reason = str(diagnostics.get("selection_failure_reason") or "").strip().lower()
     if "blocked_by_closed_door" in {reason, selection_reason}:
         return "blocked_by_closed_door"
     if str(path_plan.get("path_backend") or "").strip().lower() == "portal_path_unavailable":

@@ -1,5 +1,3 @@
-"""Agent implementations."""
-
 from . import action, brain, memory, navigation, vision
 from .action import ActionAgent
 from .brain import BrainAgent

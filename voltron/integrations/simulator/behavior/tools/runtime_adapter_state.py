@@ -1,5 +1,3 @@
-"""State write-back helpers for the BEHAVIOR runtime adapter facade."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -30,7 +28,9 @@ def apply_reset_result(adapter: Any, reset: dict[str, Any]) -> dict[str, Any]:
     adapter._active_action_internal_step = reset_state["active_action_internal_step"]
     adapter._logged_subtask_attempts = reset_state["logged_subtask_attempts"]
     adapter._logged_action_internal_attempts = reset_state["logged_action_internal_attempts"]
-    adapter._logged_action_internal_replans = reset_state.get("logged_action_internal_replans", set())
+    adapter._logged_action_internal_replans = reset_state.get(
+        "logged_action_internal_replans", set()
+    )
     return reset["result_payload"]
 
 

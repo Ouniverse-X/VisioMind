@@ -1,5 +1,3 @@
-"""Scenario-clock and scheduled-event tools for the Brain agent."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -31,9 +29,12 @@ class ScheduledEvent:
 
 
 class CronTool:
-    """Brain-owned time constraint tool with deterministic and real-clock modes."""
-
-    tool_names = ("cron.check_schedule", "cron.schedule_event", "cron.list_events", "cron.cancel_event")
+    tool_names = (
+        "cron.check_schedule",
+        "cron.schedule_event",
+        "cron.list_events",
+        "cron.cancel_event",
+    )
 
     def __init__(self, now: Callable[[], datetime] | None = None) -> None:
         self._now = now or datetime.now
@@ -46,7 +47,9 @@ class CronTool:
                 "input_schema": {
                     "mode": '"mock" | "real"',
                     "current_time": "optional ISO timestamp or relative time anchor",
-                    "deadlines": [{"time": "ISO or relative time", "requirement": "constraint label"}],
+                    "deadlines": [
+                        {"time": "ISO or relative time", "requirement": "constraint label"}
+                    ],
                 },
             },
             "cron.schedule_event": {
@@ -87,7 +90,11 @@ class CronTool:
             return self._list_events(invocation)
         if invocation.tool_name == "cron.cancel_event":
             return self._cancel_event(invocation)
-        return self._error(invocation.tool_name, "unsupported_tool", f"Unsupported cron tool {invocation.tool_name!r}")
+        return self._error(
+            invocation.tool_name,
+            "unsupported_tool",
+            f"Unsupported cron tool {invocation.tool_name!r}",
+        )
 
     def _check_schedule(self, invocation: ToolInvocation) -> ToolResult:
         payload = invocation.payload
@@ -95,7 +102,9 @@ class CronTool:
         current_dt = self._current_time(payload, mode)
         current_iso = _iso(current_dt)
         deadlines = self._serialize_deadlines(payload.get("deadlines", []), current_dt)
-        phase = str(payload.get("phase") or _phase_from_deadlines(deadlines) or "scheduled_execution")
+        phase = str(
+            payload.get("phase") or _phase_from_deadlines(deadlines) or "scheduled_execution"
+        )
         due_events = self._due_events(current_dt)
 
         return ToolResult(
@@ -118,11 +127,17 @@ class CronTool:
         task = str(payload.get("task") or "").strip()
         time_value = payload.get("time") or payload.get("scheduled_time")
         if not event_id:
-            return self._error(invocation.tool_name, "missing_event_id", "cron.schedule_event requires event_id")
+            return self._error(
+                invocation.tool_name, "missing_event_id", "cron.schedule_event requires event_id"
+            )
         if not task:
-            return self._error(invocation.tool_name, "missing_task", "cron.schedule_event requires task")
+            return self._error(
+                invocation.tool_name, "missing_task", "cron.schedule_event requires task"
+            )
         if not time_value:
-            return self._error(invocation.tool_name, "missing_time", "cron.schedule_event requires time")
+            return self._error(
+                invocation.tool_name, "missing_time", "cron.schedule_event requires time"
+            )
 
         mode = _mode(payload)
         base_dt = self._current_time({"current_time": payload.get("base_time")}, mode)
@@ -131,7 +146,9 @@ class CronTool:
             event_id=event_id,
             task=task,
             scheduled_time=_iso(scheduled_dt),
-            metadata=dict(payload.get("metadata", {})) if isinstance(payload.get("metadata"), dict) else {},
+            metadata=dict(payload.get("metadata", {}))
+            if isinstance(payload.get("metadata"), dict)
+            else {},
         )
         self._events[event_id] = event
         return ToolResult(
@@ -152,10 +169,16 @@ class CronTool:
     def _cancel_event(self, invocation: ToolInvocation) -> ToolResult:
         event_id = str(invocation.payload.get("event_id") or "").strip()
         if not event_id:
-            return self._error(invocation.tool_name, "missing_event_id", "cron.cancel_event requires event_id")
+            return self._error(
+                invocation.tool_name, "missing_event_id", "cron.cancel_event requires event_id"
+            )
         removed = self._events.pop(event_id, None)
         if removed is None:
-            return self._error(invocation.tool_name, "event_not_found", f"Scheduled event {event_id!r} was not found")
+            return self._error(
+                invocation.tool_name,
+                "event_not_found",
+                f"Scheduled event {event_id!r} was not found",
+            )
         return ToolResult(
             tool_name=invocation.tool_name,
             ok=True,
@@ -202,7 +225,9 @@ class CronTool:
         return due
 
     def _sorted_events(self) -> list[ScheduledEvent]:
-        return sorted(self._events.values(), key=lambda event: (event.scheduled_time, event.event_id))
+        return sorted(
+            self._events.values(), key=lambda event: (event.scheduled_time, event.event_id)
+        )
 
     @staticmethod
     def _error(tool_name: str, error_code: str, message: str) -> ToolResult:
@@ -227,7 +252,9 @@ def _parse_time(value: str, *, base_dt: datetime | None) -> datetime:
         if base_dt is None:
             base_dt = _parse_time(_DEFAULT_MOCK_NOW, base_dt=None)
         hour, minute = _parse_hour_minute(normalized.split(None, 1)[1])
-        return base_dt.replace(hour=hour, minute=minute, second=0, microsecond=0) + timedelta(days=1)
+        return base_dt.replace(hour=hour, minute=minute, second=0, microsecond=0) + timedelta(
+            days=1
+        )
     if lower.startswith("today "):
         if base_dt is None:
             base_dt = _parse_time(_DEFAULT_MOCK_NOW, base_dt=None)
@@ -263,7 +290,9 @@ def _temporal_status(target_dt: datetime, current_dt: datetime) -> str:
 
 
 def _phase_from_deadlines(deadlines: list[dict[str, Any]]) -> str | None:
-    due_or_overdue = [deadline for deadline in deadlines if deadline.get("status") in {"due", "overdue"}]
+    due_or_overdue = [
+        deadline for deadline in deadlines if deadline.get("status") in {"due", "overdue"}
+    ]
     if due_or_overdue:
         return str(due_or_overdue[-1].get("requirement") or "deadline_due")
     if deadlines:

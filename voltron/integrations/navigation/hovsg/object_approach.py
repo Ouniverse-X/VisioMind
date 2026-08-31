@@ -1,5 +1,3 @@
-"""Object-approach planning helpers for the HOV-SG navigator."""
-
 from __future__ import annotations
 
 import math
@@ -84,11 +82,7 @@ def object_approach_diagnostics(
     if not isinstance(store, dict):
         return _new_candidate_diagnostics()
     diagnostics = store.get((str(scene_id), str(object_id)))
-    return (
-        dict(diagnostics)
-        if isinstance(diagnostics, dict)
-        else _new_candidate_diagnostics()
-    )
+    return dict(diagnostics) if isinstance(diagnostics, dict) else _new_candidate_diagnostics()
 
 
 def build_object_approach_candidates(
@@ -120,9 +114,7 @@ def build_object_approach_candidates(
     )
     if approach_owner is None:
         diagnostics["selection_failure_reason"] = (
-            "object_held_by_self"
-            if target_object.held_by_self
-            else "object_not_approachable"
+            "object_held_by_self" if target_object.held_by_self else "object_not_approachable"
         )
         _store_candidate_diagnostics(
             adapter,
@@ -165,9 +157,7 @@ def build_object_approach_candidates(
 
     start_payload = dict(start or {})
     context_payload = dict(context or {})
-    clearance_radius_m = float(
-        getattr(adapter, "object_approach_clearance_radius_m", 0.0)
-    )
+    clearance_radius_m = float(getattr(adapter, "object_approach_clearance_radius_m", 0.0))
     clearance_map_spec = None
     point_has_clearance_fn = None
     if scene_id and clearance_radius_m > 0.0:
@@ -203,9 +193,7 @@ def build_object_approach_candidates(
         else None
     )
     approach_polygon = polygon
-    if isinstance(part_context, dict) and isinstance(
-        part_context.get("object_polygon"), list
-    ):
+    if isinstance(part_context, dict) and isinstance(part_context.get("object_polygon"), list):
         approach_polygon = part_context["object_polygon"]
     candidate_room_ids = object_approach_candidate_room_ids(
         adapter,
@@ -233,9 +221,7 @@ def build_object_approach_candidates(
             },
         )
         node_in_candidate_room = (
-            not candidate_room_ids
-            or node_room_id is None
-            or (node_room_id in candidate_room_ids)
+            not candidate_room_ids or node_room_id is None or (node_room_id in candidate_room_ids)
         )
         node_floor_id = attrs.get("floor_id")
         if (
@@ -302,11 +288,7 @@ def build_object_approach_candidates(
             "approach_owner_id": approach_owner.object_id,
             "approach_owner_name": approach_owner.name,
             **({"approach_owner_relation": owner_relation} if owner_relation else {}),
-            **(
-                {"requires_container_open": True}
-                if requires_container_open
-                else {}
-            ),
+            **({"requires_container_open": True} if requires_container_open else {}),
             **({"target_part": target_part} if target_part else {}),
             "object_position": dict(object_position),
             "approach_owner_position": dict(approach_position),
@@ -360,9 +342,7 @@ def build_object_approach_candidates(
         part_context=part_context,
         diagnostics=diagnostics,
     )
-    merged_candidates = merge_object_approach_candidates(
-        [*traversability_candidates, *candidates]
-    )
+    merged_candidates = merge_object_approach_candidates([*traversability_candidates, *candidates])
     fallback_pool = safe_nav_node_fallbacks or global_safe_nav_node_fallbacks
     if not merged_candidates and fallback_pool:
         fallback = min(
@@ -479,10 +459,7 @@ def object_approach_candidate_room_ids(
     room_ids = {object_room_id}
     if len(room_polygon) < 3:
         return room_ids
-    if (
-        adapter._point_to_polygon_boundary_distance(object_xy, room_polygon)
-        > boundary_threshold_m
-    ):
+    if adapter._point_to_polygon_boundary_distance(object_xy, room_polygon) > boundary_threshold_m:
         return room_ids
     effective_adjacency = hovsg_door_gating.effective_room_adjacency(adapter, scene)
     adjacent_room_ids = (
@@ -547,15 +524,9 @@ def build_continuous_object_approach_candidates(
     except Exception:
         return []
 
-    start_pose = (
-        start_payload.get("pose")
-        if isinstance(start_payload.get("pose"), dict)
-        else None
-    )
+    start_pose = start_payload.get("pose") if isinstance(start_payload.get("pose"), dict) else None
     start_xy = (
-        adapter._project_horizontal(scene, start_pose)
-        if isinstance(start_pose, dict)
-        else None
+        adapter._project_horizontal(scene, start_pose) if isinstance(start_pose, dict) else None
     )
     base_angle = math.pi
     if start_xy is not None:
@@ -588,19 +559,15 @@ def build_continuous_object_approach_candidates(
     ]
     sample_angles = [base_angle + offset for offset in angle_offsets]
     part_direction = (
-        part_context.get("preferred_direction")
-        if isinstance(part_context, dict)
-        else None
+        part_context.get("preferred_direction") if isinstance(part_context, dict) else None
     )
     if isinstance(part_direction, tuple) and len(part_direction) == 2:
         preferred_angle = math.atan2(float(part_direction[1]), float(part_direction[0]))
         sample_angles.extend(
             [
                 preferred_angle,
-                preferred_angle
-                - math.pi / float(adapter.object_approach_angle_samples),
-                preferred_angle
-                + math.pi / float(adapter.object_approach_angle_samples),
+                preferred_angle - math.pi / float(adapter.object_approach_angle_samples),
+                preferred_angle + math.pi / float(adapter.object_approach_angle_samples),
             ]
         )
     for standoff_distance in unique_radii:
@@ -621,15 +588,11 @@ def build_continuous_object_approach_candidates(
             )
             if room_polygons and candidate_room_id is None:
                 continue
-            if object_polygon and adapter._point_in_polygon(
-                candidate_xy, object_polygon
-            ):
+            if object_polygon and adapter._point_in_polygon(candidate_xy, object_polygon):
                 continue
 
             boundary_distance = (
-                adapter._point_to_polygon_boundary_distance(
-                    candidate_xy, object_polygon
-                )
+                adapter._point_to_polygon_boundary_distance(candidate_xy, object_polygon)
                 if len(object_polygon) >= 3
                 else radius
             )
@@ -675,9 +638,7 @@ def build_continuous_object_approach_candidates(
             )
             if nearest_node is None:
                 continue
-            nearest_node_waypoint = adapter._node_to_waypoint(
-                scene.nav_graph, nearest_node
-            )
+            nearest_node_waypoint = adapter._node_to_waypoint(scene.nav_graph, nearest_node)
             nearest_node_xy = adapter._project_horizontal(scene, nearest_node_waypoint)
             if nearest_node_xy is None:
                 continue
@@ -709,16 +670,14 @@ def build_continuous_object_approach_candidates(
             candidates.append(
                 {
                     **candidate_position,
-                    "floor_id": object_floor_id
-                    or nearest_node_waypoint.get("floor_id"),
+                    "floor_id": object_floor_id or nearest_node_waypoint.get("floor_id"),
                     "room_id": candidate_room_id
                     or object_room_id
                     or nearest_node_waypoint.get("room_id"),
                     "room_name": room_name_for_candidate(
                         scene=scene,
                         room_id=candidate_room_id or object_room_id,
-                        fallback=nearest_node_waypoint.get("room_name")
-                        or goal.get("room_name"),
+                        fallback=nearest_node_waypoint.get("room_name") or goal.get("room_name"),
                     ),
                     "nav_node": adapter._serialize_node_id(nearest_node),
                     "waypoint_type": "object_approach",
@@ -790,8 +749,7 @@ def directional_boundary_offset(
     return max(
         0.0,
         *(
-            (float(vertex[0]) - object_xy[0]) * dx
-            + (float(vertex[1]) - object_xy[1]) * dy
+            (float(vertex[0]) - object_xy[0]) * dx + (float(vertex[1]) - object_xy[1]) * dy
             for vertex in object_polygon
         ),
     )
@@ -814,10 +772,7 @@ def merge_object_approach_candidates(
             continue
         previous_source = str(previous.get("selection_source") or "")
         current_source = str(candidate.get("selection_source") or "")
-        if (
-            previous_source != "continuous_sample"
-            and current_source == "continuous_sample"
-        ):
+        if previous_source != "continuous_sample" and current_source == "continuous_sample":
             merged[key] = {**previous, **candidate}
     return list(merged.values())
 
@@ -837,9 +792,7 @@ def score_object_approach_candidates(
         if candidate_node is None or candidate_node not in active_graph:
             continue
         try:
-            path_nodes = nx.shortest_path(
-                active_graph, start_node, candidate_node, weight="dist"
-            )
+            path_nodes = nx.shortest_path(active_graph, start_node, candidate_node, weight="dist")
         except (nx.NetworkXNoPath, nx.NodeNotFound):
             if (
                 door_gated
@@ -853,9 +806,7 @@ def score_object_approach_candidates(
             continue
         scored_candidate = dict(candidate)
         scored_candidate["path_cost"] = adapter._path_cost(active_graph, path_nodes)
-        scored_candidate["path_nodes"] = [
-            adapter._serialize_node_id(node) for node in path_nodes
-        ]
+        scored_candidate["path_nodes"] = [adapter._serialize_node_id(node) for node in path_nodes]
         scored_candidate["nearby_object_evidence"] = object_proximity_evidence(
             adapter,
             scene=scene,
@@ -878,9 +829,7 @@ def score_object_approach_candidates(
     )
     diagnostics["candidate_count_after_portal_filter"] = len(scored)
     if blocked_by_closed_door_candidate_ids:
-        diagnostics["blocked_by_closed_door_candidate_ids"] = (
-            blocked_by_closed_door_candidate_ids
-        )
+        diagnostics["blocked_by_closed_door_candidate_ids"] = blocked_by_closed_door_candidate_ids
     if candidates and not scored:
         diagnostics["selection_failure_reason"] = (
             "blocked_by_closed_door"
@@ -1006,8 +955,7 @@ def runtime_part_approach_context(
     match = matching_named_part(
         parts_with_centers,
         target_part=target_part,
-        name_getter=lambda item: item[0].get("link")
-        or item[0].get("geometry_id"),
+        name_getter=lambda item: item[0].get("link") or item[0].get("geometry_id"),
     )
     if match is None:
         return None
@@ -1043,9 +991,7 @@ def model_part_approach_context(
     object_xy: tuple[float, float],
     target_part: str,
 ) -> tuple[float, float] | None:
-    scene_json = (
-        scene.metadata.get("scene_json") if isinstance(scene.metadata, dict) else None
-    )
+    scene_json = scene.metadata.get("scene_json") if isinstance(scene.metadata, dict) else None
     if not isinstance(scene_json, str) or not scene_json.strip():
         return None
     scene_payload = read_json_or_none(Path(scene_json).expanduser())
@@ -1071,9 +1017,7 @@ def model_part_approach_context(
     model_metadata = read_json_or_none(metadata_path)
     if not isinstance(model_metadata, dict):
         return None
-    local_match = target_part_local_match(
-        model_metadata=model_metadata, target_part=target_part
-    )
+    local_match = target_part_local_match(model_metadata=model_metadata, target_part=target_part)
     if local_match is None:
         return None
     matched_link, local_center, match_score = local_match
@@ -1089,9 +1033,7 @@ def model_part_approach_context(
         "resolved_part_link": matched_link,
         "part_match_score": match_score,
     }
-    footprint = model_footprint_polygon(
-        scene=scene, match=match, model_metadata=model_metadata
-    )
+    footprint = model_footprint_polygon(scene=scene, match=match, model_metadata=model_metadata)
     if footprint is not None:
         context["object_polygon"] = footprint
     return context
@@ -1171,9 +1113,7 @@ def iter_scene_object_specs(scene_payload: dict[str, Any]) -> list[dict[str, Any
     return specs
 
 
-def model_metadata_path(
-    *, scene: HOVSGSceneAsset, category: object, model: object
-) -> Path | None:
+def model_metadata_path(*, scene: HOVSGSceneAsset, category: object, model: object) -> Path | None:
     if (
         not isinstance(category, str)
         or not category.strip()
@@ -1352,8 +1292,7 @@ def model_footprint_polygon(
         not isinstance(bbox_size, list)
         or len(bbox_size) < 3
         or not all(
-            isinstance(value, (int, float)) and float(value) > 0.0
-            for value in bbox_size[:3]
+            isinstance(value, (int, float)) and float(value) > 0.0 for value in bbox_size[:3]
         )
         or not isinstance(position, list)
         or len(position) < 3
@@ -1396,9 +1335,7 @@ def link_box_center(link_boxes: Any) -> tuple[float, float, float] | None:
             if (
                 isinstance(transform, list)
                 and len(transform) >= 3
-                and all(
-                    isinstance(row, list) and len(row) >= 4 for row in transform[:3]
-                )
+                and all(isinstance(row, list) and len(row) >= 4 for row in transform[:3])
             ):
                 values = (transform[0][3], transform[1][3], transform[2][3])
                 if all(isinstance(value, (int, float)) for value in values):
@@ -1422,7 +1359,7 @@ def rotate_vector_by_quaternion(
         return vector
     qx, qy, qz, qw = qx / norm, qy / norm, qz / norm, qw / norm
     vx, vy, vz = vector
-    # Quaternion vector rotation: v + 2*w*(q_vec x v) + 2*(q_vec x (q_vec x v)).
+
     tx = 2.0 * (qy * vz - qz * vy)
     ty = 2.0 * (qz * vx - qx * vz)
     tz = 2.0 * (qx * vy - qy * vx)
@@ -1525,9 +1462,7 @@ def annotate_object_part_approach_candidate(
     standoff_score = float(candidate.get("candidate_geometry_score", 0.0))
     candidate["target_part"] = part_context.get("target_part")
     candidate["target_part_score"] = (
-        projection_deficit
-        + standoff_score
-        + PART_APPROACH_LATERAL_OFFSET_WEIGHT * lateral_offset
+        projection_deficit + standoff_score + PART_APPROACH_LATERAL_OFFSET_WEIGHT * lateral_offset
     )
     candidate["target_part_alignment_m"] = float(projection)
     candidate["target_part_lateral_offset_m"] = float(lateral_offset)
@@ -1536,9 +1471,7 @@ def annotate_object_part_approach_candidate(
     if part_context.get("resolved_part_link"):
         candidate["target_part_link"] = part_context["resolved_part_link"]
     if isinstance(part_context.get("part_match_score"), (int, float)):
-        candidate["target_part_match_score"] = float(
-            part_context["part_match_score"]
-        )
+        candidate["target_part_match_score"] = float(part_context["part_match_score"])
 
 
 def object_part_candidate_clearance_radius(
@@ -1569,9 +1502,7 @@ def object_polygon_2d(
 ) -> list[tuple[float, float]]:
     if isinstance(obj, EffectiveObjectState):
         return list(obj.footprint)
-    runtime_scene_state = hovsg_runtime_state.current_scene_state(
-        adapter, scene.scene_id
-    )
+    runtime_scene_state = hovsg_runtime_state.current_scene_state(adapter, scene.scene_id)
     runtime_object = (
         hovsg_runtime_state.match_runtime_object(
             runtime_scene_state,
@@ -1603,12 +1534,10 @@ def object_polygon_2d(
         return runtime_polygon
 
     projected = [
-        adapter._project_horizontal(scene, {"x": v[0], "y": v[1], "z": v[2]})
-        for v in obj.vertices
+        adapter._project_horizontal(scene, {"x": v[0], "y": v[1], "z": v[2]}) for v in obj.vertices
     ]
     polygon = [vertex for vertex in projected if vertex is not None]
-    # Exported vertices describe the footprint at export time; when the runtime
-    # overlay moved the object, translate the polygon along with its centroid.
+
     overlay_position, position_source = hovsg_runtime_state.resolve_object_centroid(
         adapter, scene, obj
     )
@@ -1623,9 +1552,7 @@ def object_polygon_2d(
         if static_xy is not None and overlay_xy is not None:
             delta = (overlay_xy[0] - static_xy[0], overlay_xy[1] - static_xy[1])
             if abs(delta[0]) > 1e-9 or abs(delta[1]) > 1e-9:
-                polygon = [
-                    (vertex[0] + delta[0], vertex[1] + delta[1]) for vertex in polygon
-                ]
+                polygon = [(vertex[0] + delta[0], vertex[1] + delta[1]) for vertex in polygon]
     return polygon
 
 
@@ -1639,9 +1566,9 @@ def convex_hull_2d(points: list[tuple[float, float]]) -> list[tuple[float, float
         first: tuple[float, float],
         second: tuple[float, float],
     ) -> float:
-        return (first[0] - origin[0]) * (second[1] - origin[1]) - (
-            first[1] - origin[1]
-        ) * (second[0] - origin[0])
+        return (first[0] - origin[0]) * (second[1] - origin[1]) - (first[1] - origin[1]) * (
+            second[0] - origin[0]
+        )
 
     lower: list[tuple[float, float]] = []
     for point in unique:
@@ -1670,9 +1597,7 @@ def object_proximity_evidence(
         xy
         for node in path_nodes
         for xy in [
-            adapter._project_horizontal(
-                scene, adapter._node_to_waypoint(scene.nav_graph, node)
-            )
+            adapter._project_horizontal(scene, adapter._node_to_waypoint(scene.nav_graph, node))
         ]
         if xy is not None
     ]
@@ -1684,9 +1609,7 @@ def object_proximity_evidence(
             continue
         if target_object_name and normalize_object_name(obj.name) == target_object_name:
             continue
-        if candidate.get("room_id") is not None and obj.room_id != candidate.get(
-            "room_id"
-        ):
+        if candidate.get("room_id") is not None and obj.room_id != candidate.get("room_id"):
             continue
         if not obj.participates_in_navigation or not obj.navigation_footprints:
             continue
@@ -1700,9 +1623,7 @@ def object_proximity_evidence(
             if candidate_xy is not None
             else float("inf")
         )
-        path_distance = path_to_object_distance(
-            adapter, path_points=path_points, polygon=polygon
-        )
+        path_distance = path_to_object_distance(adapter, path_points=path_points, polygon=polygon)
         closest_distance = min(candidate_distance, path_distance)
         nearby_objects.append(
             {
@@ -1737,9 +1658,7 @@ def object_proximity_evidence(
     return {
         "nearest_object_id": candidate_nearest.get("object_id"),
         "nearest_object_name": candidate_nearest.get("object_name"),
-        "nearest_object_distance_m": candidate_nearest.get(
-            "distance_to_candidate_m"
-        ),
+        "nearest_object_distance_m": candidate_nearest.get("distance_to_candidate_m"),
         "path_nearest_object_id": path_nearest.get("object_id"),
         "path_nearest_object_name": path_nearest.get("object_name"),
         "path_nearest_object_distance_m": path_nearest.get("distance_to_path_m"),
@@ -1790,9 +1709,7 @@ def object_blocks_navigation_clearance(
     obj: HOVSGObjectAsset,
     candidate: dict[str, Any],
 ) -> bool:
-    if not object_overlaps_navigation_height(
-        adapter, scene=scene, obj=obj, candidate=candidate
-    ):
+    if not object_overlaps_navigation_height(adapter, scene=scene, obj=obj, candidate=candidate):
         return False
     if is_nonblocking_wall_fixture(obj.name):
         return False
@@ -1878,8 +1795,7 @@ def path_to_object_distance(
     if not path_points:
         return float("inf")
     best_distance = min(
-        point_to_object_distance(adapter, point=point, polygon=polygon)
-        for point in path_points
+        point_to_object_distance(adapter, point=point, polygon=polygon) for point in path_points
     )
     if len(path_points) < 2 or len(polygon) < 2:
         return best_distance
@@ -1930,9 +1846,7 @@ def segments_intersect(
     ) -> float:
         return (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1])
 
-    def on_segment(
-        p: tuple[float, float], q: tuple[float, float], r: tuple[float, float]
-    ) -> bool:
+    def on_segment(p: tuple[float, float], q: tuple[float, float], r: tuple[float, float]) -> bool:
         return (
             min(p[0], r[0]) - 1e-9 <= q[0] <= max(p[0], r[0]) + 1e-9
             and min(p[1], r[1]) - 1e-9 <= q[1] <= max(p[1], r[1]) + 1e-9

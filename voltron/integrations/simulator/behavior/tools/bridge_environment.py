@@ -1,5 +1,3 @@
-"""Environment/bootstrap bindings for the BEHAVIOR runtime facade."""
-
 from __future__ import annotations
 
 import importlib
@@ -11,10 +9,18 @@ import numpy as np
 from voltron.integrations.manipulation.openpi_comet.observation_adapter import (
     OpenPICometObservationAdapter,
 )
-from voltron.integrations.simulator.behavior.environment import client as behavior_environment_client
+from voltron.integrations.simulator.behavior.environment import (
+    client as behavior_environment_client,
+)
 from voltron.integrations.simulator.behavior.observation import robot_state as behavior_robot_state
-from voltron.integrations.simulator.behavior.tools import bridge_localization as behavior_bridge_localization
-from voltron.shared.action_semantics import is_open_state_action, is_toggle_state_action, normalize_action_name
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_localization as behavior_bridge_localization,
+)
+from voltron.shared.action_semantics import (
+    is_open_state_action,
+    is_toggle_state_action,
+    normalize_action_name,
+)
 from voltron.shared.context import Subtask
 from voltron.shared.errors import AdapterError
 
@@ -188,13 +194,17 @@ def _refresh_post_reset_observation(
         merged_info.update(raw_info)
     wrapper.obs = refreshed_obs
     wrapper.info = merged_info
-    return refreshed_obs, merged_info, {
-        "method": "base_env.get_obs+behavior.preprocess_obs",
-        "renderer": renderer_name,
-        "articulation_kinematics_updater": kinematics_updater,
-        "render_count": render_count,
-        **diagnostics,
-    }
+    return (
+        refreshed_obs,
+        merged_info,
+        {
+            "method": "base_env.get_obs+behavior.preprocess_obs",
+            "renderer": renderer_name,
+            "articulation_kinematics_updater": kinematics_updater,
+            "render_count": render_count,
+            **diagnostics,
+        },
+    )
 
 
 def _resolve_behavior_observation_pipeline(env: Any) -> tuple[Any, Any, Any]:
@@ -210,6 +220,7 @@ def _resolve_behavior_observation_pipeline(env: Any) -> tuple[Any, Any, Any]:
             continue
         candidate_preprocessor = getattr(candidate, "preprocess_obs", None)
         if callable(candidate_preprocessor):
+
             def preprocess_obs(
                 _wrapper: Any,
                 raw_obs: Any,
@@ -227,8 +238,7 @@ def _resolve_behavior_observation_pipeline(env: Any) -> tuple[Any, Any, Any]:
             return candidate, base_env, preprocess_obs
     detail = f" ({'; '.join(errors)})" if errors else ""
     raise RuntimeError(
-        "post-reset observation refresh could not find the BEHAVIOR GR00T wrapper pipeline"
-        f"{detail}"
+        f"post-reset observation refresh could not find the BEHAVIOR GR00T wrapper pipeline{detail}"
     )
 
 
@@ -277,7 +287,12 @@ def _camera_relative_pose_diagnostics(
     transforms = getattr(module, "T", None)
     torch = getattr(module, "th", None)
     robot = _first_robot(wrapper)
-    if not isinstance(camera_names_by_robot, dict) or transforms is None or torch is None or robot is None:
+    if (
+        not isinstance(camera_names_by_robot, dict)
+        or transforms is None
+        or torch is None
+        or robot is None
+    ):
         return None, None, None
 
     camera_names = camera_names_by_robot.get("R1Pro")
@@ -355,7 +370,10 @@ def _validate_refreshed_policy_observation(
     proprio_diagnostics = OpenPICometObservationAdapter.proprio_layout_diagnostics(
         observation, policy_proprio=policy_proprio
     )
-    if proprio_diagnostics["policy_proprio_size"] != OpenPICometObservationAdapter.POLICY_PROPRIO_SIZE:
+    if (
+        proprio_diagnostics["policy_proprio_size"]
+        != OpenPICometObservationAdapter.POLICY_PROPRIO_SIZE
+    ):
         raise RuntimeError(
             "post-reset observation refresh produced an invalid normalized policy proprio size: "
             f"expected {OpenPICometObservationAdapter.POLICY_PROPRIO_SIZE}, "
@@ -407,7 +425,9 @@ def _apply_post_reset_overrides(
     if object_states is not None:
         diagnostics["objects"] = _apply_post_reset_object_states(env, object_states)
 
-    if any(value is not None for value in (position, orientation, joint_positions, joint_velocities)):
+    if any(
+        value is not None for value in (position, orientation, joint_positions, joint_velocities)
+    ):
         robot = _first_robot(env)
         if robot is None:
             raise RuntimeError("post-reset robot state override requested but no robot was found")
@@ -452,7 +472,9 @@ def _apply_post_reset_robot_state(
 
     if requested_position is not None:
         if requested_joint_positions is None:
-            pose_setter = _set_pose(robot, position=requested_position, orientation=requested_orientation)
+            pose_setter = _set_pose(
+                robot, position=requested_position, orientation=requested_orientation
+            )
         else:
             pose_setter = _set_root_pose_for_robot_pose(
                 robot,
@@ -508,7 +530,9 @@ def _apply_post_reset_robot_state(
 
 def _apply_post_reset_object_states(env: Any, object_states: Any) -> list[dict[str, Any]]:
     if not isinstance(object_states, dict) or not object_states:
-        raise ValueError("post_reset_object_states must be a non-empty object keyed by exact object name")
+        raise ValueError(
+            "post_reset_object_states must be a non-empty object keyed by exact object name"
+        )
     objects_by_name: dict[str, Any] = {}
     for obj in _collect_scene_objects(env):
         name = str(getattr(obj, "name", "")).strip()
@@ -525,7 +549,9 @@ def _apply_post_reset_object_states(env: Any, object_states: Any) -> list[dict[s
             raise ValueError(f"post-reset state for {object_name!r} must be an object")
         unknown = set(requested_state) - {"position", "orientation", "states"}
         if unknown:
-            raise ValueError(f"post-reset state for {object_name!r} has unknown keys: {sorted(unknown)}")
+            raise ValueError(
+                f"post-reset state for {object_name!r} has unknown keys: {sorted(unknown)}"
+            )
         obj = objects_by_name[object_name]
         position = requested_state.get("position")
         orientation = requested_state.get("orientation")
@@ -572,7 +598,9 @@ def _apply_named_object_states(obj: Any, object_name: str, requested: Any) -> di
         setter = getattr(state, "set_value", None)
         getter = getattr(state, "get_value", None)
         if not callable(setter) or not callable(getter):
-            raise RuntimeError(f"object state {object_name}.{state_name} is not readable and writable")
+            raise RuntimeError(
+                f"object state {object_name}.{state_name} is not readable and writable"
+            )
         setter(value)
         readback = getter()
         matches = bool(readback) == value if isinstance(value, bool) else readback == value
@@ -593,7 +621,9 @@ def _normalized_state_name(value: Any) -> str:
 def _set_robot_joint_positions(robot: Any, positions: list[float], *, drive: bool) -> None:
     setter = getattr(robot, "set_joint_positions", None)
     if not callable(setter):
-        raise RuntimeError("post-reset joint positions requested but robot has no set_joint_positions")
+        raise RuntimeError(
+            "post-reset joint positions requested but robot has no set_joint_positions"
+        )
     setter_positions = _joint_values_for_setter(robot, "get_joint_positions", positions)
     try:
         setter(positions=setter_positions, drive=drive)
@@ -604,7 +634,9 @@ def _set_robot_joint_positions(robot: Any, positions: list[float], *, drive: boo
 def _set_robot_joint_velocities(robot: Any, velocities: list[float]) -> None:
     setter = getattr(robot, "set_joint_velocities", None)
     if not callable(setter):
-        raise RuntimeError("post-reset joint velocities requested but robot has no set_joint_velocities")
+        raise RuntimeError(
+            "post-reset joint velocities requested but robot has no set_joint_velocities"
+        )
     setter_velocities = _joint_values_for_setter(robot, "get_joint_velocities", velocities)
     try:
         setter(velocities=setter_velocities, drive=False)
@@ -671,12 +703,16 @@ def _quaternion_max_abs_error(expected: Any, actual: Any) -> float:
     actual_arr = np.asarray(_float_list(actual), dtype=np.float64)
     if expected_arr.shape != (4,) or actual_arr.shape != (4,):
         raise RuntimeError("post-reset orientation must be a four-element XYZW quaternion")
-    return float(min(np.max(np.abs(expected_arr - actual_arr)), np.max(np.abs(expected_arr + actual_arr))))
+    return float(
+        min(np.max(np.abs(expected_arr - actual_arr)), np.max(np.abs(expected_arr + actual_arr)))
+    )
 
 
 def _require_readback_close(label: str, error: float, *, tolerance: float = 1e-4) -> None:
     if not math.isfinite(error) or error > tolerance:
-        raise RuntimeError(f"post-reset {label} readback error {error:.6g} exceeds tolerance {tolerance:.6g}")
+        raise RuntimeError(
+            f"post-reset {label} readback error {error:.6g} exceeds tolerance {tolerance:.6g}"
+        )
 
 
 def _post_reset_settle_steps(runtime: Any) -> int:
@@ -709,7 +745,6 @@ def _set_pose(obj: Any, *, position: Any, orientation: Any) -> str:
 
 
 def _set_root_pose_for_robot_pose(robot: Any, *, position: Any, orientation: Any) -> str:
-    """Move an articulation root without changing holonomic virtual base joints."""
     root_link = getattr(robot, "root_link", None)
     if root_link is None or root_link is robot:
         raise RuntimeError(
@@ -876,16 +911,18 @@ def localize_runtime_state_snapshot(
     last_info: dict[str, Any],
     resolved_metadata: dict[str, str | None],
 ) -> dict[str, Any]:
-    runtime._hovsg_localizer, localized_state = behavior_bridge_localization.localize_runtime_state_snapshot(
-        existing_localizer=runtime._hovsg_localizer,
-        last_info=last_info,
-        last_obs=last_obs,
-        scene_id=runtime._scene_id,
-        hovsg_graph_path=runtime._hovsg_graph_path,
-        hovsg_graph_root=runtime._hovsg_graph_root,
-        hovsg_nav_graph_type=runtime._hovsg_nav_graph_type,
-        resolved_metadata=resolved_metadata,
-        frame_config=runtime.env_kwargs,
+    runtime._hovsg_localizer, localized_state = (
+        behavior_bridge_localization.localize_runtime_state_snapshot(
+            existing_localizer=runtime._hovsg_localizer,
+            last_info=last_info,
+            last_obs=last_obs,
+            scene_id=runtime._scene_id,
+            hovsg_graph_path=runtime._hovsg_graph_path,
+            hovsg_graph_root=runtime._hovsg_graph_root,
+            hovsg_nav_graph_type=runtime._hovsg_nav_graph_type,
+            resolved_metadata=resolved_metadata,
+            frame_config=runtime.env_kwargs,
+        )
     )
     return localized_state
 
@@ -928,7 +965,9 @@ def apply_action_completion_override(
 ) -> dict[str, Any]:
     updated_last_info = dict(last_info)
     updated_task_success = bool(task_success)
-    agent_name = str(getattr(getattr(subtask, "agent", None), "value", getattr(subtask, "agent", ""))).upper()
+    agent_name = str(
+        getattr(getattr(subtask, "agent", None), "value", getattr(subtask, "agent", ""))
+    ).upper()
     if agent_name != "ACTION" or updated_last_info.get("subtask_completed"):
         return {"last_info": updated_last_info, "task_success": updated_task_success}
 
@@ -979,7 +1018,11 @@ def _evaluate_action_subtask_completion(runtime: Any, *, subtask: Subtask) -> di
         diagnostics["reason"] = "target_not_identified"
         return {"completed": False, "diagnostics": diagnostics}
     if not best_diag.get("lexical_match"):
-        nearby = [item for item in ranked if item[1].get("distance_m") is not None and item[1]["distance_m"] <= 0.8]
+        nearby = [
+            item
+            for item in ranked
+            if item[1].get("distance_m") is not None and item[1]["distance_m"] <= 0.8
+        ]
         if len(nearby) != 1:
             diagnostics["reason"] = "ambiguous_nearby_target"
             return {"completed": False, "diagnostics": diagnostics}
@@ -1008,7 +1051,9 @@ def _evaluate_action_subtask_completion(runtime: Any, *, subtask: Subtask) -> di
             diagnostics["reason"] = "awaiting_open_state_transition"
             return {"completed": False, "diagnostics": diagnostics}
         diagnostics["initial_open_state"] = bool(initial_states[state_key])
-        completed = bool(open_state) is desired_open and bool(initial_states[state_key]) is not desired_open
+        completed = (
+            bool(open_state) is desired_open and bool(initial_states[state_key]) is not desired_open
+        )
         if not completed:
             diagnostics["reason"] = "open_state_not_transitioned"
         return {
@@ -1039,8 +1084,12 @@ def _evaluate_action_subtask_completion(runtime: Any, *, subtask: Subtask) -> di
     }
 
 
-def _completion_state_key(*, subtask: Subtask, action: str, candidate: dict[str, Any]) -> tuple[str, str, str]:
-    object_name = str(candidate.get("name") or candidate.get("category") or candidate.get("model") or "")
+def _completion_state_key(
+    *, subtask: Subtask, action: str, candidate: dict[str, Any]
+) -> tuple[str, str, str]:
+    object_name = str(
+        candidate.get("name") or candidate.get("category") or candidate.get("model") or ""
+    )
     return (str(getattr(subtask, "runtime_id", subtask.subtask_id)), action, object_name)
 
 
@@ -1085,7 +1134,11 @@ def _rank_target_objects(
     ranked: list[tuple[tuple[int, float, str], Any, dict[str, Any]]] = []
     for obj in objects:
         descriptor = _object_descriptor(obj)
-        has_state = _object_open_state(obj) is not None if action in {"open", "close"} else _object_toggle_state(obj) is not None
+        has_state = (
+            _object_open_state(obj) is not None
+            if action in {"open", "close"}
+            else _object_toggle_state(obj) is not None
+        )
         if not has_state:
             continue
         lexical_match = _matches_target(descriptor, target)
@@ -1246,7 +1299,10 @@ def read_environment_vlm_heartbeat(runtime: Any) -> dict[str, Any]:
         }
         if hasattr(vlm_client, "is_busy"):
             heartbeat["request_in_flight"] = bool(getattr(vlm_client, "is_busy"))
-        if hasattr(vlm_client, "last_result") and getattr(vlm_client, "last_result") not in (None, ""):
+        if hasattr(vlm_client, "last_result") and getattr(vlm_client, "last_result") not in (
+            None,
+            "",
+        ):
             heartbeat["last_result"] = getattr(vlm_client, "last_result")
         return heartbeat
 

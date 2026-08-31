@@ -1,5 +1,3 @@
-"""Execution helpers for the Memory agent facade."""
-
 from __future__ import annotations
 
 from typing import Any, Callable

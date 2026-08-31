@@ -1,5 +1,3 @@
-"""Shared completion-evaluation models for task, subtask, and internal-step gates."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -12,8 +10,6 @@ def _drop_empty(payload: dict[str, Any]) -> dict[str, Any]:
 
 @dataclass
 class CompletionCriterion:
-    """A structured condition that can prove one task scope is complete."""
-
     criterion_id: str
     scope: str
     description: str
@@ -75,8 +71,6 @@ class CompletionCriterion:
 
 @dataclass
 class CompletionVerdict:
-    """Result of evaluating whether a completion scope can advance."""
-
     scope: str
     scope_id: str
     completed: bool
@@ -110,8 +104,6 @@ class CompletionVerdict:
 
 @dataclass
 class CompletionEvaluationContext:
-    """Bounded prompt payload for Vision-backed completion decisions."""
-
     task_description: str
     scope: str
     scope_id: str
@@ -136,7 +128,9 @@ class CompletionEvaluationContext:
                 "scope": self.scope,
                 "scope_id": self.scope_id,
                 "scope_key": self.scope_key,
-                "completion_criteria": [criterion.to_dict() for criterion in self.completion_criteria],
+                "completion_criteria": [
+                    criterion.to_dict() for criterion in self.completion_criteria
+                ],
                 "confirmed_text_plan": dict(self.confirmed_text_plan),
                 "current_subtask": dict(self.current_subtask),
                 "current_internal_step": dict(self.current_internal_step),

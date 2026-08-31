@@ -1,5 +1,3 @@
-"""Execution-context helpers for the Navigation agent."""
-
 from __future__ import annotations
 
 from copy import deepcopy
@@ -67,7 +65,9 @@ def build_navigation_context(
     return nav_context
 
 
-def _copy_runtime_navigation_metadata(target: dict[str, Any], *, sources: tuple[dict[str, Any], ...]) -> None:
+def _copy_runtime_navigation_metadata(
+    target: dict[str, Any], *, sources: tuple[dict[str, Any], ...]
+) -> None:
     for key in (
         "behavior_scene_file",
         "scene_file",
@@ -125,7 +125,9 @@ def build_start_state(
     }
 
 
-def merge_map_state(map_state: dict[str, Any], backend_state: dict[str, Any] | None) -> dict[str, Any]:
+def merge_map_state(
+    map_state: dict[str, Any], backend_state: dict[str, Any] | None
+) -> dict[str, Any]:
     if isinstance(backend_state, dict):
         map_state.update(backend_state)
     return map_state
@@ -161,9 +163,7 @@ def sync_scene_map(
             seed_scene_id,
             scene_map_seed,
             metadata=(
-                dict(scene_map_seed_metadata)
-                if isinstance(scene_map_seed_metadata, dict)
-                else {}
+                dict(scene_map_seed_metadata) if isinstance(scene_map_seed_metadata, dict) else {}
             ),
         )
     source_action_ids = _record_navigation_lineage_events(

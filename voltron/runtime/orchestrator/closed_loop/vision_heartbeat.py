@@ -1,5 +1,3 @@
-"""Task-level Vision heartbeat runner for closed-loop orchestration."""
-
 from __future__ import annotations
 
 import concurrent.futures
@@ -16,14 +14,14 @@ LOGGER = logging.getLogger(__name__)
 
 
 class _DaemonHeartbeatExecutor:
-    """Minimal daemon-thread submitter for best-effort heartbeat work."""
-
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._shutdown = False
         self._threads: list[threading.Thread] = []
 
-    def submit(self, fn: Callable[..., AgentResult | None], *args: Any) -> concurrent.futures.Future[AgentResult | None]:
+    def submit(
+        self, fn: Callable[..., AgentResult | None], *args: Any
+    ) -> concurrent.futures.Future[AgentResult | None]:
         future: concurrent.futures.Future[AgentResult | None] = concurrent.futures.Future()
 
         with self._lock:
@@ -67,8 +65,6 @@ class _DaemonHeartbeatExecutor:
 
 
 class VisionHeartbeatRunner:
-    """Trigger asynchronous Vision environment summaries from environment steps."""
-
     def __init__(
         self,
         *,
@@ -89,7 +85,9 @@ class VisionHeartbeatRunner:
 
     def start(self, *, context: ExecutionContext, environment: Any) -> None:
         del context, environment
-        self._active = self.interval_steps > 0 and callable(getattr(self.vision_agent, "execute", None))
+        self._active = self.interval_steps > 0 and callable(
+            getattr(self.vision_agent, "execute", None)
+        )
         self._last_trigger_step = 0
         self._missed_count = 0
 
@@ -216,7 +214,9 @@ class VisionHeartbeatRunner:
 
     @staticmethod
     def _heartbeat_instruction(*, source_subtask: Subtask) -> str:
-        target = source_subtask.target.get("object") or source_subtask.target.get("room") or "the task"
+        target = (
+            source_subtask.target.get("object") or source_subtask.target.get("room") or "the task"
+        )
         return (
             "Summarize the current environment state for task memory. "
             f"Focus on progress toward {target}, visible target state, and risks for the active "

@@ -1,5 +1,3 @@
-"""Official OpenPI Comet manipulation integration."""
-
 from .action_adapter import OpenPICometActionAdapter, OpenPICometActionMode
 from .client import OpenPICometClient
 from .observation_adapter import OpenPICometObservationAdapter

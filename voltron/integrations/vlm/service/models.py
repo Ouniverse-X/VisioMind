@@ -1,5 +1,3 @@
-"""Shared models for the Voltron VLM service integration."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field

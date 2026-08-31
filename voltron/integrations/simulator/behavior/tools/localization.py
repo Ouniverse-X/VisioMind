@@ -1,5 +1,3 @@
-"""Localization helpers for the BEHAVIOR simulator integration."""
-
 from __future__ import annotations
 
 from typing import Any, Callable

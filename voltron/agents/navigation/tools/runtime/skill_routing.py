@@ -1,5 +1,3 @@
-"""Skill-routing helpers for the Navigation agent runtime."""
-
 from __future__ import annotations
 
 from typing import Any

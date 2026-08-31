@@ -1,5 +1,3 @@
-"""Build leakage-audited Qwen2.5 industrial planning SFT/evaluation splits."""
-
 from __future__ import annotations
 
 import argparse
@@ -17,14 +15,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from visiomind.decision.instruction_model import (  # noqa: E402
+from visiomind.decision.instruction_model import (
     CONTAINER_ALIASES,
     OBJECT_ALIASES,
     SPATIAL_ALIASES,
     _extract_cell_index,
     _find_alias,
 )
-from visiomind.decision.qwen_plan_schema import (  # noqa: E402
+from visiomind.decision.qwen_plan_schema import (
     SYSTEM_PROMPT,
     build_plan,
     compact_json,
@@ -173,12 +171,16 @@ def _format_template(
 ) -> str:
     chinese = any("\u4e00" <= char <= "\u9fff" for char in template)
     language_index = 0 if chinese else 1
-    return template.format(
-        object=object_pair[language_index],
-        destination=container_pair[language_index],
-        position=position_pair[language_index],
-        cell=cell,
-    ).replace("  ", " ").strip()
+    return (
+        template.format(
+            object=object_pair[language_index],
+            destination=container_pair[language_index],
+            position=position_pair[language_index],
+            cell=cell,
+        )
+        .replace("  ", " ")
+        .strip()
+    )
 
 
 def _generate_unseen_tools(seed: int, count: int) -> list[dict[str, Any]]:
@@ -299,6 +301,11 @@ def main() -> None:
     parser.add_argument("--unseen-paraphrase-count", type=int, default=126)
     args = parser.parse_args()
 
+    try:
+        base_source = str(args.source_dir.resolve().relative_to(ROOT.resolve()))
+    except ValueError:
+        base_source = str(args.source_dir.resolve())
+
     source_train = _read_jsonl(args.source_dir / "train.jsonl")
     source_test = _read_jsonl(args.source_dir / "test.jsonl")
     grouped: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
@@ -312,10 +319,7 @@ def main() -> None:
         rng.shuffle(items)
         val_source.extend(items[: args.val_per_template])
         train_source.extend(
-            items[
-                args.val_per_template : args.val_per_template
-                + args.train_per_template
-            ]
+            items[args.val_per_template : args.val_per_template + args.train_per_template]
         )
     rng.shuffle(train_source)
     rng.shuffle(val_source)
@@ -323,16 +327,13 @@ def main() -> None:
         "train": _convert_source(train_source, "train", "standard_train"),
         "validation": _convert_source(val_source, "validation", "standard_validation"),
         "test": _convert_source(source_test, "test", "heldout_template"),
-        "test_unseen_tools": _generate_unseen_tools(
-            20262502, args.unseen_tool_count
-        ),
+        "test_unseen_tools": _generate_unseen_tools(20262502, args.unseen_tool_count),
         "test_unseen_paraphrases": _generate_unseen_paraphrases(
             20262503, args.unseen_paraphrase_count
         ),
     }
     instruction_sets = {
-        name: {record["instruction"] for record in records}
-        for name, records in splits.items()
+        name: {record["instruction"] for record in records} for name, records in splits.items()
     }
     leakage = {}
     for left_name, left in instruction_sets.items():
@@ -342,17 +343,13 @@ def main() -> None:
                 leakage[f"{left_name}__{right_name}"] = len(overlap)
                 if overlap:
                     raise RuntimeError(
-                        f"instruction leakage between {left_name} and {right_name}: "
-                        f"{overlap[:3]}"
+                        f"instruction leakage between {left_name} and {right_name}: {overlap[:3]}"
                     )
-    files = [
-        _write(args.output_dir / f"{name}.jsonl", records)
-        for name, records in splits.items()
-    ]
+    files = [_write(args.output_dir / f"{name}.jsonl", records) for name, records in splits.items()]
     manifest = {
         "dataset_version": "qwen25-industrial-plan-v2-label-audit",
         "seed": 20262501,
-        "base_source": str(args.source_dir.relative_to(ROOT)),
+        "base_source": base_source,
         "split_policy": {
             "train_validation": "same template families, disjoint rendered instructions",
             "test": "held-out sentence templates from the original benchmark",

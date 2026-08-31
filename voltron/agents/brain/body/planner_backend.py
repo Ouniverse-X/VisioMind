@@ -1,5 +1,3 @@
-"""OpenAI-backed planner backend owned by the Brain agent body."""
-
 from __future__ import annotations
 
 import json
@@ -17,7 +15,10 @@ from voltron.agents.brain.skills import (
     DefaultBrainPlanningSkill,
     DefaultBrainReplanningSkill,
 )
-from voltron.agents.brain.skills.planning.skill import ACTION_INSTRUCTION_GUIDANCE, NAVIGATION_INSTRUCTION_GUIDANCE
+from voltron.agents.brain.skills.planning.skill import (
+    ACTION_INSTRUCTION_GUIDANCE,
+    NAVIGATION_INSTRUCTION_GUIDANCE,
+)
 from voltron.shared.context import Plan, Subtask
 
 _RETRIABLE_STATUS_CODES = {
@@ -116,8 +117,6 @@ class PlannerResponse:
 
 
 class OpenAICompatiblePlanner(TaskPlanner):
-    """Planner backend that calls an OpenAI-compatible chat completions endpoint."""
-
     def __init__(self, config: OpenAIPlannerConfig):
         self.config = config
         self.session = requests.Session()
@@ -126,7 +125,9 @@ class OpenAICompatiblePlanner(TaskPlanner):
         self.replanning_skill = DefaultBrainReplanningSkill()
 
     def plan(self, task_description: str, context: dict) -> Plan:
-        prompt = self.planning_skill.build_prompt(task_description=task_description, context=context)
+        prompt = self.planning_skill.build_prompt(
+            task_description=task_description, context=context
+        )
         return self._request_and_validate_plan(
             prompt,
             allow_empty=False,
@@ -155,7 +156,9 @@ class OpenAICompatiblePlanner(TaskPlanner):
         current_prompt = prompt
         last_error: ValueError | None = None
         for attempt in range(1, attempts + 1):
-            content = self._request_chat_completion(current_prompt, system_prompt=_TOOL_LOOP_SYSTEM_PROMPT)
+            content = self._request_chat_completion(
+                current_prompt, system_prompt=_TOOL_LOOP_SYSTEM_PROMPT
+            )
             try:
                 return self._parse_structured_response(
                     content,
@@ -167,7 +170,9 @@ class OpenAICompatiblePlanner(TaskPlanner):
                 last_error = exc
                 if attempt >= attempts:
                     raise
-                current_prompt = self.planning_skill.build_validation_retry_prompt(prompt, error=str(exc))
+                current_prompt = self.planning_skill.build_validation_retry_prompt(
+                    prompt, error=str(exc)
+                )
 
         if last_error is not None:
             raise last_error
@@ -237,7 +242,9 @@ class OpenAICompatiblePlanner(TaskPlanner):
                 last_error = exc
                 if attempt >= attempts:
                     raise
-                current_prompt = self.planning_skill.build_validation_retry_prompt(prompt, error=str(exc))
+                current_prompt = self.planning_skill.build_validation_retry_prompt(
+                    prompt, error=str(exc)
+                )
 
         if last_error is not None:
             raise last_error
@@ -253,7 +260,9 @@ class OpenAICompatiblePlanner(TaskPlanner):
     ) -> PlannerResponse:
         payload = self.planning_skill.extract_json(content)
         kind = str(payload.get("kind") or "final_plan").strip().lower()
-        thinking_summary = _coerce_optional_text(payload.get("thinking_summary") or payload.get("thought"))
+        thinking_summary = _coerce_optional_text(
+            payload.get("thinking_summary") or payload.get("thought")
+        )
         if kind == "tool_call":
             tool_name = str(payload.get("tool_name") or "").strip()
             if not tool_name:
@@ -284,7 +293,9 @@ class OpenAICompatiblePlanner(TaskPlanner):
 
     def _request_chat_completion(self, user_prompt: str, system_prompt: str | None = None) -> str:
         url = self._completion_url(self.config.base_url)
-        api_key = self.config.api_key or os.getenv(self.config.api_key_env) or os.getenv("OPENAI_API_KEY")
+        api_key = (
+            self.config.api_key or os.getenv(self.config.api_key_env) or os.getenv("OPENAI_API_KEY")
+        )
 
         headers = {"Content-Type": "application/json"}
         if api_key:
@@ -304,7 +315,9 @@ class OpenAICompatiblePlanner(TaskPlanner):
 
         for attempt in range(1, attempts + 1):
             try:
-                response = self.session.post(url, headers=headers, json=payload, timeout=self.config.timeout_s)
+                response = self.session.post(
+                    url, headers=headers, json=payload, timeout=self.config.timeout_s
+                )
                 if response.status_code in _RETRIABLE_STATUS_CODES and attempt < attempts:
                     time.sleep(max(0.0, float(self.config.retry_backoff_s)))
                     continue
@@ -355,8 +368,7 @@ class OpenAICompatiblePlanner(TaskPlanner):
         content = message.get("content")
         if isinstance(content, list):
             content = "".join(
-                item.get("text", "") if isinstance(item, dict) else str(item)
-                for item in content
+                item.get("text", "") if isinstance(item, dict) else str(item) for item in content
             )
         if not isinstance(content, str) or not content.strip():
             raise ValueError("LLM planner response content is empty")
@@ -416,13 +428,15 @@ class OpenAICompatiblePlanner(TaskPlanner):
                 execution_state=execution_state or {},
             )
         else:
-            base_prompt = self.planning_skill.build_prompt(task_description=task_description, context=context)
+            base_prompt = self.planning_skill.build_prompt(
+                task_description=task_description, context=context
+            )
 
         return (
             f"{base_prompt}\n"
             f"Available Brain tools JSON: {json.dumps(context.get('available_tools', []), ensure_ascii=False, default=str)}\n"
             "If you need external constraints or schedule state before committing to a plan, return exactly one "
-            '`tool_call` object.\n'
+            "`tool_call` object.\n"
             "If you already have enough information, return a `final_plan` object whose `plan` field matches the "
             "Voltron plan schema.\n"
             "If tool_trace already contains a successful tool result that answers your question, reuse it instead of "

@@ -1,5 +1,3 @@
-"""Pose localization and planar geometry helpers for the HOV-SG navigator."""
-
 from __future__ import annotations
 
 import math
@@ -119,12 +117,18 @@ def room_localizations(
 
     localizations: list[HOVSGRoomLocalization] = []
     for room in scene.rooms.values():
-        polygon = [project_horizontal(adapter, scene, {"x": v[0], "y": v[1], "z": v[2]}) for v in room.vertices]
+        polygon = [
+            project_horizontal(adapter, scene, {"x": v[0], "y": v[1], "z": v[2]})
+            for v in room.vertices
+        ]
         projected = [vertex for vertex in polygon if vertex is not None]
         if len(projected) < 3:
             continue
         distance_to_boundary = point_to_polygon_boundary_distance(point, projected)
-        contains = point_in_polygon(point, projected) or distance_to_boundary <= adapter.room_boundary_tolerance
+        contains = (
+            point_in_polygon(point, projected)
+            or distance_to_boundary <= adapter.room_boundary_tolerance
+        )
         localizations.append(
             HOVSGRoomLocalization(
                 room=room,
@@ -150,7 +154,9 @@ def room_contains_pose(
     if not room.vertices:
         return False
     point = project_horizontal(adapter, scene, pose)
-    polygon = [project_horizontal(adapter, scene, {"x": v[0], "y": v[1], "z": v[2]}) for v in room.vertices]
+    polygon = [
+        project_horizontal(adapter, scene, {"x": v[0], "y": v[1], "z": v[2]}) for v in room.vertices
+    ]
     if point is None or any(vertex is None for vertex in polygon):
         return False
     projected = [vertex for vertex in polygon if vertex is not None]
@@ -190,7 +196,8 @@ def point_in_polygon(point: tuple[float, float], polygon: list[tuple[float, floa
     for current_x, current_y in polygon:
         intersects = ((current_y > y_coord) != (previous_y > y_coord)) and (
             x_coord
-            < (previous_x - current_x) * (y_coord - current_y) / ((previous_y - current_y) or 1e-9) + current_x
+            < (previous_x - current_x) * (y_coord - current_y) / ((previous_y - current_y) or 1e-9)
+            + current_x
         )
         if intersects:
             inside = not inside
@@ -235,7 +242,9 @@ def room_polygon_area(
     scene: HOVSGSceneAsset,
     room: HOVSGRoomAsset,
 ) -> float | None:
-    polygon = [project_horizontal(adapter, scene, {"x": v[0], "y": v[1], "z": v[2]}) for v in room.vertices]
+    polygon = [
+        project_horizontal(adapter, scene, {"x": v[0], "y": v[1], "z": v[2]}) for v in room.vertices
+    ]
     projected = [vertex for vertex in polygon if vertex is not None]
     if len(projected) < 3:
         return None
@@ -263,7 +272,11 @@ def centroid_distance_sq(
     pz = adapter._to_float(pose.get("z"))
     if px is None or py is None or pz is None:
         return float("inf")
-    return (float(centroid["x"]) - px) ** 2 + (float(centroid["y"]) - py) ** 2 + (float(centroid["z"]) - pz) ** 2
+    return (
+        (float(centroid["x"]) - px) ** 2
+        + (float(centroid["y"]) - py) ** 2
+        + (float(centroid["z"]) - pz) ** 2
+    )
 
 
 def infer_floor_from_height(

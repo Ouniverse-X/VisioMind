@@ -1,9 +1,7 @@
-"""Evaluate prompt-only and LoRA Qwen planners on all industrial splits."""
-
 from __future__ import annotations
 
 import argparse
-from collections import Counter, defaultdict
+from collections import Counter
 import json
 from pathlib import Path
 import sys
@@ -19,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from visiomind.decision.qwen_plan_schema import (  # noqa: E402
+from visiomind.decision.qwen_plan_schema import (
     SYSTEM_PROMPT,
     extract_json_object,
     slot_pairs,
@@ -239,8 +237,7 @@ def main() -> None:
             **accumulator.metrics(),
             "elapsed_seconds": time.time() - split_started,
         }
-        # Keep completed split evidence recoverable even if a later split or
-        # final report serialization fails.
+
         args.predictions.parent.mkdir(parents=True, exist_ok=True)
         with args.predictions.open("w", encoding="utf-8") as handle:
             for record in predictions_output:
@@ -256,9 +253,7 @@ def main() -> None:
         "mode": "lora" if args.adapter is not None else "prompt_only",
         "base_model": "Qwen/Qwen2.5-3B-Instruct",
         "adapter": (
-            str(args.adapter.relative_to(ROOT.resolve()))
-            if args.adapter is not None
-            else None
+            str(args.adapter.relative_to(ROOT.resolve())) if args.adapter is not None else None
         ),
         "generation": {
             "do_sample": False,

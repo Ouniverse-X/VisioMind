@@ -1,5 +1,3 @@
-"""OpenPI Comet websocket client."""
-
 from __future__ import annotations
 
 import logging
@@ -50,7 +48,9 @@ class OpenPICometClient:
             logger.info("OpenPICometClient connected to %s", self.endpoint)
         except Exception as exc:
             self._ws = None
-            raise AdapterError(f"OpenPI Comet WebSocket connection failed ({self.endpoint}): {exc}") from exc
+            raise AdapterError(
+                f"OpenPI Comet WebSocket connection failed ({self.endpoint}): {exc}"
+            ) from exc
 
     def request(self, payload: dict[str, Any]) -> dict[str, Any]:
         self.ensure_connected()

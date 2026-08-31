@@ -1,5 +1,3 @@
-"""High-level step-verification helpers owned by the Action agent body."""
-
 from __future__ import annotations
 from typing import Any
 
@@ -11,8 +9,6 @@ from voltron.shared.models import CompletionCriterion, CompletionEvaluationConte
 
 
 class VisionBackedActionStepVerifier:
-    """Use the shared VLM backend to verify Action internal-step completion."""
-
     def __init__(
         self,
         vision: VisionAdapter | None = None,
@@ -20,7 +16,9 @@ class VisionBackedActionStepVerifier:
         completion_evaluator: Any | None = None,
     ) -> None:
         if completion_evaluator is None and vision is None:
-            raise ValueError("VisionBackedActionStepVerifier requires vision or completion_evaluator")
+            raise ValueError(
+                "VisionBackedActionStepVerifier requires vision or completion_evaluator"
+            )
         self.vision = vision
         self.completion_evaluator = completion_evaluator or VLMCompletionEvaluator(vision=vision)
 
@@ -79,7 +77,9 @@ class VisionBackedActionStepVerifier:
     ) -> CompletionEvaluationContext:
         task_context = VisionBackedActionStepVerifier._task_context(context)
         completion_context = VisionBackedActionStepVerifier._completion_context(context)
-        criteria = VisionBackedActionStepVerifier._completion_criteria(task_context, internal_subtask)
+        criteria = VisionBackedActionStepVerifier._completion_criteria(
+            task_context, internal_subtask
+        )
         criteria.extend(
             VisionBackedActionStepVerifier._internal_step_criteria(
                 internal_subtask=internal_subtask,
@@ -89,28 +89,40 @@ class VisionBackedActionStepVerifier:
         return CompletionEvaluationContext(
             task_description=context.task_request.description,
             scope="action_internal_step",
-            scope_id=str(getattr(step_payload, "internal_step_id", "") or internal_subtask.subtask_id),
+            scope_id=str(
+                getattr(step_payload, "internal_step_id", "") or internal_subtask.subtask_id
+            ),
             completion_criteria=criteria,
-            confirmed_text_plan=dict((task_context.get("interactive_planning") or {}).get("text_plan") or {}),
+            confirmed_text_plan=dict(
+                (task_context.get("interactive_planning") or {}).get("text_plan") or {}
+            ),
             current_subtask={
                 "subtask_id": parent_subtask.subtask_id,
                 "agent": parent_subtask.agent.value,
                 "action": parent_subtask.action,
                 "target": dict(parent_subtask.target),
-                "instruction": str(parent_subtask.parameters.get("instruction") or parent_subtask.action),
+                "instruction": str(
+                    parent_subtask.parameters.get("instruction") or parent_subtask.action
+                ),
             },
             current_internal_step={
-                "internal_step_id": str(getattr(step_payload, "internal_step_id", "") or internal_subtask.subtask_id),
+                "internal_step_id": str(
+                    getattr(step_payload, "internal_step_id", "") or internal_subtask.subtask_id
+                ),
                 "name": str(getattr(step_payload, "name", "") or ""),
                 "action": internal_subtask.action,
                 "target": dict(internal_subtask.target),
-                "instruction": str(internal_subtask.parameters.get("instruction") or internal_subtask.action),
+                "instruction": str(
+                    internal_subtask.parameters.get("instruction") or internal_subtask.action
+                ),
                 "success_cues": list(internal_subtask.parameters.get("success_cues") or []),
             },
             runtime_feedback={
                 "extras": {
                     "images_b64": list(internal_subtask.parameters.get("images") or []),
-                    "image_view_order": list(internal_subtask.parameters.get("image_view_order") or []),
+                    "image_view_order": list(
+                        internal_subtask.parameters.get("image_view_order") or []
+                    ),
                 }
             },
             task_context=task_context,
@@ -128,7 +140,9 @@ class VisionBackedActionStepVerifier:
         return dict(task_context) if isinstance(task_context, dict) else {}
 
     @staticmethod
-    def _completion_criteria(task_context: dict[str, Any], internal_subtask: Subtask) -> list[CompletionCriterion]:
+    def _completion_criteria(
+        task_context: dict[str, Any], internal_subtask: Subtask
+    ) -> list[CompletionCriterion]:
         raw_items: list[Any] = []
         raw_items.extend(task_context.get("completion_criteria") or [])
         interactive = task_context.get("interactive_planning")
@@ -142,7 +156,9 @@ class VisionBackedActionStepVerifier:
                 continue
             payload = dict(item)
             payload.setdefault("scope", payload.get("scope") or "task")
-            payload.setdefault("subtask_id", payload.get("subtask_id") or internal_subtask.subtask_id)
+            payload.setdefault(
+                "subtask_id", payload.get("subtask_id") or internal_subtask.subtask_id
+            )
             try:
                 criteria.append(CompletionCriterion.from_value(payload))
             except (TypeError, ValueError):
@@ -150,7 +166,9 @@ class VisionBackedActionStepVerifier:
         return criteria
 
     @staticmethod
-    def _internal_step_criteria(*, internal_subtask: Subtask, step_payload: Any) -> list[CompletionCriterion]:
+    def _internal_step_criteria(
+        *, internal_subtask: Subtask, step_payload: Any
+    ) -> list[CompletionCriterion]:
         instruction = str(internal_subtask.parameters.get("instruction") or internal_subtask.action)
         success_cues = [str(item) for item in internal_subtask.parameters.get("success_cues") or []]
         return [
@@ -158,7 +176,9 @@ class VisionBackedActionStepVerifier:
                 criterion_id=f"crit_{getattr(step_payload, 'internal_step_id', internal_subtask.subtask_id)}",
                 scope="action_internal_step",
                 subtask_id=internal_subtask.subtask_id,
-                internal_step_id=str(getattr(step_payload, "internal_step_id", "") or internal_subtask.subtask_id),
+                internal_step_id=str(
+                    getattr(step_payload, "internal_step_id", "") or internal_subtask.subtask_id
+                ),
                 description=instruction,
                 positive_evidence=success_cues,
                 required_observations=success_cues,
@@ -180,11 +200,15 @@ class VisionBackedActionStepVerifier:
             text_plan = interactive.get("text_plan")
             if isinstance(text_plan, dict):
                 criteria.extend(
-                    item for item in text_plan.get("success_criteria") or [] if isinstance(item, dict)
+                    item
+                    for item in text_plan.get("success_criteria") or []
+                    if isinstance(item, dict)
                 )
         completion_monitor = task_context.get("completion_monitor")
         latest_verdict = {}
-        if isinstance(completion_monitor, dict) and isinstance(completion_monitor.get("latest_verdict"), dict):
+        if isinstance(completion_monitor, dict) and isinstance(
+            completion_monitor.get("latest_verdict"), dict
+        ):
             latest_verdict = dict(completion_monitor["latest_verdict"])
         payload: dict[str, Any] = {}
         if criteria:

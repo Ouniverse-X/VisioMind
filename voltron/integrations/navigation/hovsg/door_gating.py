@@ -1,16 +1,3 @@
-"""Door-state gating of room connectivity for the HOV-SG navigator.
-
-Static room adjacency and nav-graph edges are baked at export time with the
-door states the scene file happened to have. This module derives runtime
-views: room pairs whose every known door is currently closed are treated as
-blocked, and pairs with an open door gain an edge even if the export missed it.
-
-A known limitation: when a room pair is connected both by a door and by an
-open doorless boundary, closing the door blocks the pair here even though the
-boundary remains passable — the traversability-refined portal metrics are the
-authority for that geometry and will re-open the transition.
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -34,13 +21,11 @@ DEFAULT_DOOR_HALF_EXTENT_M = 0.5
 
 
 def door_room_links(adapter: Any, scene: HOVSGSceneAsset) -> list[dict[str, Any]]:
-    """Map runtime doors onto the HOV-SG room pair they connect."""
     state = hovsg_runtime_state.current_scene_state(adapter, scene.scene_id)
     if state is None:
         return []
     room_tokens = {
-        room_id: _room_tokens(room_id, room.name)
-        for room_id, room in scene.rooms.items()
+        room_id: _room_tokens(room_id, room.name) for room_id, room in scene.rooms.items()
     }
     links: list[dict[str, Any]] = []
     for door in state.doors.values():
@@ -63,7 +48,6 @@ def door_room_links(adapter: Any, scene: HOVSGSceneAsset) -> list[dict[str, Any]
 
 
 def blocked_room_pairs(adapter: Any, scene: HOVSGSceneAsset) -> set[frozenset[str]]:
-    """Room pairs where at least one door is known and every known door is closed."""
     door_states_by_pair: dict[frozenset[str], list[bool | None]] = {}
     for link in door_room_links(adapter, scene):
         door_states_by_pair.setdefault(link["rooms"], []).append(
@@ -84,10 +68,7 @@ def opened_room_pairs(adapter: Any, scene: HOVSGSceneAsset) -> set[frozenset[str
     }
 
 
-def effective_room_adjacency(
-    adapter: Any, scene: HOVSGSceneAsset
-) -> dict[str, set[str]] | None:
-    """Static adjacency with closed-door edges removed and open-door edges added."""
+def effective_room_adjacency(adapter: Any, scene: HOVSGSceneAsset) -> dict[str, set[str]] | None:
     static = scene.room_adjacency
     blocked = blocked_room_pairs(adapter, scene)
     opened = opened_room_pairs(adapter, scene)
@@ -120,11 +101,6 @@ def room_pair_blocked(
 def filtered_nav_graph(
     adapter: Any, scene: HOVSGSceneAsset, graph: nx.Graph | None = None
 ) -> tuple[nx.Graph, bool]:
-    """Nav graph with edges across blocked room pairs removed.
-
-    Returns ``(graph, gated)``; ``gated`` is False when no door gating applies
-    and the original graph is returned untouched.
-    """
     active_graph = graph if graph is not None else scene.nav_graph
     blocked = blocked_room_pairs(adapter, scene)
     if not blocked:
@@ -151,7 +127,6 @@ def filtered_nav_graph(
 
 
 def closed_door_obstacles(adapter: Any, scene_id: str | None) -> list[dict[str, Any]]:
-    """Obstacle footprints for currently closed doors, for traversability stamping."""
     obstacles: list[dict[str, Any]] = []
     for door in hovsg_runtime_state.door_states(adapter, scene_id).values():
         if door_is_navigation_passable(door) is not False:
@@ -159,9 +134,7 @@ def closed_door_obstacles(adapter: Any, scene_id: str | None) -> list[dict[str, 
         obstacles.extend(
             _door_obstacles(
                 door,
-                navigation_floor_height=_door_navigation_floor_height(
-                    adapter, scene_id, door
-                ),
+                navigation_floor_height=_door_navigation_floor_height(adapter, scene_id, door),
                 vertical_axis=_door_vertical_axis(adapter, scene_id),
             )
         )
@@ -169,20 +142,14 @@ def closed_door_obstacles(adapter: Any, scene_id: str | None) -> list[dict[str, 
 
 
 def runtime_door_obstacles(adapter: Any, scene_id: str | None) -> list[dict[str, Any]]:
-    """Current articulated door-leaf geometry, including an opened leaf at its side."""
     obstacles: list[dict[str, Any]] = []
     for door in hovsg_runtime_state.door_states(adapter, scene_id).values():
         if door.navigation_passable is True:
-            # Vision has confirmed that this portal is wide enough for the
-            # robot.  Keep the passability latch authoritative until an
-            # explicit or hysteretic close clears it.
             continue
         obstacles.extend(
             _door_obstacles(
                 door,
-                navigation_floor_height=_door_navigation_floor_height(
-                    adapter, scene_id, door
-                ),
+                navigation_floor_height=_door_navigation_floor_height(adapter, scene_id, door),
                 vertical_axis=_door_vertical_axis(adapter, scene_id),
             )
         )
@@ -190,24 +157,18 @@ def runtime_door_obstacles(adapter: Any, scene_id: str | None) -> list[dict[str,
 
 
 def open_door_clear_regions(adapter: Any, scene_id: str | None) -> list[dict[str, Any]]:
-    """Door apertures that should be free in the runtime traversability map."""
     regions: list[dict[str, Any]] = []
     for door in hovsg_runtime_state.door_states(adapter, scene_id).values():
         if door_is_navigation_passable(door) is not True:
             continue
         if any(
-            isinstance(part, dict) and part.get("world_polygons")
-            for part in door.collision_parts
+            isinstance(part, dict) and part.get("world_polygons") for part in door.collision_parts
         ):
-            # The exported leaf is removed with the doorless reference map and
-            # the current opened leaf is stamped at its transformed polygon.
             continue
         regions.extend(
             _door_obstacles(
                 door,
-                navigation_floor_height=_door_navigation_floor_height(
-                    adapter, scene_id, door
-                ),
+                navigation_floor_height=_door_navigation_floor_height(adapter, scene_id, door),
                 vertical_axis=_door_vertical_axis(adapter, scene_id),
             )
         )
@@ -219,11 +180,6 @@ def open_portal_clear_region(
     *,
     normal_padding_m: float = 0.0,
 ) -> dict[str, Any] | None:
-    """Build the doorway aperture from the canonical portal waypoint geometry.
-
-    A door leaf's live AABB moves when it opens, while these portal bounds stay
-    fixed at the wall opening. Prefer this region whenever a plan carries it.
-    """
     if not isinstance(navigation_goal, dict):
         return None
     candidates = [navigation_goal]
@@ -243,12 +199,8 @@ def open_portal_clear_region(
             source = portal["portal_source_point"]
             target = portal["portal_target_point"]
             padding = max(0.0, float(normal_padding_m))
-            normal_min = (
-                min(float(source[normal_axis]), float(target[normal_axis])) - padding
-            )
-            normal_max = (
-                max(float(source[normal_axis]), float(target[normal_axis])) + padding
-            )
+            normal_min = min(float(source[normal_axis]), float(target[normal_axis])) - padding
+            normal_max = max(float(source[normal_axis]), float(target[normal_axis])) + padding
         except (KeyError, TypeError, ValueError):
             continue
         bounds = {
@@ -267,17 +219,11 @@ def prefer_canonical_portal_clear_region(
     regions: list[dict[str, Any]],
     portal_region: dict[str, Any] | None,
 ) -> list[dict[str, Any]]:
-    """Replace a moved open-door leaf region with its fixed doorway aperture."""
-
     if portal_region is None:
         return list(regions)
     portal_name = _normalize(portal_region.get("name"))
     if portal_name:
-        regions = [
-            region
-            for region in regions
-            if _normalize(region.get("name")) != portal_name
-        ]
+        regions = [region for region in regions if _normalize(region.get("name")) != portal_name]
     return [*regions, portal_region]
 
 
@@ -296,8 +242,6 @@ def blocking_door_candidates(
     source_room_id: str | None,
     target_room_id: str | None,
 ) -> list[dict[str, Any]]:
-    """Return closed doors on the static room route blocked at runtime."""
-
     source_id = str(source_room_id or "").strip()
     target_id = str(target_room_id or "").strip()
     if not source_id or not target_id or source_id == target_id:
@@ -305,8 +249,7 @@ def blocking_door_candidates(
     room_graph = nx.Graph()
     room_graph.add_nodes_from(scene.rooms)
     adjacency = scene.room_adjacency or {
-        room_id: set(room.connected_room_ids)
-        for room_id, room in scene.rooms.items()
+        room_id: set(room.connected_room_ids) for room_id, room in scene.rooms.items()
     }
     for room_id, neighbors in adjacency.items():
         for neighbor in neighbors:
@@ -340,10 +283,7 @@ def blocking_door_candidates(
         target_name = str(target_room.name or target_id) if target_room else target_id
         for link in door_room_links(adapter, scene):
             door = link["door"]
-            if (
-                link["rooms"] != pair
-                or door_is_navigation_passable(door) is not False
-            ):
+            if link["rooms"] != pair or door_is_navigation_passable(door) is not False:
                 continue
             candidate: dict[str, Any] = {
                 "id": door.name,
@@ -398,10 +338,6 @@ def _door_obstacles(
     if obstacles:
         return obstacles
     if door.collision_parts and compatible_part_count > 0:
-        # Per-link geometry is authoritative when supplied.  If all parts are
-        # above the robot's navigation height, the door has no floor obstacle;
-        # falling back to the aggregate AABB or position would put a coarse
-        # obstacle back into the doorway.
         return []
     fallback = (
         _aabb_obstacle(door.name, door.aabb, vertical_axis=vertical_axis)
@@ -446,9 +382,7 @@ def _door_navigation_floor_height(
     rooms = getattr(scene, "rooms", {})
     floors = getattr(scene, "floors", {})
     for room in rooms.values():
-        if room_tokens and not (
-            {_normalize(room.room_id), _normalize(room.name)} & room_tokens
-        ):
+        if room_tokens and not ({_normalize(room.room_id), _normalize(room.name)} & room_tokens):
             continue
         floor = floors.get(str(room.floor_id))
         try:
@@ -487,14 +421,10 @@ def _part_overlaps_navigation_height(
         return True
     height_min = part.get("height_min")
     height_max = part.get("height_max")
-    if not isinstance(height_min, (int, float)) or not isinstance(
-        height_max, (int, float)
-    ):
+    if not isinstance(height_min, (int, float)) or not isinstance(height_max, (int, float)):
         corner_min = part.get("min")
         corner_max = part.get("max")
-        if not isinstance(corner_min, (list, tuple)) or not isinstance(
-            corner_max, (list, tuple)
-        ):
+        if not isinstance(corner_min, (list, tuple)) or not isinstance(corner_max, (list, tuple)):
             return True
         try:
             height_index = vertical_axis_index(vertical_axis)
@@ -504,8 +434,7 @@ def _part_overlaps_navigation_height(
             return True
     return (
         float(height_max) >= float(floor_height) - floor_slop_m
-        and float(height_min)
-        <= float(floor_height) + robot_clearance_height_m
+        and float(height_min) <= float(floor_height) + robot_clearance_height_m
     )
 
 
@@ -568,9 +497,7 @@ def _aabb_obstacle(
         return None
     corner_min = aabb.get("min")
     corner_max = aabb.get("max")
-    if not isinstance(corner_min, (list, tuple)) or not isinstance(
-        corner_max, (list, tuple)
-    ):
+    if not isinstance(corner_min, (list, tuple)) or not isinstance(corner_max, (list, tuple)):
         return None
     try:
         horizontal_indices = horizontal_axis_indices(vertical_axis)

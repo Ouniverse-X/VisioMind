@@ -14,7 +14,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.8"]
+vision = ["torch>=2.2"]
+llm = ["torch>=2.2", "transformers>=4.45", "peft>=0.13"]
 
 [project.scripts]
 visiomind-plan = "visiomind.decision.cli:main"
@@ -22,9 +23,14 @@ visiomind-plan = "visiomind.decision.cli:main"
 [tool.setuptools.packages.find]
 include = ["visiomind*"]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.ruff.lint.per-file-ignores]
+"**/__init__.py" = ["F401"]
+"scripts/run_qwen_industrial_planner.py" = ["E402"]
+"training/evaluate_qwen_industrial_planner.py" = ["E402"]
+"training/generate_qwen_lora_dataset.py" = ["E402"]
+"training/train_industrial_vision_model.py" = ["E402"]
+"voltron/integrations/simulator/behavior/artifacts/process_logger.py" = ["F401"]

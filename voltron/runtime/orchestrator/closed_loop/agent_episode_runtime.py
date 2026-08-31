@@ -1,5 +1,3 @@
-"""Runtime tool surface passed to stateful subtask agents."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -13,13 +11,14 @@ from voltron.shared.models import RuntimeFeedback
 from voltron.shared.results import AgentResult
 from voltron.runtime.telemetry.navigation_payloads import summarize_agent_result_for_event
 
-from .navigation_events import emit_nav2_path_snapshot_if_new, emit_navigation_candidates_snapshot_if_new
+from .navigation_events import (
+    emit_nav2_path_snapshot_if_new,
+    emit_navigation_candidates_snapshot_if_new,
+)
 
 
 @dataclass
 class AgentEpisodeRuntime:
-    """Closed-loop environment tools used by agents that own their internal step loop."""
-
     orchestrator: Any
     environment: RuntimeEnvironment
     attempt: int
@@ -91,7 +90,9 @@ class AgentEpisodeRuntime:
             control_step=control_step,
             result=dict(result.result),
             runtime_artifacts=(
-                dict(result.runtime_artifacts) if isinstance(result.runtime_artifacts, dict) else None
+                dict(result.runtime_artifacts)
+                if isinstance(result.runtime_artifacts, dict)
+                else None
             ),
         )
         self.orchestrator._emit_event(
@@ -254,7 +255,9 @@ class AgentEpisodeRuntime:
         failure_reason: str | None,
     ) -> AgentResult:
         reason = failure_reason or "SUBTASK_FAILED"
-        self.record_agent_failure(subtask=subtask, context=context, result=result, failure_reason=reason)
+        self.record_agent_failure(
+            subtask=subtask, context=context, result=result, failure_reason=reason
+        )
         return AgentResult(
             subtask_id=subtask.subtask_id,
             status=AgentStatus.FAILURE,
@@ -316,7 +319,14 @@ def agent_result_event_message(*, subtask: Subtask, result: AgentResult) -> str:
     policy_info = result.result.get("policy_info")
     goal_reached = False
     if isinstance(policy_info, dict):
-        goal_reached = bool(policy_info.get("goal_reached") or policy_info.get("controller_mode") == "goal_reached")
-    if subtask.agent == AgentName.NAVIGATION and isinstance(action_keys, list) and action_keys and not goal_reached:
+        goal_reached = bool(
+            policy_info.get("goal_reached") or policy_info.get("controller_mode") == "goal_reached"
+        )
+    if (
+        subtask.agent == AgentName.NAVIGATION
+        and isinstance(action_keys, list)
+        and action_keys
+        and not goal_reached
+    ):
         return f"{subtask.agent.value} {subtask.subtask_id} produced action"
     return f"{subtask.agent.value} {subtask.subtask_id} returned {result.status.value}"

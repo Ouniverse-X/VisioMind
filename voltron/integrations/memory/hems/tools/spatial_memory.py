@@ -1,5 +1,3 @@
-"""Spatial-memory helpers for the HEMS integration."""
-
 from __future__ import annotations
 
 from copy import deepcopy
@@ -74,7 +72,9 @@ def merge_dicts(base: dict[str, Any], delta: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
-def update_navigation_map(*, maps: dict[str, dict[str, Any]], scene_id: str, payload: dict[str, Any]) -> None:
+def update_navigation_map(
+    *, maps: dict[str, dict[str, Any]], scene_id: str, payload: dict[str, Any]
+) -> None:
     entry = ensure_map(maps, scene_id)
     nav_state = entry["map_payload"].setdefault("navigation", {})
     provenance = build_provenance(payload, default_source_agent="NAVIGATION")
@@ -115,7 +115,9 @@ def update_navigation_map(*, maps: dict[str, dict[str, Any]], scene_id: str, pay
         exploration["frontiers"] = deepcopy(payload["frontiers"])
 
 
-def query_topology(*, maps: dict[str, dict[str, Any]], start: dict[str, Any], goal: dict[str, Any]) -> dict[str, Any]:
+def query_topology(
+    *, maps: dict[str, dict[str, Any]], start: dict[str, Any], goal: dict[str, Any]
+) -> dict[str, Any]:
     scene_id = str(start.get("scene_id") or goal.get("scene_id") or "").strip()
     if not scene_id:
         if len(maps) == 1:

@@ -1,5 +1,3 @@
-"""Heading and alignment helpers for the waypoint policy adapter."""
-
 from __future__ import annotations
 
 import math
@@ -13,9 +11,15 @@ def effective_waypoint_tolerance(
     is_final: bool,
 ) -> float:
     if adapter._uses_local_path_tracking():
-        base_tolerance = adapter.local_path_final_waypoint_tolerance if is_final else adapter.local_path_waypoint_tolerance
+        base_tolerance = (
+            adapter.local_path_final_waypoint_tolerance
+            if is_final
+            else adapter.local_path_waypoint_tolerance
+        )
     else:
-        base_tolerance = adapter.final_waypoint_tolerance if is_final else adapter.waypoint_tolerance
+        base_tolerance = (
+            adapter.final_waypoint_tolerance if is_final else adapter.waypoint_tolerance
+        )
     if is_final and str(target.get("waypoint_type", "")).strip().lower() == "object_approach":
         return min(base_tolerance, adapter.object_approach_final_waypoint_tolerance_m)
     return base_tolerance

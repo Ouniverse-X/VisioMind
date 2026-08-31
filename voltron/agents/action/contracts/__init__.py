@@ -1,5 +1,3 @@
-"""Action-agent local contracts."""
-
 from .deliberator import VLADeliberator
 from .skill import VLASkill
 from .skill_selection import LocalSkillSelector

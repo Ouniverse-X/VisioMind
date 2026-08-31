@@ -1,5 +1,3 @@
-"""Backend and selector assembly helpers for closed-loop runtime entrypoints."""
-
 from __future__ import annotations
 
 import json
@@ -116,14 +114,10 @@ def build_memory_extractor(
     resolved_model = model or os.getenv("OPENAI_MODEL")
     if not resolved_base_url:
         raise ValueError(
-            "Memory experience extraction requires memory_llm_base_url "
-            "or OPENAI_BASE_URL"
+            "Memory experience extraction requires memory_llm_base_url or OPENAI_BASE_URL"
         )
     if not resolved_model:
-        raise ValueError(
-            "Memory experience extraction requires memory_llm_model "
-            "or OPENAI_MODEL"
-        )
+        raise ValueError("Memory experience extraction requires memory_llm_model or OPENAI_MODEL")
 
     return OpenAICompatibleExperienceExtractor(
         OpenAIExperienceExtractorConfig(
@@ -298,7 +292,9 @@ def build_vln_navigator(
 
     scene_id = _resolve_scene_id(hovsg_scene_id=hovsg_scene_id, hovsg_graph_path=hovsg_graph_path)
     if scene_id is None:
-        raise ValueError("HOV-SG navigator requires --hovsg-scene-id or a graph path from which scene id can be inferred")
+        raise ValueError(
+            "HOV-SG navigator requires --hovsg-scene-id or a graph path from which scene id can be inferred"
+        )
 
     if hovsg_graph_path:
         semantic_backend = HOVSGNavigatorAdapter(
@@ -396,9 +392,7 @@ def resolve_hovsg_runtime_config(
         resolved["scene_vertical_axis"] = entry.get("scene_vertical_axis") or entry.get(
             "vertical_axis"
         )
-        resolved["simulator_vertical_axis"] = entry.get(
-            "simulator_vertical_axis"
-        )
+        resolved["simulator_vertical_axis"] = entry.get("simulator_vertical_axis")
         resolved["scene_from_simulator_transform"] = entry.get(
             "scene_from_simulator_transform"
         ) or entry.get("simulator_to_scene_transform")
@@ -413,13 +407,11 @@ def resolve_hovsg_runtime_config(
         scene_id=resolved["scene_id"],
     )
     resolved["scene_vertical_axis"] = normalize_vertical_axis(
-        resolved["scene_vertical_axis"]
-        or metadata_contract.get("scene_vertical_axis"),
+        resolved["scene_vertical_axis"] or metadata_contract.get("scene_vertical_axis"),
         default="z",
     )
     resolved["simulator_vertical_axis"] = normalize_vertical_axis(
-        resolved["simulator_vertical_axis"]
-        or metadata_contract.get("simulator_vertical_axis"),
+        resolved["simulator_vertical_axis"] or metadata_contract.get("simulator_vertical_axis"),
         default="z",
     )
     explicit_transform = coerce_frame_transform(
@@ -465,14 +457,11 @@ def _hovsg_frame_contract(
     coord_system = metadata.get("coord_system")
     coord_system = coord_system if isinstance(coord_system, dict) else {}
     return {
-        "scene_vertical_axis": metadata.get("vertical_axis")
-        or coord_system.get("vertical_axis"),
+        "scene_vertical_axis": metadata.get("vertical_axis") or coord_system.get("vertical_axis"),
         "simulator_vertical_axis": metadata.get("simulator_vertical_axis")
         or coord_system.get("simulator_vertical_axis")
         or "z",
-        "scene_from_simulator_transform": metadata.get(
-            "scene_from_simulator_transform"
-        )
+        "scene_from_simulator_transform": metadata.get("scene_from_simulator_transform")
         or metadata.get("simulator_to_scene_transform")
         or coord_system.get("scene_from_simulator_transform")
         or coord_system.get("simulator_to_scene_transform"),
@@ -496,9 +485,13 @@ def build_vla_selector(
     base_url = action_base_url or os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_BASE")
     model = action_model or os.getenv("OPENAI_MODEL")
     if not base_url:
-        raise ValueError("OpenAI-compatible action selector requires --action-base-url or OPENAI_BASE_URL")
+        raise ValueError(
+            "OpenAI-compatible action selector requires --action-base-url or OPENAI_BASE_URL"
+        )
     if not model:
-        raise ValueError("OpenAI-compatible action selector requires --action-model or OPENAI_MODEL")
+        raise ValueError(
+            "OpenAI-compatible action selector requires --action-model or OPENAI_MODEL"
+        )
 
     return OpenAICompatibleActionSkillSelector(
         OpenAIActionSkillSelectorConfig(
@@ -531,9 +524,13 @@ def build_vla_deliberator(
     base_url = action_base_url or os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_BASE")
     model = action_model or os.getenv("OPENAI_MODEL")
     if not base_url:
-        raise ValueError("OpenAI-compatible action deliberator requires --action-base-url or OPENAI_BASE_URL")
+        raise ValueError(
+            "OpenAI-compatible action deliberator requires --action-base-url or OPENAI_BASE_URL"
+        )
     if not model:
-        raise ValueError("OpenAI-compatible action deliberator requires --action-model or OPENAI_MODEL")
+        raise ValueError(
+            "OpenAI-compatible action deliberator requires --action-model or OPENAI_MODEL"
+        )
 
     return OpenAICompatibleActionDeliberator(
         OpenAIActionDeliberatorConfig(

@@ -1,13 +1,9 @@
-"""Shared policy-registry primitives."""
-
 from __future__ import annotations
 
 from typing import Any
 
 
 class PolicyRegistry:
-    """Named registry for pluggable policy backends."""
-
     def __init__(self, *, default_policy_id: str | None = None) -> None:
         self._policies: dict[str, Any] = {}
         self._default_policy_id = default_policy_id

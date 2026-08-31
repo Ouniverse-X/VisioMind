@@ -1,5 +1,3 @@
-"""Shared event telemetry models."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -9,8 +7,6 @@ from typing import Any, Callable
 
 @dataclass
 class EventRecord:
-    """Structured runtime event record."""
-
     ts: str
     event: str
     payload: dict[str, Any] = field(default_factory=dict)

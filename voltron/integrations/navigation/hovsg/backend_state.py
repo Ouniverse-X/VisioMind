@@ -1,5 +1,3 @@
-"""Backend state initialization helpers for the HOV-SG navigator facade."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -42,7 +40,9 @@ def build_backend_state(
     object_approach_min_portal_stance_clearance_m: float = 0.45,
     normalize_nav_graph_type: Callable[[Any], str | None] | None = None,
 ) -> dict[str, Any]:
-    normalize_nav_graph_type = normalize_nav_graph_type or hovsg_scene_loading.normalize_nav_graph_type
+    normalize_nav_graph_type = (
+        normalize_nav_graph_type or hovsg_scene_loading.normalize_nav_graph_type
+    )
     normalized_room_boundary_tolerance = max(0.0, float(room_boundary_tolerance))
     normalized_object_approach_min_distance = max(0.1, float(object_approach_min_distance_m))
     normalized_object_approach_preferred_distance = max(
@@ -71,7 +71,9 @@ def build_backend_state(
         "portal_opening_probe_offset_m": max(0.02, float(portal_opening_probe_offset_m)),
         "portal_opening_clearance_radius_m": max(0.0, float(portal_opening_clearance_radius_m)),
         "room_boundary_tolerance": normalized_room_boundary_tolerance,
-        "room_hysteresis_margin": max(normalized_room_boundary_tolerance, float(room_hysteresis_margin)),
+        "room_hysteresis_margin": max(
+            normalized_room_boundary_tolerance, float(room_hysteresis_margin)
+        ),
         "object_approach_min_distance_m": normalized_object_approach_min_distance,
         "object_approach_preferred_distance_m": normalized_object_approach_preferred_distance,
         "object_approach_max_distance_m": max(
@@ -118,7 +120,9 @@ def apply_backend_state(adapter: Any, state: dict[str, Any]) -> None:
     adapter.object_approach_max_candidates = state["object_approach_max_candidates"]
     adapter.object_approach_angle_samples = state["object_approach_angle_samples"]
     adapter.object_approach_clearance_radius_m = state["object_approach_clearance_radius_m"]
-    adapter.object_approach_max_graph_handoff_distance_m = state["object_approach_max_graph_handoff_distance_m"]
+    adapter.object_approach_max_graph_handoff_distance_m = state[
+        "object_approach_max_graph_handoff_distance_m"
+    ]
     adapter.object_approach_min_portal_stance_clearance_m = state[
         "object_approach_min_portal_stance_clearance_m"
     ]

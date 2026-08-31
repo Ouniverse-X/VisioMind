@@ -1,5 +1,3 @@
-"""Rule-based planner backend owned by the Brain agent body."""
-
 from __future__ import annotations
 
 import re
@@ -10,8 +8,6 @@ from voltron.shared.context import Plan, Subtask
 
 
 class RuleBasedPlanner:
-    """Generate baseline manipulation plans from text using simple heuristics."""
-
     def plan(self, task_description: str, context: dict[str, Any]) -> Plan:
         planner_mode = self._planner_mode(context)
         if planner_mode == "scripted":
@@ -29,20 +25,39 @@ class RuleBasedPlanner:
         if task_type == "navigation":
             target = self._extract_navigation_target(task_description)
             return Plan(
-                subtasks=[self._build_navigation_subtask(target=target, task_description=task_description)],
-                metadata={"planner": "rule_based", "dynamic_execution": False, "mode": "navigation_direct", "planner_mode": "scripted"},
+                subtasks=[
+                    self._build_navigation_subtask(target=target, task_description=task_description)
+                ],
+                metadata={
+                    "planner": "rule_based",
+                    "dynamic_execution": False,
+                    "mode": "navigation_direct",
+                    "planner_mode": "scripted",
+                },
             )
         if task_type == "interaction":
             slots = self._extract_interaction_slots(task_description)
             return Plan(
-                subtasks=[self._build_interaction_inspect_subtask(slots, task_description, index=1)],
-                metadata={"planner": "rule_based", "dynamic_execution": True, "mode": "interaction_stepwise", "planner_mode": "scripted"},
+                subtasks=[
+                    self._build_interaction_inspect_subtask(slots, task_description, index=1)
+                ],
+                metadata={
+                    "planner": "rule_based",
+                    "dynamic_execution": True,
+                    "mode": "interaction_stepwise",
+                    "planner_mode": "scripted",
+                },
             )
 
         slots = self._extract_slots(task_description)
         return Plan(
             subtasks=self._build_transfer_plan(slots, task_description),
-            metadata={"planner": "rule_based", "dynamic_execution": False, "mode": "transfer_static", "planner_mode": "scripted"},
+            metadata={
+                "planner": "rule_based",
+                "dynamic_execution": False,
+                "mode": "transfer_static",
+                "planner_mode": "scripted",
+            },
         )
 
     def _plan_auto(self, task_description: str, context: dict[str, Any]) -> Plan:
@@ -75,7 +90,12 @@ class RuleBasedPlanner:
                 ]
                 return Plan(
                     subtasks=subtasks,
-                    metadata={"planner": "rule_based", "dynamic_execution": False, "mode": "auto_pi05_long_range_interaction", "planner_mode": "auto"},
+                    metadata={
+                        "planner": "rule_based",
+                        "dynamic_execution": False,
+                        "mode": "auto_pi05_long_range_interaction",
+                        "planner_mode": "auto",
+                    },
                 )
 
             subtasks = [
@@ -91,28 +111,56 @@ class RuleBasedPlanner:
             ]
             return Plan(
                 subtasks=subtasks,
-                metadata={"planner": "rule_based", "dynamic_execution": True, "mode": "auto_long_range_interaction", "planner_mode": "auto"},
+                metadata={
+                    "planner": "rule_based",
+                    "dynamic_execution": True,
+                    "mode": "auto_long_range_interaction",
+                    "planner_mode": "auto",
+                },
             )
 
         transfer_slots = self._extract_slots(task_description)
         if {"object", "source", "destination"}.issubset(transfer_slots):
             return Plan(
                 subtasks=self._build_transfer_plan(transfer_slots, task_description),
-                metadata={"planner": "rule_based", "dynamic_execution": False, "mode": "transfer_static", "planner_mode": "auto"},
+                metadata={
+                    "planner": "rule_based",
+                    "dynamic_execution": False,
+                    "mode": "transfer_static",
+                    "planner_mode": "auto",
+                },
             )
 
         interaction_slots = self._extract_interaction_slots(task_description)
         if interaction_slots.get("object") != "target_object":
             return Plan(
-                subtasks=[self._build_interaction_inspect_subtask(interaction_slots, task_description, index=1)],
-                metadata={"planner": "rule_based", "dynamic_execution": True, "mode": "auto_local_interaction", "planner_mode": "auto"},
+                subtasks=[
+                    self._build_interaction_inspect_subtask(
+                        interaction_slots, task_description, index=1
+                    )
+                ],
+                metadata={
+                    "planner": "rule_based",
+                    "dynamic_execution": True,
+                    "mode": "auto_local_interaction",
+                    "planner_mode": "auto",
+                },
             )
 
         navigation_target = self._extract_navigation_target(task_description)
         if navigation_target and navigation_target != task_description.strip():
             return Plan(
-                subtasks=[self._build_navigation_subtask(target=navigation_target, task_description=task_description)],
-                metadata={"planner": "rule_based", "dynamic_execution": False, "mode": "navigation_direct", "planner_mode": "auto"},
+                subtasks=[
+                    self._build_navigation_subtask(
+                        target=navigation_target, task_description=task_description
+                    )
+                ],
+                metadata={
+                    "planner": "rule_based",
+                    "dynamic_execution": False,
+                    "mode": "navigation_direct",
+                    "planner_mode": "auto",
+                },
             )
 
         return Plan(
@@ -122,11 +170,18 @@ class RuleBasedPlanner:
                     agent=AgentName.VISION,
                     action="observe",
                     target={},
-                    parameters={"instruction": f"Observe the scene relevant to: {task_description}"},
+                    parameters={
+                        "instruction": f"Observe the scene relevant to: {task_description}"
+                    },
                     context={"task_description": task_description},
                 )
             ],
-            metadata={"planner": "rule_based", "dynamic_execution": True, "mode": "auto_observe_seed", "planner_mode": "auto"},
+            metadata={
+                "planner": "rule_based",
+                "dynamic_execution": True,
+                "mode": "auto_observe_seed",
+                "planner_mode": "auto",
+            },
         )
 
     def plan_next(
@@ -137,14 +192,23 @@ class RuleBasedPlanner:
     ) -> Plan:
         planner_mode = self._planner_mode(context)
         if not self._should_use_dynamic_interaction_flow(task_description, context):
-            return Plan(subtasks=[], metadata={"planner": "rule_based", "dynamic_execution": False, "planner_mode": planner_mode})
+            return Plan(
+                subtasks=[],
+                metadata={
+                    "planner": "rule_based",
+                    "dynamic_execution": False,
+                    "planner_mode": planner_mode,
+                },
+            )
 
         slots = self._extract_interaction_slots(task_description)
         latest_result = execution_state.get("latest_result", {})
         latest_agent = self._canonical_agent_label(latest_result.get("agent"))
         latest_action_keys = latest_result.get("action_keys", [])
         latest_task_complete = bool(latest_result.get("task_complete", False))
-        scene_report = dict(latest_result.get("scene_report") or execution_state.get("last_scene_report") or {})
+        scene_report = dict(
+            latest_result.get("scene_report") or execution_state.get("last_scene_report") or {}
+        )
         navigation_report = self._navigation_report(execution_state)
         next_index = self._coerce_next_index(execution_state.get("next_subtask_index"))
         vla_attempts = self._count_agent_results(
@@ -154,32 +218,68 @@ class RuleBasedPlanner:
         )
 
         if latest_task_complete:
-            return Plan(subtasks=[], metadata={"planner": "rule_based", "dynamic_execution": True, "planner_mode": planner_mode})
+            return Plan(
+                subtasks=[],
+                metadata={
+                    "planner": "rule_based",
+                    "dynamic_execution": True,
+                    "planner_mode": planner_mode,
+                },
+            )
 
         if latest_agent == AgentName.ACTION.value and latest_action_keys:
             return Plan(
-                subtasks=[self._build_interaction_verify_subtask(slots, task_description, next_index)],
-                metadata={"planner": "rule_based", "dynamic_execution": True, "planner_mode": planner_mode},
+                subtasks=[
+                    self._build_interaction_verify_subtask(slots, task_description, next_index)
+                ],
+                metadata={
+                    "planner": "rule_based",
+                    "dynamic_execution": True,
+                    "planner_mode": planner_mode,
+                },
             )
 
         if latest_agent == AgentName.NAVIGATION.value and latest_action_keys:
             return Plan(
-                subtasks=[self._build_interaction_inspect_subtask(slots, task_description, next_index)],
-                metadata={"planner": "rule_based", "dynamic_execution": True, "planner_mode": planner_mode},
+                subtasks=[
+                    self._build_interaction_inspect_subtask(slots, task_description, next_index)
+                ],
+                metadata={
+                    "planner": "rule_based",
+                    "dynamic_execution": True,
+                    "planner_mode": planner_mode,
+                },
             )
 
         if latest_agent == AgentName.VISION.value and latest_result.get("scene_report"):
             if bool(scene_report.get("task_complete", False)):
-                return Plan(subtasks=[], metadata={"planner": "rule_based", "dynamic_execution": True})
-            if self._in_target_room(navigation_report) and bool(scene_report.get("target_visible", False)) and bool(navigation_report.get("approach_ready", False)) and vla_attempts < 2:
+                return Plan(
+                    subtasks=[], metadata={"planner": "rule_based", "dynamic_execution": True}
+                )
+            if (
+                self._in_target_room(navigation_report)
+                and bool(scene_report.get("target_visible", False))
+                and bool(navigation_report.get("approach_ready", False))
+                and vla_attempts < 2
+            ):
                 return Plan(
                     subtasks=[
                         self._build_interaction_action_subtask(slots, task_description, next_index),
-                        self._build_interaction_verify_subtask(slots, task_description, next_index + 1),
+                        self._build_interaction_verify_subtask(
+                            slots, task_description, next_index + 1
+                        ),
                     ],
-                    metadata={"planner": "rule_based", "dynamic_execution": True, "planner_mode": planner_mode},
+                    metadata={
+                        "planner": "rule_based",
+                        "dynamic_execution": True,
+                        "planner_mode": planner_mode,
+                    },
                 )
-            if self._outside_target_room(navigation_report) and slots.get("room") not in (None, "", "target_room"):
+            if self._outside_target_room(navigation_report) and slots.get("room") not in (
+                None,
+                "",
+                "target_room",
+            ):
                 return Plan(
                     subtasks=[
                         Subtask(
@@ -191,24 +291,49 @@ class RuleBasedPlanner:
                             context={"task_description": task_description},
                         )
                     ],
-                    metadata={"planner": "rule_based", "dynamic_execution": True, "planner_mode": planner_mode},
+                    metadata={
+                        "planner": "rule_based",
+                        "dynamic_execution": True,
+                        "planner_mode": planner_mode,
+                    },
                 )
-            if bool(scene_report.get("target_visible", False)) and navigation_report.get("approach_reachable") is not False:
+            if (
+                bool(scene_report.get("target_visible", False))
+                and navigation_report.get("approach_reachable") is not False
+            ):
                 return Plan(
                     subtasks=[
-                        self._build_interaction_approach_subtask(slots, task_description, next_index),
-                        self._build_interaction_inspect_subtask(slots, task_description, next_index + 1),
+                        self._build_interaction_approach_subtask(
+                            slots, task_description, next_index
+                        ),
+                        self._build_interaction_inspect_subtask(
+                            slots, task_description, next_index + 1
+                        ),
                     ],
-                    metadata={"planner": "rule_based", "dynamic_execution": True, "planner_mode": planner_mode},
+                    metadata={
+                        "planner": "rule_based",
+                        "dynamic_execution": True,
+                        "planner_mode": planner_mode,
+                    },
                 )
             return Plan(
-                subtasks=[self._build_interaction_inspect_subtask(slots, task_description, next_index)],
-                metadata={"planner": "rule_based", "dynamic_execution": True, "planner_mode": planner_mode},
+                subtasks=[
+                    self._build_interaction_inspect_subtask(slots, task_description, next_index)
+                ],
+                metadata={
+                    "planner": "rule_based",
+                    "dynamic_execution": True,
+                    "planner_mode": planner_mode,
+                },
             )
 
         return Plan(
             subtasks=[self._build_interaction_inspect_subtask(slots, task_description, next_index)],
-            metadata={"planner": "rule_based", "dynamic_execution": True, "planner_mode": planner_mode},
+            metadata={
+                "planner": "rule_based",
+                "dynamic_execution": True,
+                "planner_mode": planner_mode,
+            },
         )
 
     def replan(
@@ -224,21 +349,41 @@ class RuleBasedPlanner:
             slots = self._extract_interaction_slots(task_description)
             next_index = self._coerce_next_index(execution_state.get("next_subtask_index"))
             latest_result = execution_state.get("latest_result", {})
-            scene_report = dict(latest_result.get("scene_report") or execution_state.get("last_scene_report") or {})
+            scene_report = dict(
+                latest_result.get("scene_report") or execution_state.get("last_scene_report") or {}
+            )
             navigation_report = self._navigation_report(execution_state)
 
             if failed_subtask.agent == AgentName.NAVIGATION and failure_reason == "SUBTASK_TIMEOUT":
-                if bool(scene_report.get("target_visible", False)) and bool(navigation_report.get("approach_ready", False)):
+                if bool(scene_report.get("target_visible", False)) and bool(
+                    navigation_report.get("approach_ready", False)
+                ):
                     return Plan(
                         subtasks=[
-                            self._build_interaction_action_subtask(slots, task_description, next_index),
-                            self._build_interaction_verify_subtask(slots, task_description, next_index + 1),
+                            self._build_interaction_action_subtask(
+                                slots, task_description, next_index
+                            ),
+                            self._build_interaction_verify_subtask(
+                                slots, task_description, next_index + 1
+                            ),
                         ],
-                        metadata={"planner": "rule_based", "dynamic_execution": True, "mode": "timeout_local_recovery", "planner_mode": planner_mode},
+                        metadata={
+                            "planner": "rule_based",
+                            "dynamic_execution": True,
+                            "mode": "timeout_local_recovery",
+                            "planner_mode": planner_mode,
+                        },
                     )
                 return Plan(
-                    subtasks=[self._build_interaction_inspect_subtask(slots, task_description, next_index)],
-                    metadata={"planner": "rule_based", "dynamic_execution": True, "mode": "timeout_reinspect", "planner_mode": planner_mode},
+                    subtasks=[
+                        self._build_interaction_inspect_subtask(slots, task_description, next_index)
+                    ],
+                    metadata={
+                        "planner": "rule_based",
+                        "dynamic_execution": True,
+                        "mode": "timeout_reinspect",
+                        "planner_mode": planner_mode,
+                    },
                 )
 
         retry_subtask = Subtask(
@@ -257,7 +402,9 @@ class RuleBasedPlanner:
             subtasks=[retry_subtask],
             metadata={
                 "planner": "rule_based",
-                "dynamic_execution": self._should_use_dynamic_interaction_flow(task_description, context),
+                "dynamic_execution": self._should_use_dynamic_interaction_flow(
+                    task_description, context
+                ),
                 "mode": "single_retry",
                 "planner_mode": planner_mode,
             },
@@ -310,7 +457,10 @@ class RuleBasedPlanner:
         if not isinstance(capabilities, list):
             return None
         for capability in capabilities:
-            if isinstance(capability, dict) and capability.get("capability_id") == "vision.photo.capture":
+            if (
+                isinstance(capability, dict)
+                and capability.get("capability_id") == "vision.photo.capture"
+            ):
                 return capability
         return None
 
@@ -365,7 +515,10 @@ class RuleBasedPlanner:
 
     @staticmethod
     def _outside_target_room(navigation_report: dict[str, Any]) -> bool:
-        return str(navigation_report.get("target_room_status") or "").strip().lower() == "outside_target_room"
+        return (
+            str(navigation_report.get("target_room_status") or "").strip().lower()
+            == "outside_target_room"
+        )
 
     @staticmethod
     def _count_agent_results(
@@ -378,7 +531,9 @@ class RuleBasedPlanner:
         for item in results:
             if not isinstance(item, dict):
                 continue
-            if agent and RuleBasedPlanner._canonical_agent_label(item.get("agent")) != RuleBasedPlanner._canonical_agent_label(agent):
+            if agent and RuleBasedPlanner._canonical_agent_label(
+                item.get("agent")
+            ) != RuleBasedPlanner._canonical_agent_label(agent):
                 continue
             action_keys = item.get("action_keys", [])
             if action_keys_required and not action_keys:
@@ -387,7 +542,6 @@ class RuleBasedPlanner:
         return count
 
     def _build_transfer_plan(self, slots: dict[str, str], task_description: str) -> list[Subtask]:
-        """Build a standard Navigation->Vision->Action pipeline."""
         source = slots.get("source", "source_region")
         destination = slots.get("destination", "target_region")
         obj = slots.get("object", "target_object")
@@ -450,11 +604,12 @@ class RuleBasedPlanner:
         )
 
     def _extract_slots(self, task_description: str) -> dict[str, str]:
-        """Extract rough object/source/destination hints from Chinese or English text."""
         text = task_description.strip()
         slots: dict[str, str] = {}
 
-        cn_pattern = r"把(?P<object>.+?)从(?P<source>.+?)(?:拿到|放到|移动到|转移到)(?P<destination>.+)$"
+        cn_pattern = (
+            r"把(?P<object>.+?)从(?P<source>.+?)(?:拿到|放到|移动到|转移到)(?P<destination>.+)$"
+        )
         cn_match = re.search(cn_pattern, text)
         if cn_match:
             return {
@@ -499,7 +654,9 @@ class RuleBasedPlanner:
                     return target
         return text or "target_region"
 
-    def _extract_navigation_room_hint(self, task_description: str, context: dict[str, Any]) -> str | None:
+    def _extract_navigation_room_hint(
+        self, task_description: str, context: dict[str, Any]
+    ) -> str | None:
         metadata = context.get("metadata", {}) if isinstance(context.get("metadata"), dict) else {}
         for key in ("target_room", "room", "target_region", "region"):
             value = metadata.get(key)
@@ -539,7 +696,9 @@ class RuleBasedPlanner:
         metadata = context.get("metadata") if isinstance(context.get("metadata"), dict) else {}
         return str(metadata.get("policy_backend") or "").strip().lower() == "pi05"
 
-    def _should_use_dynamic_interaction_flow(self, task_description: str, context: dict[str, Any]) -> bool:
+    def _should_use_dynamic_interaction_flow(
+        self, task_description: str, context: dict[str, Any]
+    ) -> bool:
         if self._uses_native_pi05_policy(context):
             return False
         task_type = str(context.get("task_type", "")).strip().lower()
@@ -557,7 +716,10 @@ class RuleBasedPlanner:
             "action": "toggle_on",
         }
 
-        if any(token in lowered for token in ("turn off", "switch off", "power off")) or "关闭" in text:
+        if (
+            any(token in lowered for token in ("turn off", "switch off", "power off"))
+            or "关闭" in text
+        ):
             slots["desired_state"] = "off"
             slots["action"] = "toggle_off"
 
@@ -694,7 +856,10 @@ class RuleBasedPlanner:
                 ),
                 "control_mode": "whole_body_local",
             },
-            context={"task_description": task_description, "execution_mode": "long_range_interaction"},
+            context={
+                "task_description": task_description,
+                "execution_mode": "long_range_interaction",
+            },
         )
 
     def _build_interaction_verify_subtask(

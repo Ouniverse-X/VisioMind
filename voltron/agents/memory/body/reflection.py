@@ -1,10 +1,3 @@
-"""MemoryAgent-native episode reflection.
-
-This module turns completed episode context from the backend into a
-deterministic evidence packet. It does not create long-term memory candidates;
-LLM extraction consumes this evidence in the next consolidation step.
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -38,23 +31,17 @@ def build_reflection_evidence(
         "critical_actions": critical_actions,
         "rule_derived_evidence": rule_derived_evidence,
         "state_deltas": state_deltas,
-        "causal_observations": _causal_observations(
-            episode_context, state_deltas=state_deltas
-        ),
+        "causal_observations": _causal_observations(episode_context, state_deltas=state_deltas),
         "similar_episode_contrasts": _similar_episode_contrasts(
             similar_episodes, current_episode_id=episode_id
         ),
-        "recent_observation_count": len(
-            _list(episode_context.get("recent_observations"))
-        ),
+        "recent_observation_count": len(_list(episode_context.get("recent_observations"))),
         "source_integrity": dict(episode_context.get("source_integrity", {}))
         if isinstance(episode_context.get("source_integrity"), dict)
         else {},
         "generated_by": "memory_agent_native_reflection",
     }
-    return {
-        key: value for key, value in evidence.items() if value not in (None, [], {})
-    }
+    return {key: value for key, value in evidence.items() if value not in (None, [], {})}
 
 
 def reflection_annotation(evidence: dict[str, Any]) -> dict[str, Any]:
@@ -111,9 +98,7 @@ def _critical_actions(
     if isinstance(failure_idx, int) and 0 <= failure_idx < len(actions):
         summary = _action_summary(actions[failure_idx], index=failure_idx)
         summary["failure_reason"] = _failure_reason(actions[failure_idx])
-        if not any(
-            item.get("action_id") == summary.get("action_id") for item in critical
-        ):
+        if not any(item.get("action_id") == summary.get("action_id") for item in critical):
             critical.append(summary)
     return critical
 
@@ -218,9 +203,7 @@ def _rule_derived_evidence(
                 episode_context, actions=actions
             ),
             "visual_state": _visual_state(episode_context),
-            "action_backend_status": _action_backend_status(
-                episode_context, actions=actions
-            ),
+            "action_backend_status": _action_backend_status(episode_context, actions=actions),
             "action_interaction_context": _action_interaction_context(
                 episode_context, actions=actions
             ),
@@ -256,8 +239,7 @@ def _failure_classification(
         or "time limit" in reason_text
     )
     vla_backend_failure = _is_vla_backend_failure(reason_text) or any(
-        _is_vla_backend_failure(_normalize_text(_failure_reason(action)))
-        for action in actions
+        _is_vla_backend_failure(_normalize_text(_failure_reason(action))) for action in actions
     )
     simulator_task_failure = bool(
         _normalize_text(episode_context.get("outcome")) in {"failure", "failed"}
@@ -324,8 +306,7 @@ def _object_approach_selection(
     history_penalty = _drop_empty(
         {
             "blocked_by_history": candidate.get("blocked_by_history"),
-            "history_penalty": candidate.get("history_penalty")
-            or candidate.get("memory_penalty"),
+            "history_penalty": candidate.get("history_penalty") or candidate.get("memory_penalty"),
         }
     )
     return _drop_empty(
@@ -342,9 +323,7 @@ def _visual_state(episode_context: dict[str, Any]) -> dict[str, Any]:
     return _drop_empty(
         {
             "target_visible": visual.get("target_visible") if visual else None,
-            "target_part_visible": visual.get("target_part_visible")
-            if visual
-            else None,
+            "target_part_visible": visual.get("target_part_visible") if visual else None,
             "task_complete": visual.get("task_complete") if visual else None,
         }
     )
@@ -356,9 +335,7 @@ def _action_interaction_context(
     actions: list[dict[str, Any]],
 ) -> dict[str, Any]:
     approach = _object_approach_selection(episode_context, actions=actions)
-    candidate = (
-        approach.get("candidate") if isinstance(approach.get("candidate"), dict) else {}
-    )
+    candidate = approach.get("candidate") if isinstance(approach.get("candidate"), dict) else {}
     visual = _visual_source(episode_context)
     final_state = episode_context.get("final_state")
     final_state = final_state if isinstance(final_state, dict) else {}
@@ -375,9 +352,7 @@ def _action_interaction_context(
     terminal_action = _terminal_action(actions)
     terminal_feedback = _action_env_feedback(terminal_action)
     terminal_parameters = terminal_action.get("parameters")
-    terminal_parameters = (
-        terminal_parameters if isinstance(terminal_parameters, dict) else {}
-    )
+    terminal_parameters = terminal_parameters if isinstance(terminal_parameters, dict) else {}
     heartbeat = _first_mapping(
         final_state.get("environment_vlm_heartbeat"),
         episode_context.get("environment_vlm_heartbeat"),
@@ -388,9 +363,7 @@ def _action_interaction_context(
     )
     failure_feedback = _action_env_feedback(failure_action)
     failure_parameters = failure_action.get("parameters")
-    failure_parameters = (
-        failure_parameters if isinstance(failure_parameters, dict) else {}
-    )
+    failure_parameters = failure_parameters if isinstance(failure_parameters, dict) else {}
 
     environment_truncated = bool(
         source_integrity.get("environment_truncated")
@@ -455,12 +428,8 @@ def _action_interaction_context(
             "visual_affordance": _drop_empty(
                 {
                     "target_visible": visual.get("target_visible") if visual else None,
-                    "target_part_visible": visual.get("target_part_visible")
-                    if visual
-                    else None,
-                    "target_part_name": visual.get("target_part_name")
-                    if visual
-                    else None,
+                    "target_part_visible": visual.get("target_part_visible") if visual else None,
+                    "target_part_name": visual.get("target_part_name") if visual else None,
                     "switch_visible": visual.get("switch_visible") if visual else None,
                     "view_quality": visual.get("view_quality") if visual else None,
                 }
@@ -556,8 +525,7 @@ def _selected_candidate_context(candidate: dict[str, Any]) -> dict[str, Any]:
                 }
             ),
             "candidate_signature": _candidate_signature(candidate),
-            "history_penalty": candidate.get("history_penalty")
-            or candidate.get("memory_penalty"),
+            "history_penalty": candidate.get("history_penalty") or candidate.get("memory_penalty"),
             "blocked_by_history": candidate.get("blocked_by_history"),
         }
     )
@@ -578,9 +546,7 @@ def _candidate_signature(candidate: dict[str, Any]) -> dict[str, Any]:
     )
 
 
-def _contact_context(
-    *, visual: dict[str, Any], actions: list[dict[str, Any]]
-) -> dict[str, Any]:
+def _contact_context(*, visual: dict[str, Any], actions: list[dict[str, Any]]) -> dict[str, Any]:
     context: dict[str, Any] = {}
     for key in (
         "contact_observed",
@@ -614,10 +580,7 @@ def _vlm_predicate_mismatch(
         heartbeat.get("last_success")
         or heartbeat.get("reported_success")
         or heartbeat.get("subtask_succeeded")
-        or (
-            heartbeat.get("subtask_completed")
-            and completion_reason in {"vlm_success", "success"}
-        )
+        or (heartbeat.get("subtask_completed") and completion_reason in {"vlm_success", "success"})
         or (isinstance(success_count, (int, float)) and success_count > 0)
     )
     if reported_success is not True or environment_task_success is not False:
@@ -654,8 +617,7 @@ def _terminal_action(actions: list[dict[str, Any]]) -> dict[str, Any]:
         ):
             return action
         if any(
-            key in action
-            for key in ("task_success", "task_progress", "env_step", "control_step")
+            key in action for key in ("task_success", "task_progress", "env_step", "control_step")
         ):
             return action
     return {}
@@ -667,13 +629,9 @@ def _heartbeat_from_actions(actions: list[dict[str, Any]]) -> dict[str, Any]:
             _nested_mapping(action, ("environment_vlm_heartbeat",)),
             _nested_mapping(action, ("env_feedback", "environment_vlm_heartbeat")),
             _nested_mapping(action, ("result", "environment_vlm_heartbeat")),
-            _nested_mapping(
-                action, ("result", "env_feedback", "environment_vlm_heartbeat")
-            ),
+            _nested_mapping(action, ("result", "env_feedback", "environment_vlm_heartbeat")),
             _nested_mapping(action, ("parameters", "environment_vlm_heartbeat")),
-            _nested_mapping(
-                action, ("parameters", "env_feedback", "environment_vlm_heartbeat")
-            ),
+            _nested_mapping(action, ("parameters", "env_feedback", "environment_vlm_heartbeat")),
         )
         if heartbeat:
             return heartbeat
@@ -753,9 +711,7 @@ def _similar_episode_contrasts(
     similar_episodes: Any, *, current_episode_id: str
 ) -> list[dict[str, Any]]:
     results = (
-        similar_episodes.get("results")
-        if isinstance(similar_episodes, dict)
-        else similar_episodes
+        similar_episodes.get("results") if isinstance(similar_episodes, dict) else similar_episodes
     )
     contrasts = []
     for item in _list(results):
@@ -784,10 +740,7 @@ def _action_summary(action: dict[str, Any], *, index: int) -> dict[str, Any]:
     return {
         "action_id": _action_id(action, index=index),
         "action_type": str(
-            action.get("action_type")
-            or action.get("type")
-            or action.get("action")
-            or ""
+            action.get("action_type") or action.get("type") or action.get("action") or ""
         ),
         "target": _target(action),
         "index": index,

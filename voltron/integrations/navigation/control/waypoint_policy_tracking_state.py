@@ -1,5 +1,3 @@
-"""Tracking-state helpers for the waypoint policy adapter."""
-
 from __future__ import annotations
 
 import math
@@ -101,15 +99,29 @@ def apply_portal_prealign_guidance(
     del adapter
     midpoint = portal_prealign.get("midpoint")
     if not isinstance(midpoint, dict):
-        return tracking_target, guidance_world_x, guidance_world_y, math.atan2(guidance_world_y, guidance_world_x)
+        return (
+            tracking_target,
+            guidance_world_x,
+            guidance_world_y,
+            math.atan2(guidance_world_y, guidance_world_x),
+        )
 
     blend = float(np.clip(float(portal_prealign.get("blend", 0.0)), 0.0, 1.0))
     if blend <= 1e-6:
-        return tracking_target, guidance_world_x, guidance_world_y, math.atan2(guidance_world_y, guidance_world_x)
+        return (
+            tracking_target,
+            guidance_world_x,
+            guidance_world_y,
+            math.atan2(guidance_world_y, guidance_world_x),
+        )
 
     adjusted_target = dict(tracking_target)
-    adjusted_target[axis_x] = (1.0 - blend) * float(tracking_target[axis_x]) + blend * float(midpoint[axis_x])
-    adjusted_target[axis_y] = (1.0 - blend) * float(tracking_target[axis_y]) + blend * float(midpoint[axis_y])
+    adjusted_target[axis_x] = (1.0 - blend) * float(tracking_target[axis_x]) + blend * float(
+        midpoint[axis_x]
+    )
+    adjusted_target[axis_y] = (1.0 - blend) * float(tracking_target[axis_y]) + blend * float(
+        midpoint[axis_y]
+    )
 
     approach_dx = float(adjusted_target[axis_x]) - float(pose[axis_x])
     approach_dy = float(adjusted_target[axis_y]) - float(pose[axis_y])
@@ -255,13 +267,16 @@ def local_path_tracking_state(
         axis_x=axis_x,
         axis_y=axis_y,
     )
-    if cross_track_error > adapter.local_path_rejoin_distance_threshold or should_rejoin_before_curve(
-        adapter,
-        waypoints=waypoints,
-        segment_index=closest_segment_index,
-        axis_x=axis_x,
-        axis_y=axis_y,
-        cross_track_error=cross_track_error,
+    if (
+        cross_track_error > adapter.local_path_rejoin_distance_threshold
+        or should_rejoin_before_curve(
+            adapter,
+            waypoints=waypoints,
+            segment_index=closest_segment_index,
+            axis_x=axis_x,
+            axis_y=axis_y,
+            cross_track_error=cross_track_error,
+        )
     ):
         tracking_horizon = min(tracking_horizon, adapter.local_path_rejoin_horizon)
     tracking_target = advance_local_path_point(
@@ -308,28 +323,32 @@ def local_path_tracking_state(
         tangent_heading=desired_heading,
     )
     if portal_prealign is not None:
-        tracking_target, guidance_world_x, guidance_world_y, desired_heading = apply_portal_prealign_guidance(
-            adapter,
-            pose=pose,
-            tracking_target=tracking_target,
-            guidance_world_x=guidance_world_x,
-            guidance_world_y=guidance_world_y,
-            portal_prealign=portal_prealign,
-            axis_x=axis_x,
-            axis_y=axis_y,
+        tracking_target, guidance_world_x, guidance_world_y, desired_heading = (
+            apply_portal_prealign_guidance(
+                adapter,
+                pose=pose,
+                tracking_target=tracking_target,
+                guidance_world_x=guidance_world_x,
+                guidance_world_y=guidance_world_y,
+                portal_prealign=portal_prealign,
+                axis_x=axis_x,
+                axis_y=axis_y,
+            )
         )
         dx = float(tracking_target[axis_x]) - float(pose[axis_x])
         dy = float(tracking_target[axis_y]) - float(pose[axis_y])
         tracking_distance = math.hypot(dx, dy)
     elif adapter.prefer_forward_facing_motion:
-        desired_heading, guidance_world_x, guidance_world_y = adapter._align_local_path_heading_to_tracking_target(
-            desired_heading=desired_heading,
-            tracking_distance=tracking_distance,
-            dx=dx,
-            dy=dy,
-            cross_track_error=cross_track_error,
-            guidance_world_x=guidance_world_x,
-            guidance_world_y=guidance_world_y,
+        desired_heading, guidance_world_x, guidance_world_y = (
+            adapter._align_local_path_heading_to_tracking_target(
+                desired_heading=desired_heading,
+                tracking_distance=tracking_distance,
+                dx=dx,
+                dy=dy,
+                cross_track_error=cross_track_error,
+                guidance_world_x=guidance_world_x,
+                guidance_world_y=guidance_world_y,
+            )
         )
     heading_error = adapter._wrap_angle(desired_heading - yaw)
     local_forward = math.cos(yaw) * guidance_world_x + math.sin(yaw) * guidance_world_y
@@ -472,7 +491,9 @@ def effective_portal_alignment_lateral_deadband(adapter: Any, *, target: dict[st
     portal_width = portal_width_from_target(adapter, target=target)
     if portal_width is None or adapter.portal_alignment_footprint_width_m <= 1e-6:
         return effective_deadband
-    half_clearance_budget = max(0.0, 0.5 * (portal_width - adapter.portal_alignment_footprint_width_m))
+    half_clearance_budget = max(
+        0.0, 0.5 * (portal_width - adapter.portal_alignment_footprint_width_m)
+    )
     return float(
         min(
             effective_deadband,
@@ -580,7 +601,9 @@ def local_path_projection_state(
             candidate[axis_x] = float(current[axis_x]) + projection * segment_dx
             candidate[axis_y] = float(current[axis_y]) + projection * segment_dy
             if "z" in current and "z" in nxt:
-                candidate["z"] = float(current["z"]) + projection * (float(nxt["z"]) - float(current["z"]))
+                candidate["z"] = float(current["z"]) + projection * (
+                    float(nxt["z"]) - float(current["z"])
+                )
 
         tangent_x, tangent_y = local_path_segment_tangent(
             adapter,
@@ -687,7 +710,9 @@ def local_path_segment_tangent(
     del adapter
     if len(waypoints) < 2:
         return 1.0, 0.0
-    search_order = list(range(segment_index, len(waypoints) - 1)) + list(range(segment_index - 1, -1, -1))
+    search_order = list(range(segment_index, len(waypoints) - 1)) + list(
+        range(segment_index - 1, -1, -1)
+    )
     for index in search_order:
         current = waypoints[index]
         nxt = waypoints[index + 1]
@@ -729,10 +754,16 @@ def advance_local_path_point(
         if segment >= remaining:
             ratio = remaining / segment
             interpolated = dict(previous)
-            interpolated[axis_x] = float(previous[axis_x]) + ratio * (float(candidate[axis_x]) - float(previous[axis_x]))
-            interpolated[axis_y] = float(previous[axis_y]) + ratio * (float(candidate[axis_y]) - float(previous[axis_y]))
+            interpolated[axis_x] = float(previous[axis_x]) + ratio * (
+                float(candidate[axis_x]) - float(previous[axis_x])
+            )
+            interpolated[axis_y] = float(previous[axis_y]) + ratio * (
+                float(candidate[axis_y]) - float(previous[axis_y])
+            )
             if "z" in previous and "z" in candidate:
-                interpolated["z"] = float(previous["z"]) + ratio * (float(candidate["z"]) - float(previous["z"]))
+                interpolated["z"] = float(previous["z"]) + ratio * (
+                    float(candidate["z"]) - float(previous["z"])
+                )
             return interpolated
         remaining -= segment
         previous = dict(candidate)
@@ -768,6 +799,8 @@ def should_rejoin_before_curve(
         axis_y=axis_y,
     )
     curvature = abs(
-        adapter._wrap_angle(math.atan2(next_tangent_y, next_tangent_x) - math.atan2(tangent_y, tangent_x))
+        adapter._wrap_angle(
+            math.atan2(next_tangent_y, next_tangent_x) - math.atan2(tangent_y, tangent_x)
+        )
     )
     return curvature >= adapter.local_path_curve_threshold_rad

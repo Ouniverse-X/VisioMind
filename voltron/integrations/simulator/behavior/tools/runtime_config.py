@@ -1,5 +1,3 @@
-"""Configuration and runtime-state helpers for the BEHAVIOR runtime bridge."""
-
 from __future__ import annotations
 
 import os
@@ -10,7 +8,9 @@ from voltron.shared.enums import TaskType
 
 
 def configure_tempdir() -> None:
-    preferred_tmpdir = os.environ.get("VOLTRON_TMPDIR") or "/mnt/data/huangyixuan/.cache/omnigibson/tmp"
+    preferred_tmpdir = (
+        os.environ.get("VOLTRON_TMPDIR") or "/mnt/data/huangyixuan/.cache/omnigibson/tmp"
+    )
     tmpdir_path = Path(preferred_tmpdir).expanduser()
     tmpdir_path.mkdir(parents=True, exist_ok=True)
     for key in ("TMPDIR", "TMP", "TEMP"):
@@ -63,8 +63,12 @@ def configure_adapter(
         if enable_transcode_watchdog is None
         else bool(enable_transcode_watchdog)
     )
-    adapter.object_goal_distance_tolerance_m = max(0.05, float(abs(object_goal_distance_tolerance_m)))
-    adapter.object_goal_heading_tolerance_rad = max(0.05, float(abs(object_goal_heading_tolerance_rad)))
+    adapter.object_goal_distance_tolerance_m = max(
+        0.05, float(abs(object_goal_distance_tolerance_m))
+    )
+    adapter.object_goal_heading_tolerance_rad = max(
+        0.05, float(abs(object_goal_heading_tolerance_rad))
+    )
 
 
 def initialize_runtime_state(adapter: Any) -> None:

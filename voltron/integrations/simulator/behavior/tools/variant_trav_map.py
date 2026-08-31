@@ -1,11 +1,3 @@
-"""Generate a traversability map for a BEHAVIOR scene variant from a base map.
-
-This script is intentionally narrow: it derives a new traversability map by
-expanding existing door openings according to width changes encoded in a scene
-variant JSON. It keeps the original layout segmentation maps intact and only
-patches the traversability image locally around doors whose width changed.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -14,7 +6,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import cv2
 import numpy as np
 from PIL import Image
 
@@ -56,7 +47,9 @@ def generate_variant_trav_map(
     assets_root = Path(behavior_assets_root).expanduser().resolve()
     base_trav_path = Path(base_trav_map_path).expanduser().resolve()
     output_trav_path = Path(output_trav_map_path).expanduser().resolve()
-    overrides_path = Path(opening_overrides_file).expanduser().resolve() if opening_overrides_file else None
+    overrides_path = (
+        Path(opening_overrides_file).expanduser().resolve() if opening_overrides_file else None
+    )
 
     base_scene = json.loads(base_scene_path.read_text(encoding="utf-8"))
     variant_scene = json.loads(variant_scene_path.read_text(encoding="utf-8"))
@@ -73,7 +66,11 @@ def generate_variant_trav_map(
     applied: list[dict[str, Any]] = []
     for door in door_deltas:
         opening_override = opening_overrides.get(door.name)
-        opening_center_xy = opening_override.center_xy_m if opening_override and opening_override.center_xy_m else door.center_xy_m
+        opening_center_xy = (
+            opening_override.center_xy_m
+            if opening_override and opening_override.center_xy_m
+            else door.center_xy_m
+        )
         opening_yaw_rad = (
             opening_override.yaw_rad
             if opening_override and opening_override.yaw_rad is not None
@@ -89,7 +86,9 @@ def generate_variant_trav_map(
             ),
             normal_half_thickness_px=max(int(round(0.10 / LAYOUT_PIXEL_RESOLUTION_M)), 8),
         )
-        min_half_width_px = max(int(round(min_opening_width_m / (2.0 * LAYOUT_PIXEL_RESOLUTION_M))), 1)
+        min_half_width_px = max(
+            int(round(min_opening_width_m / (2.0 * LAYOUT_PIXEL_RESOLUTION_M))), 1
+        )
         override_target_width_m = (
             opening_override.target_opening_width_m
             if opening_override and opening_override.target_opening_width_m is not None
@@ -101,18 +100,24 @@ def generate_variant_trav_map(
                 min_half_width_px,
             )
         else:
-            delta_half_width_px = max(int(round(door.width_delta_m / (2.0 * LAYOUT_PIXEL_RESOLUTION_M))), 0)
+            delta_half_width_px = max(
+                int(round(door.width_delta_m / (2.0 * LAYOUT_PIXEL_RESOLUTION_M))), 0
+            )
             existing_half_width_px = max(
                 opening["half_width_px"],
                 int(np.ceil(max(opening["width_px"] - 1, 0) / 2.0)),
             )
-            target_half_width_px = max(existing_half_width_px + delta_half_width_px, min_half_width_px)
+            target_half_width_px = max(
+                existing_half_width_px + delta_half_width_px, min_half_width_px
+            )
         _carve_oriented_opening(
             trav_map=patched_map,
             center_rc=opening["center_rc"],
             tangent_rc=opening["tangent_rc"],
             half_width_px=target_half_width_px,
-            half_thickness_px=max(int(round(carve_wall_thickness_m / (2.0 * LAYOUT_PIXEL_RESOLUTION_M))), 10),
+            half_thickness_px=max(
+                int(round(carve_wall_thickness_m / (2.0 * LAYOUT_PIXEL_RESOLUTION_M))), 10
+            ),
         )
         applied.append(
             {
@@ -129,7 +134,9 @@ def generate_variant_trav_map(
                 "opening_before_px": opening["width_px"],
                 "opening_after_px": 2 * target_half_width_px + 1,
                 "opening_override": {
-                    "center_xy_m": list(opening_override.center_xy_m) if opening_override and opening_override.center_xy_m else None,
+                    "center_xy_m": list(opening_override.center_xy_m)
+                    if opening_override and opening_override.center_xy_m
+                    else None,
                     "yaw_rad": opening_override.yaw_rad if opening_override else None,
                     "target_opening_width_m": override_target_width_m,
                 }
@@ -170,7 +177,9 @@ def _collect_door_deltas(
             continue
 
         model = str(variant_args.get("model") or "")
-        bbox_size = _load_bbox_size(behavior_assets_root=behavior_assets_root, category=category, model=model)
+        bbox_size = _load_bbox_size(
+            behavior_assets_root=behavior_assets_root, category=category, model=model
+        )
         base_scale = _scale_axis(variant=base_args, axis=1)
         variant_scale = _scale_axis(variant=variant_args, axis=1)
         width_base_m = bbox_size[1] * base_scale
@@ -222,12 +231,16 @@ def _load_opening_overrides(path: Path | None) -> dict[str, OpeningOverride]:
         overrides[str(door_name)] = OpeningOverride(
             center_xy_m=center_xy_m,
             yaw_rad=float(yaw_rad_raw) if yaw_rad_raw is not None else None,
-            target_opening_width_m=float(target_width_raw) if target_width_raw is not None else None,
+            target_opening_width_m=float(target_width_raw)
+            if target_width_raw is not None
+            else None,
         )
     return overrides
 
 
-def _load_bbox_size(*, behavior_assets_root: Path, category: str, model: str) -> tuple[float, float, float]:
+def _load_bbox_size(
+    *, behavior_assets_root: Path, category: str, model: str
+) -> tuple[float, float, float]:
     metadata_path = behavior_assets_root / "objects" / category / model / "misc" / "metadata.json"
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     bbox_size = metadata.get("bbox_size")
@@ -382,9 +395,17 @@ def _carve_oriented_opening(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-scene-file", required=True, help="Base scene JSON used by the original trav map.")
-    parser.add_argument("--variant-scene-file", required=True, help="Variant scene JSON with modified door widths.")
-    parser.add_argument("--behavior-assets-root", required=True, help="Root directory containing behavior-1k-assets.")
+    parser.add_argument(
+        "--base-scene-file", required=True, help="Base scene JSON used by the original trav map."
+    )
+    parser.add_argument(
+        "--variant-scene-file", required=True, help="Variant scene JSON with modified door widths."
+    )
+    parser.add_argument(
+        "--behavior-assets-root",
+        required=True,
+        help="Root directory containing behavior-1k-assets.",
+    )
     parser.add_argument("--base-trav-map", required=True, help="Base traversability map PNG.")
     parser.add_argument("--output-trav-map", required=True, help="Output traversability map PNG.")
     parser.add_argument(

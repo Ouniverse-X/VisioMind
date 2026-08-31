@@ -1,5 +1,3 @@
-"""Video trace lifecycle helpers for runtime telemetry."""
-
 from __future__ import annotations
 
 import subprocess
@@ -9,7 +7,7 @@ from typing import Any, Callable
 
 def _resolve_imageio_ffmpeg_path() -> str | None:
     try:
-        import imageio_ffmpeg  # type: ignore[import-not-found]
+        import imageio_ffmpeg
     except Exception:
         return None
     try:
@@ -79,7 +77,11 @@ def transcode_video_trace(
         )
         return
 
-    if completed.returncode != 0 or not output_video_path.exists() or output_video_path.stat().st_size == 0:
+    if (
+        completed.returncode != 0
+        or not output_video_path.exists()
+        or output_video_path.stat().st_size == 0
+    ):
         stderr = (getattr(completed, "stderr", "") or "").strip()
         record_event(
             "video_transcode_failed",

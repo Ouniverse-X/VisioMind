@@ -1,11 +1,3 @@
-"""Runtime scene-state sampling from a live BEHAVIOR/OmniGibson environment.
-
-Samples door open/close states and tracked-object poses each navigation step so
-the navigation stack can overlay them on its static HOV-SG assets. Sampling is
-throttled by comparing state signatures: the full payload is rebuilt only when
-something actually changed.
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -63,8 +55,6 @@ def sample_scene_runtime_state(
     *,
     scene_id: str | None,
 ) -> dict[str, Any] | None:
-    """Sample the live scene state and return its payload, reusing the cached
-    payload when the signature is unchanged."""
     env = getattr(runtime, "_env", None)
     if env is None:
         return None
@@ -88,9 +78,7 @@ def sample_scene_runtime_state(
             continue
         if id(obj) in controlled_robot_objects or name in controlled_robot_names:
             continue
-        category = str(
-            getattr(obj, "category", "") or getattr(obj, "class_name", "") or ""
-        ).strip()
+        category = str(getattr(obj, "category", "") or getattr(obj, "class_name", "") or "").strip()
         navigation_role = _navigation_role(runtime, name=name, category=category)
         if is_door_category(category):
             doors[name] = apply_door_navigation_passability_override(
@@ -106,10 +94,7 @@ def sample_scene_runtime_state(
                 current_step=step,
             )
         elif (
-            (
-                track_all_collision_objects
-                and navigation_role == NAVIGATION_ROLE_OBSTACLE
-            )
+            (track_all_collision_objects and navigation_role == NAVIGATION_ROLE_OBSTACLE)
             or name in tracked_names
             or _normalize(name) in tracked_names
         ):
@@ -118,11 +103,7 @@ def sample_scene_runtime_state(
                 category=category or None,
                 navigation_role=navigation_role,
                 position=transform_position(_object_position_3d(obj), scene_transform),
-                aabb=(
-                    transform_aabb(_object_aabb(obj), scene_transform)
-                    if include_aabb
-                    else None
-                ),
+                aabb=(transform_aabb(_object_aabb(obj), scene_transform) if include_aabb else None),
                 collision_parts=(
                     _cached_collision_parts(
                         runtime,
@@ -144,12 +125,7 @@ def sample_scene_runtime_state(
         step=step,
         vertical_axis=scene_vertical_axis,
     )
-    if (
-        not objects
-        and not doors
-        and not temporary_obstacles
-        and not isinstance(cache, dict)
-    ):
+    if not objects and not doors and not temporary_obstacles and not isinstance(cache, dict):
         return None
 
     signature = compute_scene_state_signature(
@@ -215,8 +191,7 @@ def _temporary_navigation_obstacles(
             return [
                 obstacle
                 for obstacle in parsed.temporary_obstacles
-                if obstacle.expires_at_step is None
-                or current_step <= obstacle.expires_at_step
+                if obstacle.expires_at_step is None or current_step <= obstacle.expires_at_step
             ]
     return []
 
@@ -227,9 +202,7 @@ def _tracked_object_names(runtime: Any, env: Any) -> set[str]:
     if isinstance(env_kwargs, dict):
         configured = env_kwargs.get("scene_state_tracked_objects")
         if isinstance(configured, (list, tuple)):
-            names.update(
-                _normalize(item) for item in configured if str(item or "").strip()
-            )
+            names.update(_normalize(item) for item in configured if str(item or "").strip())
     names.update(_task_relevant_object_names(env))
     return names
 
@@ -269,8 +242,6 @@ def _include_aabb(runtime: Any) -> bool:
 
 
 def _track_all_collision_objects(runtime: Any) -> bool:
-    """Objectless Nav2 bases require every live non-structural object to be
-    reconstructed in the runtime collision layer, not only task objects."""
     containers = (
         getattr(runtime, "env_kwargs", None),
         getattr(runtime, "runtime_kwargs", None),
@@ -283,7 +254,7 @@ def _track_all_collision_objects(runtime: Any) -> bool:
         if isinstance(filename, str) and filename.strip():
             normalized = filename.lower()
             return "no_obj" in normalized or "no_object" in normalized
-    # Nav2 defaults to the objectless base map when no filename is supplied.
+
     return True
 
 
@@ -297,9 +268,7 @@ def _task_relevant_object_names(env: Any) -> set[str]:
         for entry in object_scope.values():
             wrapped = getattr(entry, "wrapped_obj", entry)
             name = str(getattr(wrapped, "name", "") or "").strip()
-            if name and not _is_structural_category(
-                str(getattr(wrapped, "category", "") or "")
-            ):
+            if name and not _is_structural_category(str(getattr(wrapped, "category", "") or "")):
                 names.add(name)
                 names.add(_normalize(name))
     return names
@@ -344,10 +313,7 @@ def _navigation_role_override(
             continue
         for key in lookup_keys:
             role = overrides.get(key)
-            if (
-                isinstance(role, str)
-                and role.strip().lower() in _VALID_NAVIGATION_ROLES
-            ):
+            if isinstance(role, str) and role.strip().lower() in _VALID_NAVIGATION_ROLES:
                 return role.strip().lower()
     return None
 
@@ -368,11 +334,7 @@ def _door_state(
         is_open=_object_open_state(obj),
         openness=_door_openness(obj),
         position=transform_position(_object_position_3d(obj), scene_transform),
-        aabb=(
-            transform_aabb(_object_aabb(obj), scene_transform)
-            if include_aabb
-            else None
-        ),
+        aabb=(transform_aabb(_object_aabb(obj), scene_transform) if include_aabb else None),
         collision_parts=(
             _cached_collision_parts(runtime, obj, name=name, include_root=False)
             if include_aabb
@@ -457,14 +419,6 @@ def _collision_parts(
     *,
     include_root: bool = False,
 ) -> list[dict[str, Any]]:
-    """Return per-link world collision bounds without collapsing an articulated
-    object into one oversized rectangle.
-
-    Door sampling omits the root frame so rails and mounting geometry are not
-    collapsed into the doorway obstacle. General objects pass
-    ``include_root=True`` because an objectless base map also needs the cabinet,
-    furniture, or vehicle body represented by its root link.
-    """
     links = getattr(obj, "links", None)
     if not isinstance(links, dict) or not links:
         return []
@@ -592,8 +546,7 @@ def _collision_parts_from_cached_local_geometry(
             if world_points:
                 position, orientation = pose
                 local_points = [
-                    _inverse_transform_point(point, position, orientation)
-                    for point in world_points
+                    _inverse_transform_point(point, position, orientation) for point in world_points
                 ]
                 local_polygon = _convex_hull_projected(
                     local_points,
@@ -612,8 +565,7 @@ def _collision_parts_from_cached_local_geometry(
             if local_points:
                 position, orientation = pose
                 world_points = [
-                    _transform_point(point, position, orientation)
-                    for point in local_points
+                    _transform_point(point, position, orientation) for point in local_points
                 ]
                 part = _collision_geometry_part(
                     obj,
@@ -709,9 +661,7 @@ def _collision_geometry_part(
     if world_transform is not None:
         part["world_transform"] = multiply_transforms(transform, world_transform)
         part["pose_revision"] = hashlib.sha1(
-            json.dumps(part["world_transform"], separators=(",", ":")).encode(
-                "utf-8"
-            )
+            json.dumps(part["world_transform"], separators=(",", ":")).encode("utf-8")
         ).hexdigest()[:16]
     part.update(joint_metadata)
     return part
@@ -847,9 +797,9 @@ def _convex_hull_projected(
         first: tuple[float, float],
         second: tuple[float, float],
     ) -> float:
-        return (first[0] - origin[0]) * (second[1] - origin[1]) - (
-            first[1] - origin[1]
-        ) * (second[0] - origin[0])
+        return (first[0] - origin[0]) * (second[1] - origin[1]) - (first[1] - origin[1]) * (
+            second[0] - origin[0]
+        )
 
     lower: list[tuple[float, float]] = []
     for point in unique:
@@ -861,15 +811,13 @@ def _convex_hull_projected(
         while len(upper) >= 2 and cross(upper[-2], upper[-1], point) <= 0.0:
             upper.pop()
         upper.append(point)
-    return [
-        [float(x_coord), float(y_coord)] for x_coord, y_coord in lower[:-1] + upper[:-1]
-    ]
+    return [[float(x_coord), float(y_coord)] for x_coord, y_coord in lower[:-1] + upper[:-1]]
 
 
 def _transform_signature(transform: list[list[float]]) -> str:
-    return hashlib.sha1(
-        json.dumps(transform, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()[:16]
+    return hashlib.sha1(json.dumps(transform, separators=(",", ":")).encode("utf-8")).hexdigest()[
+        :16
+    ]
 
 
 def _transform_collision_bounds(
@@ -905,12 +853,10 @@ def _points_aabb(points: list[list[float]]) -> dict[str, list[float]] | None:
 
 
 def _geometry_hash(local_points: list[list[float]]) -> str:
-    normalized = sorted(
-        [round(float(value), 6) for value in point[:3]] for point in local_points
-    )
-    return hashlib.sha1(
-        json.dumps(normalized, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()[:16]
+    normalized = sorted([round(float(value), 6) for value in point[:3]] for point in local_points)
+    return hashlib.sha1(json.dumps(normalized, separators=(",", ":")).encode("utf-8")).hexdigest()[
+        :16
+    ]
 
 
 def _joint_metadata(obj: Any, link_name: str) -> dict[str, Any]:

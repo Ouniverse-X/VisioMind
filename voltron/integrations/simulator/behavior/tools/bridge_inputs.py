@@ -1,14 +1,20 @@
-"""Runtime-input orchestration helpers for the BEHAVIOR runtime facade."""
-
 from __future__ import annotations
 
 from typing import Any
 
-from voltron.integrations.simulator.behavior.tools import bridge_environment as behavior_bridge_environment
-from voltron.integrations.simulator.behavior.tools import bridge_localization as behavior_bridge_localization
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_environment as behavior_bridge_environment,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_localization as behavior_bridge_localization,
+)
 from voltron.integrations.simulator.behavior.tools import runtime_inputs as behavior_runtime_inputs
-from voltron.integrations.simulator.behavior.tools import scene_state_sampling as behavior_scene_state_sampling
-from voltron.integrations.simulator.behavior.tools.camera_capture import BehaviorCameraCaptureAdapter
+from voltron.integrations.simulator.behavior.tools import (
+    scene_state_sampling as behavior_scene_state_sampling,
+)
+from voltron.integrations.simulator.behavior.tools.camera_capture import (
+    BehaviorCameraCaptureAdapter,
+)
 
 
 def _sample_scene_state(runtime: Any, *, scene_id: str | None) -> dict[str, Any] | None:
@@ -32,7 +38,8 @@ def build_runtime_inputs(runtime: Any, *, subtask: Any) -> dict[str, Any]:
         run_dir=getattr(runtime, "_record_dir", None),
         build_vision_inputs=behavior_runtime_inputs.build_vision_runtime_inputs,
         build_action_inputs=behavior_runtime_inputs.build_action_runtime_inputs,
-        build_navigation_inputs=lambda subtask, observation: behavior_bridge_localization.build_vln_runtime_inputs(
+        build_navigation_inputs=lambda subtask,
+        observation: behavior_bridge_localization.build_vln_runtime_inputs(
             subtask=subtask,
             observation=observation,
             env_kwargs=runtime.env_kwargs,

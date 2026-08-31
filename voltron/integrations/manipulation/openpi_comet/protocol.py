@@ -1,5 +1,3 @@
-"""WebSocket/msgpack protocol helpers for OpenPI Comet."""
-
 from __future__ import annotations
 
 import functools
@@ -13,7 +11,12 @@ def pack_array(obj: Any) -> Any:
     if isinstance(obj, (np.ndarray, np.generic)) and obj.dtype.kind in ("V", "O", "c"):
         raise ValueError(f"Unsupported dtype: {obj.dtype}")
     if isinstance(obj, np.ndarray):
-        return {b"__ndarray__": True, b"data": obj.tobytes(), b"dtype": obj.dtype.str, b"shape": obj.shape}
+        return {
+            b"__ndarray__": True,
+            b"data": obj.tobytes(),
+            b"dtype": obj.dtype.str,
+            b"shape": obj.shape,
+        }
     if isinstance(obj, np.generic):
         return {b"__npgeneric__": True, b"data": obj.item(), b"dtype": obj.dtype.str}
     return obj

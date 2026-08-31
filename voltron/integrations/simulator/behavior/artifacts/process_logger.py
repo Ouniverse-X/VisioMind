@@ -1,11 +1,9 @@
-"""Process-logging and progress helpers for the BEHAVIOR runtime bridge."""
-
 from __future__ import annotations
 
 from typing import Any
 
 import numpy as np
-from voltron.runtime.telemetry.process_trace import build_event_record, write_event_record  # noqa: F401
+from voltron.runtime.telemetry.process_trace import build_event_record, write_event_record
 from voltron.runtime.telemetry.navigation_payloads import summarize_navigation_progress_entry
 
 
@@ -106,7 +104,8 @@ def build_vla_internal_step_start_payload(
         "control_step": control_step,
         "step_index": active_internal.get("step_index"),
         "total_steps": active_internal.get("total_steps"),
-        "skill_id": active_internal.get("selected_skill_id") or active_internal.get("preferred_skill_id"),
+        "skill_id": active_internal.get("selected_skill_id")
+        or active_internal.get("preferred_skill_id"),
         "display_name": active_internal.get("display_name"),
     }
 
@@ -260,7 +259,9 @@ def record_step_events(
     )
 
 
-def format_subtask_start_message(*, subtask: Any, attempt: int, max_steps: int, instruction: str) -> str:
+def format_subtask_start_message(
+    *, subtask: Any, attempt: int, max_steps: int, instruction: str
+) -> str:
     return (
         "[closed-loop] start "
         f"subtask={subtask.subtask_id} "
@@ -513,7 +514,9 @@ def format_progress_message(
     )
 
 
-def should_emit_progress_log(*, progress_log_every: int | None, control_step: int | None, done: bool) -> bool:
+def should_emit_progress_log(
+    *, progress_log_every: int | None, control_step: int | None, done: bool
+) -> bool:
     if progress_log_every is None:
         return False
     if done or control_step == 1:
@@ -694,7 +697,9 @@ def summarize_flat_action_slice(values: np.ndarray) -> dict[str, Any]:
     }
 
 
-def summarize_motion_state(observation: dict[str, Any] | None, info: dict[str, Any] | None) -> dict[str, Any]:
+def summarize_motion_state(
+    observation: dict[str, Any] | None, info: dict[str, Any] | None
+) -> dict[str, Any]:
     state: dict[str, Any] = {}
     if isinstance(info, dict):
         for key in ("pose", "current_room", "current_region", "room_id", "floor_id"):
@@ -734,7 +739,9 @@ def summarize_motion_delta(before: dict[str, Any], after: dict[str, Any]) -> dic
             continue
         if len(before_values) != len(after_values):
             continue
-        diff = np.asarray(after_values, dtype=np.float32) - np.asarray(before_values, dtype=np.float32)
+        diff = np.asarray(after_values, dtype=np.float32) - np.asarray(
+            before_values, dtype=np.float32
+        )
         delta[key] = {
             "size": int(diff.size),
             "max_abs": round(float(np.max(np.abs(diff))), 6) if diff.size else 0.0,
@@ -787,7 +794,10 @@ def json_safe(value: Any) -> Any:
     arr = to_numpy(value)
     if arr is not None and arr.ndim > 0:
         try:
-            return [round(float(item), 6) for item in arr.astype(np.float32, copy=False).reshape(-1)[:12]]
+            return [
+                round(float(item), 6)
+                for item in arr.astype(np.float32, copy=False).reshape(-1)[:12]
+            ]
         except (TypeError, ValueError):
             return [str(item) for item in arr.reshape(-1)[:12]]
     if isinstance(value, dict):

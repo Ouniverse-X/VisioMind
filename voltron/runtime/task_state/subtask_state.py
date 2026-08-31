@@ -1,5 +1,3 @@
-"""Runtime helpers for per-subtask execution state."""
-
 from __future__ import annotations
 
 from typing import Any, Callable

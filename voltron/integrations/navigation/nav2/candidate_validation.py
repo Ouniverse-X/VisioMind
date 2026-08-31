@@ -1,5 +1,3 @@
-"""Runtime Nav2 validation for semantic object-approach candidates."""
-
 from __future__ import annotations
 
 import math
@@ -18,12 +16,6 @@ def validate_object_approach_candidates(
     nav2_scene_obstacle_inflation_radius_m: float,
     navigation_goal: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Try candidates against the current runtime-overlay-backed Nav2 map.
-
-    HOV-SG candidate geometry and portal checks remain upstream hard constraints.
-    Ordinary-object proximity along a semantic graph path is intentionally not
-    inspected here; Nav2's costmap is the authority for that dynamic segment.
-    """
     ordered = _ordered_candidates(candidates, selected_candidate_id)
     navigator._last_dynamic_map_update = None
     navigator._last_runtime_overlay_signature = ""
@@ -110,9 +102,7 @@ def validate_object_approach_candidates(
                 "submitted_to_nav2": True,
                 "error": response_error or "empty_path",
                 "hard_rejection_reasons": [],
-                "rejection_reasons": [
-                    "nav2_blocked" if status == "blocked" else f"nav2_{status}"
-                ],
+                "rejection_reasons": ["nav2_blocked" if status == "blocked" else f"nav2_{status}"],
                 "soft_penalties": _soft_penalties(candidate),
             }
             results.append(result)
@@ -153,12 +143,8 @@ def validate_object_approach_candidates(
 
     update = getattr(navigator, "_last_dynamic_map_update", None)
     map_revision = update.get("map_revision") if isinstance(update, dict) else None
-    overlay_signature = str(
-        getattr(navigator, "_last_runtime_overlay_signature", "") or ""
-    )
-    executable_count = sum(
-        result.get("status") == "executable" for result in results
-    )
+    overlay_signature = str(getattr(navigator, "_last_runtime_overlay_signature", "") or "")
+    executable_count = sum(result.get("status") == "executable" for result in results)
     return {
         "status": "executable" if selected is not None else _aggregate_failure_status(results),
         "selected_candidate": selected,
@@ -371,11 +357,7 @@ def candidate_validation_failure_plan(
         "nav2_candidate_validation_status": status,
         "nav2_candidate_validation": validation,
         "nav2_profile": nav2_profile
-        or (
-            nav2_environment.get("profile_id")
-            if isinstance(nav2_environment, dict)
-            else None
-        ),
+        or (nav2_environment.get("profile_id") if isinstance(nav2_environment, dict) else None),
         "nav2_environment": nav2_environment,
         "nav2_trav_map_filename": nav2_trav_map_filename,
         "requested_planner": "nav2_compute_path_to_pose",

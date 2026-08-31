@@ -1,5 +1,3 @@
-"""Action agent body package."""
-
 from . import deliberation, skill_selection, step_verification, task_planning
 from .agent import ActionAgent
 

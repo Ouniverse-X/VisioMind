@@ -1,5 +1,3 @@
-"""BEHAVIOR execution helpers."""
-
 from .action_stepper import (
     build_action_missing_response,
     build_agent_failure_response,

@@ -25,7 +25,10 @@ def append_transition_corridor_to_path(
         point = world_pose_to_nav2_plane(candidate, vertical_axis=vertical_axis)
         if point is None:
             continue
-        if not result or math.hypot(result[-1]["x"] - point["x"], result[-1]["y"] - point["y"]) > 1e-6:
+        if (
+            not result
+            or math.hypot(result[-1]["x"] - point["x"], result[-1]["y"] - point["y"]) > 1e-6
+        ):
             result.append(point)
         else:
             result[-1] = point

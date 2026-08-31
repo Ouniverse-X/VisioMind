@@ -1,5 +1,3 @@
-"""Compatibility facade for HOV-SG portal helpers."""
-
 from __future__ import annotations
 
 from .portal_candidates import (

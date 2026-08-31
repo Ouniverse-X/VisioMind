@@ -1,5 +1,3 @@
-"""Vision-backed completion evaluator used by closed-loop runtime gates."""
-
 from __future__ import annotations
 
 import base64
@@ -13,8 +11,6 @@ from voltron.shared.telemetry.payload_sanitizer import strip_image_payloads
 
 
 class VLMCompletionEvaluator:
-    """Ask the configured VLM whether a task scope is visually complete."""
-
     def __init__(
         self,
         *,
@@ -68,7 +64,9 @@ class VLMCompletionEvaluator:
             image_detail=self.image_detail,
         )
         confidence = self._confidence(report)
-        completed = bool(getattr(report, "task_complete", False)) and confidence >= self.min_confidence
+        completed = (
+            bool(getattr(report, "task_complete", False)) and confidence >= self.min_confidence
+        )
         raw_text = str(getattr(report, "raw_text", "") or "")
         evidence = {
             "has_images": True,
@@ -92,16 +90,26 @@ class VLMCompletionEvaluator:
             scope_id=context.scope_id,
             completed=completed,
             confidence=confidence,
-            reason=raw_text or ("completion criteria satisfied" if completed else "completion criteria not satisfied"),
+            reason=raw_text
+            or (
+                "completion criteria satisfied"
+                if completed
+                else "completion criteria not satisfied"
+            ),
             evidence=evidence,
             missing_evidence=[] if completed else ["vision_confidence_or_completion"],
             should_continue=not completed,
             source="vision_completion_evaluator",
         )
 
-    def _limit_images(self, images: list[str], image_view_order: list[str]) -> tuple[list[str], list[str]]:
+    def _limit_images(
+        self, images: list[str], image_view_order: list[str]
+    ) -> tuple[list[str], list[str]]:
         paired = [
-            (image, image_view_order[index] if index < len(image_view_order) else f"view_{index + 1}")
+            (
+                image,
+                image_view_order[index] if index < len(image_view_order) else f"view_{index + 1}",
+            )
             for index, image in enumerate(images)
         ]
         if not self.include_third_person:
@@ -191,9 +199,13 @@ class VLMCompletionEvaluator:
     @staticmethod
     def _grid_position(*, row: int, column: int, rows: int, columns: int) -> str:
         if rows == 1:
-            return "left" if column == 0 and columns > 1 else "right" if columns > 1 else "full image"
+            return (
+                "left" if column == 0 and columns > 1 else "right" if columns > 1 else "full image"
+            )
         vertical = "top" if row == 0 else "bottom" if row == rows - 1 else f"row {row + 1}"
-        horizontal = "left" if column == 0 else "right" if column == columns - 1 else f"column {column + 1}"
+        horizontal = (
+            "left" if column == 0 else "right" if column == columns - 1 else f"column {column + 1}"
+        )
         return f"{vertical}-{horizontal}"
 
     @classmethod
@@ -221,7 +233,6 @@ class VLMCompletionEvaluator:
         return f"{task_name}:step_{control_step:04d}"
 
     def _compact_image_b64(self, image_b64: str) -> str:
-        """Keep completion checks small; VLA and heartbeat paths keep original frames."""
         try:
             from PIL import Image
 
@@ -282,7 +293,9 @@ class VLMCompletionEvaluator:
         )
 
     @classmethod
-    def _implicit_completion_criteria(cls, context: CompletionEvaluationContext) -> list[dict[str, Any]]:
+    def _implicit_completion_criteria(
+        cls, context: CompletionEvaluationContext
+    ) -> list[dict[str, Any]]:
         subtask = dict(context.current_subtask or {})
         action = str(subtask.get("action") or "").strip().lower()
         if action != "open":
@@ -329,7 +342,9 @@ class VLMCompletionEvaluator:
         return bool(tokens & {"door", "doorway", "gate", "gateway", "portal"})
 
     @classmethod
-    def _prompt_safe_runtime_feedback(cls, value: Any, *, original: dict[str, Any]) -> dict[str, Any]:
+    def _prompt_safe_runtime_feedback(
+        cls, value: Any, *, original: dict[str, Any]
+    ) -> dict[str, Any]:
         payload = dict(value) if isinstance(value, dict) else {}
         images, image_view_order = cls._extract_images(original)
         cls._remove_image_payloads(payload)
@@ -372,7 +387,9 @@ class VLMCompletionEvaluator:
                     return images
         rgb = payload.get("rgb")
         if isinstance(rgb, dict):
-            images = [str(value) for value in rgb.values() if isinstance(value, str) and value.strip()]
+            images = [
+                str(value) for value in rgb.values() if isinstance(value, str) and value.strip()
+            ]
             if images:
                 return images
         return []

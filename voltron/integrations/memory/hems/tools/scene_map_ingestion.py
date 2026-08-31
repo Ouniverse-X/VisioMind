@@ -1,5 +1,3 @@
-"""Scene-map ingestion helpers for semantic memory seeding."""
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -16,11 +14,8 @@ def ingest_scene_map(
     get_node: Callable[[str], Any | None] | None = None,
     update_node: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
-    """Seed HEMS semantic memory from a bounded scene-map payload."""
     metadata = dict(metadata or {})
-    source = _metadata_value(metadata, map_payload, "source") or _source_from_payload(
-        map_payload
-    )
+    source = _metadata_value(metadata, map_payload, "source") or _source_from_payload(map_payload)
     confidence = _confidence(metadata, map_payload, source=source)
     export_hash = _metadata_value(metadata, map_payload, "export_hash")
     now = datetime.now().isoformat()
@@ -153,9 +148,7 @@ def _ingest_objects(
 ) -> tuple[list[str], int]:
     node_ids: list[str] = []
     edge_count = 0
-    for anchor in _as_dicts(map_payload.get("anchors")) + _as_dicts(
-        map_payload.get("objects")
-    ):
+    for anchor in _as_dicts(map_payload.get("anchors")) + _as_dicts(map_payload.get("objects")):
         name = _first_text(anchor, "name", "object", "category", "id")
         if not name:
             continue

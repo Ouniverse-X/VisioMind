@@ -1,5 +1,3 @@
-"""Explicit frame conversion for AnyGrasp candidates and robot tools."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -7,9 +5,7 @@ from typing import Any
 
 import numpy as np
 
-# AnyGrasp columns are (+X approach, +Y jaw articulation, +Z frame completion).
-# OmniGibson's parallel-jaw EEF convention is (+Z fingertip direction,
-# +Y jaw articulation). The matrix maps AnyGrasp columns into EEF columns.
+
 ANYGRASP_TO_EEF_ROTATION = np.array(
     [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]],
     dtype=np.float64,
@@ -53,9 +49,7 @@ def _mat_to_quat_xyzw(rotation: np.ndarray) -> np.ndarray:
     else:
         index = int(np.argmax(np.diag(matrix)))
         if index == 0:
-            scale = 2.0 * np.sqrt(
-                max(1e-12, 1.0 + matrix[0, 0] - matrix[1, 1] - matrix[2, 2])
-            )
+            scale = 2.0 * np.sqrt(max(1e-12, 1.0 + matrix[0, 0] - matrix[1, 1] - matrix[2, 2]))
             quat = np.array(
                 [
                     0.25 * scale,
@@ -65,9 +59,7 @@ def _mat_to_quat_xyzw(rotation: np.ndarray) -> np.ndarray:
                 ]
             )
         elif index == 1:
-            scale = 2.0 * np.sqrt(
-                max(1e-12, 1.0 + matrix[1, 1] - matrix[0, 0] - matrix[2, 2])
-            )
+            scale = 2.0 * np.sqrt(max(1e-12, 1.0 + matrix[1, 1] - matrix[0, 0] - matrix[2, 2]))
             quat = np.array(
                 [
                     (matrix[0, 1] + matrix[1, 0]) / scale,
@@ -77,9 +69,7 @@ def _mat_to_quat_xyzw(rotation: np.ndarray) -> np.ndarray:
                 ]
             )
         else:
-            scale = 2.0 * np.sqrt(
-                max(1e-12, 1.0 + matrix[2, 2] - matrix[0, 0] - matrix[1, 1])
-            )
+            scale = 2.0 * np.sqrt(max(1e-12, 1.0 + matrix[2, 2] - matrix[0, 0] - matrix[1, 1]))
             quat = np.array(
                 [
                     (matrix[0, 2] + matrix[2, 0]) / scale,
@@ -93,8 +83,6 @@ def _mat_to_quat_xyzw(rotation: np.ndarray) -> np.ndarray:
 
 @dataclass(frozen=True)
 class GraspFramePose:
-    """World-frame canonical origin and EEF orientation for one candidate."""
-
     canonical_origin_world: np.ndarray
     eef_rotation_world: np.ndarray
     approach_world: np.ndarray
@@ -107,8 +95,6 @@ class GraspFramePose:
 
 @dataclass(frozen=True)
 class AnyGraspFrameAdapter:
-    """Convert one AnyGrasp optical-frame pose into a world-frame EEF pose."""
-
     anygrasp_to_eef_rotation: np.ndarray = field(
         default_factory=lambda: ANYGRASP_TO_EEF_ROTATION.copy()
     )

@@ -1,5 +1,3 @@
-"""Agent capability collection helpers for runtime assembly."""
-
 from __future__ import annotations
 
 from typing import Any

@@ -1,5 +1,3 @@
-"""Observation conversion for the official BEHAVIOR OpenPI Comet server."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -94,7 +92,9 @@ class OpenPICometObservationAdapter:
         if _PROPRIO_KEY not in payload:
             proprio_parts = OpenPICometObservationAdapter._collect_state_proprio(source)
             if proprio_parts:
-                payload[_PROPRIO_KEY] = OpenPICometObservationAdapter._proprio(np.concatenate(proprio_parts))
+                payload[_PROPRIO_KEY] = OpenPICometObservationAdapter._proprio(
+                    np.concatenate(proprio_parts)
+                )
 
         missing = sorted(_REQUIRED_RGB_KEYS - set(payload))
         if missing:
@@ -127,7 +127,6 @@ class OpenPICometObservationAdapter:
     def proprio_layout_diagnostics(
         observation: dict[str, Any], *, policy_proprio: Any
     ) -> dict[str, Any]:
-        """Describe the wrapper-to-policy proprio normalization used by ``convert``."""
         source = OpenPICometObservationAdapter._source_observation(observation)
         direct_proprio = source.get(_PROPRIO_KEY)
         if direct_proprio is not None:
@@ -138,7 +137,9 @@ class OpenPICometObservationAdapter:
             wrapper_state_keys = tuple(
                 key for key in (*_PROPRIO_STATE_KEYS, *_DROPPED_STATE_KEYS) if key in source
             )
-            wrapper_proprio_size = sum(int(np.asarray(source[key]).size) for key in wrapper_state_keys)
+            wrapper_proprio_size = sum(
+                int(np.asarray(source[key]).size) for key in wrapper_state_keys
+            )
             proprio_layout = "behavior_state_fields"
             dropped_state_keys = [key for key in _DROPPED_STATE_KEYS if key in source]
 
@@ -159,12 +160,16 @@ class OpenPICometObservationAdapter:
         diagnostics: dict[str, Any] = {
             "rgb_keys": {key: key in observation for key in sorted(_REQUIRED_RGB_KEYS)},
             "proprio": _PROPRIO_KEY in observation,
-            "non_rgb_keys": sorted(str(key) for key in observation if not str(key).endswith("::rgb")),
+            "non_rgb_keys": sorted(
+                str(key) for key in observation if not str(key).endswith("::rgb")
+            ),
         }
         if _PROPRIO_KEY in observation:
             diagnostics["proprio_array"] = array_summary(observation[_PROPRIO_KEY])
         diagnostics["rgb_arrays"] = {
-            key: array_summary(observation[key]) for key in sorted(_REQUIRED_RGB_KEYS) if key in observation
+            key: array_summary(observation[key])
+            for key in sorted(_REQUIRED_RGB_KEYS)
+            if key in observation
         }
         return diagnostics
 
@@ -202,7 +207,9 @@ class OpenPICometObservationAdapter:
         if arr.ndim != 3:
             raise AdapterError(f"OpenPI Comet RGB image expected 3-D array, got shape {arr.shape}")
         if arr.shape[-1] < 3:
-            raise AdapterError(f"OpenPI Comet RGB image expected at least 3 channels, got shape {arr.shape}")
+            raise AdapterError(
+                f"OpenPI Comet RGB image expected at least 3 channels, got shape {arr.shape}"
+            )
         return arr[..., :3].astype(np.uint8, copy=False)
 
     @staticmethod

@@ -1,12 +1,14 @@
-"""Execution runtime helpers for the Action agent."""
-
 from __future__ import annotations
 
 from dataclasses import asdict
 from typing import Any
 
 from voltron.agents.action.models import ActionExecutionPlan
-from voltron.shared.action_semantics import action_instruction, is_state_change_action, normalize_action_name
+from voltron.shared.action_semantics import (
+    action_instruction,
+    is_state_change_action,
+    normalize_action_name,
+)
 from voltron.shared.context import ExecutionContext, Subtask
 from voltron.shared.results import AgentResult
 
@@ -37,7 +39,9 @@ def create_execution_session(execution_plan: ActionExecutionPlan) -> dict[str, A
     }
 
 
-def serialize_internal_step(step_payload: Any, *, selected_skill_id: str | None = None) -> dict[str, Any]:
+def serialize_internal_step(
+    step_payload: Any, *, selected_skill_id: str | None = None
+) -> dict[str, Any]:
     payload = asdict(step_payload)
     payload["parent_subtask_id"] = str(step_payload.internal_step_id).split(".")[0]
     if selected_skill_id:
@@ -78,7 +82,11 @@ def decorate_execution_result(
 
 
 def _parent_policy_instruction(parent_subtask: Subtask) -> str:
-    explicit = str(parent_subtask.parameters.get("instruction") or parent_subtask.context.get("instruction") or "").strip()
+    explicit = str(
+        parent_subtask.parameters.get("instruction")
+        or parent_subtask.context.get("instruction")
+        or ""
+    ).strip()
     if explicit:
         return explicit
     return action_instruction(action=parent_subtask.action, target=dict(parent_subtask.target))
@@ -104,7 +112,9 @@ def build_internal_subtask(*, parent_subtask: Subtask, step_payload: Any) -> Sub
         observation_payload = dict(observation)
         vla_prompt = parameters.get("vla_prompt")
         observation_payload["annotation.human.coarse_action"] = (
-            vla_prompt.strip() if isinstance(vla_prompt, str) and vla_prompt.strip() else step_payload.instruction
+            vla_prompt.strip()
+            if isinstance(vla_prompt, str) and vla_prompt.strip()
+            else step_payload.instruction
         )
         parameters["observation"] = observation_payload
     selector_hints = dict(parameters.get("selector_hints", {}))

@@ -1,5 +1,3 @@
-"""Remote memory-service integrations."""
-
 from .client import MemoryAgentClient
 from . import rpc_runtime
 

@@ -1,5 +1,3 @@
-"""VLM service integration surface."""
-
 from .backends import DashScopeVLMBackend, OpenAICompatibleVLMBackend, VLMBackend, build_backend
 from .client import VLMHttpAdapter
 from .config import load_backend_config, load_json_config, resolve_api_key

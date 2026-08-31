@@ -1,5 +1,3 @@
-"""Temporary perception obstacle overlays with step-based decay."""
-
 from __future__ import annotations
 
 import hashlib
@@ -19,9 +17,7 @@ def runtime_sensor_map_overlays(
         return {"obstacles": [], "signature": "", "active": False}
     obstacles: list[dict[str, Any]] = []
     for obstacle in state.temporary_obstacles:
-        if obstacle.expires_at_step is not None and int(state.step) > int(
-            obstacle.expires_at_step
-        ):
+        if obstacle.expires_at_step is not None and int(state.step) > int(obstacle.expires_at_step):
             continue
         polygons = _expand_polygons_for_covariance(
             obstacle.polygons,
@@ -59,10 +55,7 @@ def _expand_polygons_for_covariance(
         try:
             padding = min(
                 1.0,
-                2.0
-                * math.sqrt(
-                    max(0.0, float(covariance_xy[0][0]), float(covariance_xy[1][1]))
-                ),
+                2.0 * math.sqrt(max(0.0, float(covariance_xy[0][0]), float(covariance_xy[1][1]))),
             )
         except (IndexError, TypeError, ValueError):
             padding = 0.0

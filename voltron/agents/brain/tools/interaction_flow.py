@@ -1,5 +1,3 @@
-"""Interaction-flow helpers for the Brain agent body."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -21,7 +19,9 @@ def select_interaction_seed_target(subtasks: list[Subtask]) -> dict[str, Any]:
     return {}
 
 
-def build_seed_interaction_target(*, request: TaskRequest, subtasks: list[Subtask]) -> dict[str, Any]:
+def build_seed_interaction_target(
+    *, request: TaskRequest, subtasks: list[Subtask]
+) -> dict[str, Any]:
     target = select_interaction_seed_target(subtasks)
     hints = interaction_targeting.interaction_target_hints(request=request, subtasks=subtasks)
 

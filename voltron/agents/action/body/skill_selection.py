@@ -1,5 +1,3 @@
-"""High-level skill-selection logic owned by the Action agent body."""
-
 from __future__ import annotations
 
 import json
@@ -66,8 +64,6 @@ _RETRIABLE_STATUS_CODES = {
 
 
 class HeuristicActionSkillSelector:
-    """Heuristic selector that stands in for the Action agent's local small model."""
-
     _ACTION_TO_SKILL = {
         "press": "button_interaction_skill",
         "push_button": "button_interaction_skill",
@@ -83,9 +79,6 @@ class HeuristicActionSkillSelector:
         "take": "grasp_manipulation_skill",
         "hold": "grasp_manipulation_skill",
         "place": "placement_skill",
-        # Container placement needs object-aware execution and post-release
-        # verification.  Route these actions directly to AnyGrasp when it is
-        # registered; the fallback below keeps generic placement compatible.
         "place_inside": "anygrasp_manipulation_skill",
         "put_inside": "anygrasp_manipulation_skill",
         "put_down": "placement_skill",
@@ -104,9 +97,6 @@ class HeuristicActionSkillSelector:
         "step_back": "local_reposition_skill",
     }
 
-    # When AnyGraspSkill replaces GraspManipulationSkill in the registry,
-    # the skill_id changes.  Map the canonical id to its AnyGrasp replacement
-    # so the heuristic lookup still resolves correctly.
     _SKILL_ALTERNATIVES: dict[str, str] = {
         "grasp_manipulation_skill": "anygrasp_manipulation_skill",
         "anygrasp_manipulation_skill": "placement_skill",
@@ -122,7 +112,6 @@ class HeuristicActionSkillSelector:
         selected_skill_id = self._ACTION_TO_SKILL.get(action, "default_manipulation_skill")
 
         if selected_skill_id not in available_skill_ids:
-            # Check if an alternative skill (e.g. anygrasp) is registered.
             alt = self._SKILL_ALTERNATIVES.get(selected_skill_id)
             if alt and alt in available_skill_ids:
                 selected_skill_id = alt
@@ -167,8 +156,6 @@ class OpenAIActionSkillSelectorConfig:
 
 
 class OpenAICompatibleActionSkillSelector:
-    """Action skill selector backed by an OpenAI-compatible endpoint."""
-
     def __init__(self, config: OpenAIActionSkillSelectorConfig) -> None:
         self.config = config
         self.session = requests.Session()
@@ -181,7 +168,9 @@ class OpenAICompatibleActionSkillSelector:
         available_skill_ids: list[str],
     ) -> LocalSkillSelection:
         try:
-            prompt = self._build_prompt(subtask=subtask, context=context, available_skill_ids=available_skill_ids)
+            prompt = self._build_prompt(
+                subtask=subtask, context=context, available_skill_ids=available_skill_ids
+            )
             content = self._request_chat_completion(prompt)
             return self._parse_selection_response(
                 content=content,
@@ -208,7 +197,9 @@ class OpenAICompatibleActionSkillSelector:
 
     def _request_chat_completion(self, user_prompt: str) -> str:
         url = self._completion_url(self.config.base_url)
-        api_key = self.config.api_key or os.getenv(self.config.api_key_env) or os.getenv("OPENAI_API_KEY")
+        api_key = (
+            self.config.api_key or os.getenv(self.config.api_key_env) or os.getenv("OPENAI_API_KEY")
+        )
 
         headers = {"Content-Type": "application/json"}
         if api_key:
@@ -228,7 +219,9 @@ class OpenAICompatibleActionSkillSelector:
 
         for attempt in range(1, attempts + 1):
             try:
-                response = self.session.post(url, headers=headers, json=payload, timeout=self.config.timeout_s)
+                response = self.session.post(
+                    url, headers=headers, json=payload, timeout=self.config.timeout_s
+                )
                 if response.status_code in _RETRIABLE_STATUS_CODES and attempt < attempts:
                     time.sleep(max(0.0, float(self.config.retry_backoff_s)))
                     continue
@@ -279,8 +272,7 @@ class OpenAICompatibleActionSkillSelector:
         content = message.get("content")
         if isinstance(content, list):
             content = "".join(
-                item.get("text", "") if isinstance(item, dict) else str(item)
-                for item in content
+                item.get("text", "") if isinstance(item, dict) else str(item) for item in content
             )
         if not isinstance(content, str) or not content.strip():
             raise ValueError("Action selector response content is empty")

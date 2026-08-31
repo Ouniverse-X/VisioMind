@@ -1,11 +1,13 @@
-"""Text-plan drafting skill for Brain interactive planning."""
-
 from __future__ import annotations
 
 import re
 from typing import Any
 
-from voltron.agents.brain.contracts import CollaborativePlanStep, PlanSuccessCondition, TextPlanDraft
+from voltron.agents.brain.contracts import (
+    CollaborativePlanStep,
+    PlanSuccessCondition,
+    TextPlanDraft,
+)
 from voltron.agents.brain.tools import interaction_targeting
 from voltron.shared.context import Plan, Subtask
 from voltron.shared.enums import AgentName
@@ -104,8 +106,6 @@ _ANCHOR_PART_SUFFIXES = {
 
 
 class BrainInteractivePlanningSkill:
-    """Build a conservative human-readable planning draft from task and memory."""
-
     def __init__(
         self,
         *,
@@ -163,9 +163,7 @@ class BrainInteractivePlanningSkill:
             )
 
         uncertainties: list[dict[str, Any]] = []
-        if provisional_plan is not None or (
-            self.ask_when_uncertain and self.max_questions > 0
-        ):
+        if provisional_plan is not None or (self.ask_when_uncertain and self.max_questions > 0):
             uncertainties.extend(self._execution_success_uncertainties(collaborative_steps))
 
         return TextPlanDraft(
@@ -215,7 +213,9 @@ class BrainInteractivePlanningSkill:
             target=dict(subtask.target),
             known_success_conditions=self._conditions_for_subtask(subtask, memory_hint),
             memory_sources=self._memory_sources_for_subtask(subtask, memory_hint),
-            semantic_anchors={key: value for key, value in anchors.items() if value not in (None, "")},
+            semantic_anchors={
+                key: value for key, value in anchors.items() if value not in (None, "")
+            },
             source_subtask_ids=[subtask.subtask_id],
             role=role,
             required=required,
@@ -231,12 +231,16 @@ class BrainInteractivePlanningSkill:
         task_description: str,
     ) -> tuple[str, bool, str | None]:
         parameters = subtask.parameters if isinstance(subtask.parameters, dict) else {}
-        explicit_role = str(
-            parameters.get("outline_role")
-            or parameters.get("collaborative_role")
-            or parameters.get("step_role")
-            or ""
-        ).strip().lower()
+        explicit_role = (
+            str(
+                parameters.get("outline_role")
+                or parameters.get("collaborative_role")
+                or parameters.get("step_role")
+                or ""
+            )
+            .strip()
+            .lower()
+        )
         explicit_condition = str(
             parameters.get("condition")
             or parameters.get("when")
@@ -352,7 +356,9 @@ class BrainInteractivePlanningSkill:
             description += f" in the {room}"
         if primary_target or destination or room:
             return f"{description}."
-        raise ValueError(f"Interactive subtask {subtask.subtask_id} has no concrete instruction or target")
+        raise ValueError(
+            f"Interactive subtask {subtask.subtask_id} has no concrete instruction or target"
+        )
 
     @staticmethod
     def _target_text(target: dict[str, Any], *keys: str) -> str:
@@ -378,16 +384,14 @@ class BrainInteractivePlanningSkill:
         if not normalized_instruction:
             return False
         if any(
-            cls._contains_phrase(normalized_instruction, token)
-            for token in _VAGUE_REFERENCE_TOKENS
+            cls._contains_phrase(normalized_instruction, token) for token in _VAGUE_REFERENCE_TOKENS
         ):
             return False
         anchors = cls._structured_target_anchors(subtask.target)
         if not anchors:
             return False
         matches = [
-            cls._instruction_mentions_anchor(normalized_instruction, anchor)
-            for anchor in anchors
+            cls._instruction_mentions_anchor(normalized_instruction, anchor) for anchor in anchors
         ]
         if subtask.agent == AgentName.ACTION:
             return all(matches)
@@ -396,9 +400,7 @@ class BrainInteractivePlanningSkill:
     @classmethod
     def _instruction_mentions_anchor(cls, instruction: str, anchor: str) -> bool:
         normalized_anchor = cls._normalized_match_text(anchor)
-        anchor_tokens = [
-            token for token in normalized_anchor.split() if not token.isdigit()
-        ]
+        anchor_tokens = [token for token in normalized_anchor.split() if not token.isdigit()]
         if not anchor_tokens:
             return False
         anchor_phrase = " ".join(anchor_tokens)
@@ -682,7 +684,9 @@ class BrainInteractivePlanningSkill:
             }
         ]
 
-    def _success_conditions_from_hint(self, hint: dict[str, Any] | None) -> list[PlanSuccessCondition]:
+    def _success_conditions_from_hint(
+        self, hint: dict[str, Any] | None
+    ) -> list[PlanSuccessCondition]:
         conditions: list[PlanSuccessCondition] = []
         for item in self._criteria_from_hint(hint):
             description = str(item.get("description") or item.get("summary") or "").strip()
@@ -787,9 +791,10 @@ class BrainInteractivePlanningSkill:
         uncertainties: list[dict[str, Any]] = []
         for step in steps:
             agent = str(step.semantic_anchors.get("agent") or "").upper()
-            requires_condition = step.role == "milestone" and step.required and (
-                agent == AgentName.ACTION.value
-                or (not agent and step.intent == "execute")
+            requires_condition = (
+                step.role == "milestone"
+                and step.required
+                and (agent == AgentName.ACTION.value or (not agent and step.intent == "execute"))
             )
             if not requires_condition or step.known_success_conditions:
                 continue

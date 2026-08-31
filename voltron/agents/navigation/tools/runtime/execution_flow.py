@@ -1,5 +1,3 @@
-"""Execution flow helpers for the Navigation agent body."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -15,10 +13,16 @@ def collect_runtime_inputs(
     observation: dict[str, Any],
 ) -> dict[str, Any]:
     return {
-        "scene_id": runtime_observation.resolve_scene_id(subtask=subtask, context=context, observation=observation),
-        "current_region": runtime_observation.extract_region(subtask=subtask, observation=observation),
+        "scene_id": runtime_observation.resolve_scene_id(
+            subtask=subtask, context=context, observation=observation
+        ),
+        "current_region": runtime_observation.extract_region(
+            subtask=subtask, observation=observation
+        ),
         "pose": runtime_observation.extract_pose(subtask=subtask, observation=observation),
-        "orientation": runtime_observation.extract_orientation(subtask=subtask, observation=observation),
+        "orientation": runtime_observation.extract_orientation(
+            subtask=subtask, observation=observation
+        ),
     }
 
 
@@ -57,12 +61,14 @@ def build_memory_update_payload(
         "selected_object_approach": selected_object_approach,
         "grounding_candidates": (
             list(grounded_goal.get("grounding_candidates"))
-            if isinstance(grounded_goal, dict) and isinstance(grounded_goal.get("grounding_candidates"), list)
+            if isinstance(grounded_goal, dict)
+            and isinstance(grounded_goal.get("grounding_candidates"), list)
             else []
         ),
         "selected_grounding_candidate": (
             dict(grounded_goal.get("selected_grounding_candidate"))
-            if isinstance(grounded_goal, dict) and isinstance(grounded_goal.get("selected_grounding_candidate"), dict)
+            if isinstance(grounded_goal, dict)
+            and isinstance(grounded_goal.get("selected_grounding_candidate"), dict)
             else None
         ),
         "navigator_backend": navigator_backend_name,
@@ -103,7 +109,9 @@ def build_success_payloads(
         "policy_info": policy_info,
         "interpreted_goal": dict(interpreted_goal) if isinstance(interpreted_goal, dict) else None,
         "navigation_grounding_context": (
-            dict(navigation_grounding_context) if isinstance(navigation_grounding_context, dict) else None
+            dict(navigation_grounding_context)
+            if isinstance(navigation_grounding_context, dict)
+            else None
         ),
         **execution_bridge_artifacts,
         "navigation_skill_selection": navigation_skill_selection,
@@ -112,12 +120,14 @@ def build_success_payloads(
         "selected_object_approach": selected_object_approach,
         "grounding_candidates": (
             list(grounded_goal.get("grounding_candidates"))
-            if isinstance(grounded_goal, dict) and isinstance(grounded_goal.get("grounding_candidates"), list)
+            if isinstance(grounded_goal, dict)
+            and isinstance(grounded_goal.get("grounding_candidates"), list)
             else []
         ),
         "selected_grounding_candidate": (
             dict(grounded_goal.get("selected_grounding_candidate"))
-            if isinstance(grounded_goal, dict) and isinstance(grounded_goal.get("selected_grounding_candidate"), dict)
+            if isinstance(grounded_goal, dict)
+            and isinstance(grounded_goal.get("selected_grounding_candidate"), dict)
             else None
         ),
         **policy_runtime_artifacts,

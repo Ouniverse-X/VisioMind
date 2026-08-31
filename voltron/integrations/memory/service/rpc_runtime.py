@@ -1,5 +1,3 @@
-"""RPC helpers for the Memory Agent service boundary."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,15 +10,12 @@ from voltron.shared.models import PerceptionObject, PerceptionRelation, Percepti
 
 @dataclass
 class RpcResponse:
-    """Unified RPC response model."""
-
     ok: bool
     result: Any = None
     error: str | None = None
 
 
 def build_rpc_method_table(backend: MemoryAdapter) -> dict[str, Callable[..., Any]]:
-    """Whitelist all RPC-callable memory methods."""
     methods = {
         "start_task": backend.start_task,
         "end_task": backend.end_task,
@@ -102,7 +97,9 @@ def normalize_rpc_kwargs(*, method: str, kwargs: dict[str, Any]) -> dict[str, An
     return normalized
 
 
-def dispatch_rpc_call(*, methods: dict[str, Callable[..., Any]], method: str, kwargs: dict[str, Any]) -> dict[str, Any]:
+def dispatch_rpc_call(
+    *, methods: dict[str, Callable[..., Any]], method: str, kwargs: dict[str, Any]
+) -> dict[str, Any]:
     if method not in methods:
         return RpcResponse(ok=False, error=f"unknown_method: {method}").__dict__
 

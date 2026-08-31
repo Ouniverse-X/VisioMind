@@ -1,19 +1,23 @@
-"""Prompt-building planning skill for Action internal execution."""
-
 from __future__ import annotations
 
 import json
 from json import JSONDecoder
 from typing import Any
 
-from voltron.agents.action.models import ActionExecutionPlan, ActionInternalStep, ActionReplanDecision
-from voltron.shared.action_semantics import action_instruction, is_open_state_action, normalize_action_name
+from voltron.agents.action.models import (
+    ActionExecutionPlan,
+    ActionInternalStep,
+    ActionReplanDecision,
+)
+from voltron.shared.action_semantics import (
+    action_instruction,
+    is_open_state_action,
+    normalize_action_name,
+)
 from voltron.shared.context import ExecutionContext, Subtask
 
 
 class DefaultActionTaskPlanningSkill:
-    """Canonical planning skill for Action internal execution."""
-
     def build_plan_prompt(self, subtask: Subtask, context: ExecutionContext) -> str:
         payload = {
             "task_description": context.task_request.description,
@@ -109,13 +113,19 @@ class DefaultActionTaskPlanningSkill:
             raise ValueError("Action task planner response did not yield any valid steps")
         return ActionExecutionPlan(
             parent_subtask_id=subtask.subtask_id,
-            goal_summary=str(payload.get("goal_summary") or subtask.parameters.get("instruction") or subtask.action).strip(),
+            goal_summary=str(
+                payload.get("goal_summary")
+                or subtask.parameters.get("instruction")
+                or subtask.action
+            ).strip(),
             steps=steps,
             source="action_model_planner",
             metadata={"raw_response": payload},
         )
 
-    def _direct_state_change_plan(self, *, subtask: Subtask, payload: dict[str, Any]) -> ActionExecutionPlan:
+    def _direct_state_change_plan(
+        self, *, subtask: Subtask, payload: dict[str, Any]
+    ) -> ActionExecutionPlan:
         canonical_action = normalize_action_name(subtask.action)
         instruction = str(subtask.parameters.get("instruction") or "").strip()
         if not instruction:
@@ -145,7 +155,9 @@ class DefaultActionTaskPlanningSkill:
         reason: str,
     ) -> ActionExecutionPlan:
         del context
-        instruction = str(subtask.parameters.get("instruction") or subtask.action).strip() or subtask.action
+        instruction = (
+            str(subtask.parameters.get("instruction") or subtask.action).strip() or subtask.action
+        )
         return ActionExecutionPlan(
             parent_subtask_id=subtask.subtask_id,
             goal_summary=instruction,

@@ -1,13 +1,9 @@
-"""Shared tool catalog primitives."""
-
 from __future__ import annotations
 
 from typing import Any
 
 
 class ToolCatalog:
-    """Small named tool catalog shared across runtime/agent layers."""
-
     def __init__(self) -> None:
         self._tools: dict[str, Any] = {}
 

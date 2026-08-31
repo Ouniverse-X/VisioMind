@@ -1,74 +1,119 @@
-# VisioMind：工业环境物体感知识别与指令交互智能体
+# VisioMind
 
-VisioMind 是面向挑战杯 XH-202607 赛题的“感知—决策—执行—验证—恢复”闭环系统。系统接收中英文自然语言工业指令，以 RGB-D 实例观测和 AnyGrasp 生成抓取候选，通过可审计任务分解、A*/CuRobo 规划驱动 R1 Pro，并用目标身份、抬升、附着、释放、稳定和 AABB 包含证据判断真实完成。
+面向挑战杯赛题 **XH-202607「工业环境下物体感知识别与指令交互型智能体研发」** 的交互式机器人智能体。系统接收中英文自然语言指令，完成工业工具感知、指令理解、任务分解、抓取放置、结果验证与失败恢复，形成“感知—决策—执行—验证”闭环。
 
-## 当前交付能力
+[工业钳子识别、抓取并放入料箱第三格演示](demo/visiomind_industrial_demo.mp4)
 
-- 感知：**工业专用微调视觉检测与分割模型（`IndustrialPartDetector`，覆盖螺栓/扳手/滚柱/螺丝刀/钳子等，mAP@0.5 ≥ 0.85，3D 误差 < 2.5cm）**、RGB-D/实例分割目标条件点云、AnyGrasp 6D 抓取、机器人真实夹爪几何适配、非目标碰撞审计；
-- 几何：**多格料箱内部物理隔板的独立 3D 几何精细划分（`MultiCompartmentBinGeometry`）**，精确计算隔板厚度/高度/碰撞边界与槽位可用安全下探容积；
-- 决策：**Qwen2.5-3B 工业任务规划 LoRA**、固定 JSON Schema、物体/容器/格位/空间关系抽取、详细任务序列和可执行 ACTION 序列；
-- 执行：CuRobo 全身与机械臂规划、sticky/assisted 抓取、携物 A* 导航、容器顶入放置和释放；
-- 验证：对象身份、连续 5 帧抬升与相对位姿、attachment、释放状态、AABB 包含及阶段化错误证据；
-- 训练：工业视觉和语言微调训练流、Qwen LoRA Adapter、958/276 条 SFT 训练/验证数据及 642 条常规与泛化测试数据、Prompt-only 对照和逐样本预测证据；
-- 工程：CPU 回归、一键自然语言 Dry Run、AnyGrasp 服务脚本和 Isaac Demo 入口。
+## 核心能力
 
-工业指令分类模型在固定的 held-out paraphrase template 测试集上达到 `100.00%` Accuracy、`100.00%` Macro-F1；同一测试集上的显式关键词规则基线为 `31.82%`/`28.21%`。该结果来自程序化模板数据，不代表真实工厂口语泛化性能；完整数据和混淆矩阵见 `reports/instruction_model_metrics.json`。
+- **感知**：轻量多任务检测器识别螺栓、扳手、滚柱、螺丝刀、钳子、螺母、料箱等对象，并结合 RGB-D、实例掩码和相机参数恢复三维位置。
+- **决策**：字符级 TF-IDF 分类器提供轻量离线解析；Qwen2.5-3B LoRA 提供固定 JSON Schema 的中英文任务规划。
+- **执行**：AnyGrasp 生成 6D 抓取候选，CuRobo 完成机械臂/全身规划，Nav2 完成携物导航，多格料箱模型计算指定格位的安全放置区域。
+- **验证与恢复**：连续检查目标身份、抬升、附着、释放和 AABB 包含状态；摆放失败时重新定位、抓取和放置。
+- **仿真与真机接口**：支持 Isaac Sim、OmniGibson/BEHAVIOR-1K、R1 Pro、ROS 2 底盘串口和多相机接入。
 
-Qwen2.5-3B Prompt-only 与工业 LoRA 在相同 642 条测试上的对照为：固定 JSON Schema
-有效率 `0.00% → 100.00%`、意图准确率 `80.06% → 98.60%`、槽位 Micro-F1
-`39.44% → 95.47%`、任务序列精确匹配 `0.62% → 98.60%`。未见工具槽位 F1 为
-`83.29%`，未见句式意图准确率/槽位 F1 为 `92.86%/95.03%`。数据均为程序化模板，
-不外推为真实工厂口语性能；详见 `docs/qwen25_industrial_lora_model_card.md`。
-
-## 工程结构
+运行链路如下：
 
 ```text
-.
-├── visiomind/                 # 指令理解、槽位抽取和任务分解
-├── voltron/                   # 竞赛隔离的感知/执行运行时代码
-│   ├── agents/action/         # 技能选择与 AnyGrasp 动作技能
-│   ├── integrations/          # AnyGrasp 服务、观测、坐标与 CuRobo 执行
-│   └── configs/               # Isaac/BEHAVIOR 固定实例配置
-├── training/                  # 数据生成与模型训练
-├── data/instructions/         # 可复现实验数据
-├── models/                    # 项目训练权重、哈希和第三方模型说明
-├── tests/                     # CPU 可执行回归
-├── scripts/                   # 服务与 Demo 启动器
-├── docs/                      # 技术报告、使用手册、合规矩阵
-├── reports/                   # 指令指标与真实 Isaac 证据摘要
-├── demo/                      # 工业/家庭/VLA/长程多场景 Isaac Sim MP4 演示集
-├── run_instruction_demo.py    # 自然语言→场景 grounding→Isaac 执行
-└── run_action_only_overlay.py # 隔离加载竞赛执行代码
+自然语言指令 → 意图/槽位解析 → 场景目标绑定 → ACTION 序列
+             → RGB-D/AnyGrasp → CuRobo/Nav2 执行 → 物理状态验证 → 完成或恢复
 ```
 
-## 快速验收
+## 项目结构
 
-### 1. CPU 侧轻量测试（无需 GPU 与 Isaac Sim）
+```text
+VisioMind/
+├── visiomind/
+│   ├── decision/             # 指令解析、任务分解与 Qwen 计划约束
+│   ├── perception/           # 工业目标检测、分割、三维定位与评估
+│   └── simulation/           # 工业工位和多格料箱注入
+├── voltron/                  # 感知、规划、控制、仿真和闭环运行时
+├── training/                 # 数据生成、模型训练和评估
+├── scripts/                  # 仿真启动、Qwen 推理和真机接口
+├── configs/                  # 工业场景对象绑定
+├── models/                   # 项目模型与 LoRA Adapter
+├── demo/                     # 工业闭环验证视频
+├── run_instruction_demo.py   # 自然语言到仿真执行的统一入口
+└── pyproject.toml
+```
 
-在您的 conda 或 Python 虚拟环境中，先激活环境：
+仓库只保留运行与复现实验所需的核心内容。训练数据和评估报告由 `training/` 中的脚本生成，不重复提交生成物。
+
+## 快速开始
+
+推荐环境为 Ubuntu 22.04、Python 3.10 和 NVIDIA GPU。
 
 ```bash
-# 激活您的 Conda 路径并激活 voltron 虚拟环境（以本地路径为准）
-source ~/miniconda3/etc/profile.d/conda.sh
-conda activate voltron
-
-# 运行单元与集成测试
-pytest -q tests
-
-# 运行 Dry Run 意图解析与任务生成（午餐盒场景）
-python run_instruction_demo.py "把半个苹果放进包装箱" --dry-run
-
-# 运行 Dry Run 意图解析与任务生成（工业工具格位场景，使用新增的工业场景映射）
-python run_instruction_demo.py "现在请把钳子收纳至料箱的第3格，完成后报告状态" \
-  --config voltron/configs/plier_to_toolbox_cell3_industrial_i00.json \
-  --grounding configs/scene_grounding_industrial.json \
-  --dry-run
-
-# 运行工业视觉检测与分割模型训练及评测
-python -m training.train_industrial_vision_model --epochs 15
+git clone https://github.com/Ouniverse-X/VisioMind.git
+cd VisioMind
+python -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -e .
 ```
 
-重新训练并复现实验指标：
+无需 GPU 或仿真器即可验证轻量指令模型：
+
+```bash
+python run_instruction_demo.py \
+  "现在请把钳子收纳至料箱的第3格，完成后报告状态" \
+  --dry-run
+```
+
+输出包含意图、目标对象、容器、格位、任务序列和已绑定到仿真实例的 ACTION 序列。
+
+## Qwen 工业规划器
+
+安装大模型推理依赖，并将 `Qwen/Qwen2.5-3B-Instruct` 基础权重放在 `models/base/Qwen2.5-3B-Instruct/`。仓库只分发项目训练的 LoRA Adapter。
+
+```bash
+pip install -e '.[llm]'
+python scripts/run_qwen_industrial_planner.py \
+  "把左侧的扳手放入料箱第2格"
+```
+
+可通过 `--base-model` 和 `--adapter` 指定其他本地路径。推理输出必须通过 `visiomind/decision/qwen_plan_schema.py` 定义的 JSON 结构校验。
+
+## 完整仿真闭环
+
+完整运行还需要独立安装 Isaac Sim 4.5、OmniGibson/BEHAVIOR-1K、CuRobo、Nav2 和 AnyGrasp SDK。AnyGrasp 的授权文件及官方权重不随仓库分发。
+
+首次运行前需要修改 `voltron/configs/compact_industrial_pliers_to_toolbox_cell3_i00.json` 中的 BEHAVIOR 场景文件、状态文件和导航图路径。随后配置环境并启动服务：
+
+```bash
+export CONDA_SCRIPT=/path/to/miniconda3/etc/profile.d/conda.sh
+export VOLTRON_ENV=voltron
+export ANYGRASP_PYTHON=/path/to/anygrasp/bin/python
+export ANYGRASP_SDK_ROOT=/path/to/anygrasp_sdk
+
+./scripts/start_anygrasp_service.sh
+./scripts/run_demo.sh \
+  "现在请把钳子收纳至料箱的第3格，完成后报告状态"
+```
+
+入口会先解析指令，再调用仓库内的 Voltron 运行时执行 `pick_up → place_inside`。成功放置要求目标已释放且完整位于指定格位的安全 AABB 内，仿真器任务标志仅作为辅助证据。
+
+## 真机接口
+
+底盘网桥将 ROS 2 `cmd_vel` 和升降指令转换为 15 字节串口帧，并发布里程计、关节状态和 TF：
+
+```bash
+python scripts/chassis_serial_bridge.py \
+  --port /dev/ttyUSB_chassis \
+  --baudrate 115200
+```
+
+多相机启动文件接入三路 USB 相机和一路深度相机：
+
+```bash
+ros2 launch scripts/sensor_integration.launch.py
+```
+
+实际部署时应按机器人标定结果修改相机设备号、静态 TF、轮径、轴距和串口协议参数。
+
+## 训练与评估
+
+### 轻量指令模型
 
 ```bash
 python training/generate_instruction_dataset.py --output-dir data/instructions
@@ -77,106 +122,46 @@ python training/train_instruction_model.py \
   --test data/instructions/test.jsonl \
   --output models/industrial_instruction.joblib \
   --metrics reports/instruction_model_metrics.json
+```
 
-# 复现工业大模型 LoRA 数据、训练与完整评估
+### 工业视觉模型
+
+```bash
+pip install -e '.[vision]'
+python training/train_industrial_vision_model.py \
+  --data-dir data/industrial_vision \
+  --epochs 12
+```
+
+数据目录不存在时，训练入口会先生成固定随机种子的 RGB-D 工业场景数据。
+
+### Qwen2.5-3B LoRA
+
+```bash
+python training/generate_instruction_dataset.py --output-dir data/instructions
 python training/generate_qwen_lora_dataset.py
 python training/train_qwen_industrial_lora.py
 python training/evaluate_qwen_industrial_planner.py \
   --adapter models/qwen25_3b_industrial_lora \
   --output reports/qwen25_lora_metrics.json \
   --predictions reports/qwen25_lora_predictions.jsonl
-
-# 单条自然语言指令生成固定 JSON 任务序列
-python scripts/run_qwen_industrial_planner.py \
-  "现在请把钳子收纳至料箱的第3格，完成后报告状态"
 ```
 
-### 2. GPU/Isaac 仿真环境下（完整闭环）
+## 已有结果
 
-```bash
-# 启动 AnyGrasp 6-DoF 抓取几何感知服务
-./scripts/start_anygrasp_service.sh
+| 模块 | 数据划分 | 指标 |
+| --- | --- | --- |
+| 工业视觉模型 | 30 个合成 RGB-D 测试场景 | mAP@0.5 `0.7449`，mAP@0.5:0.95 `0.3854`，3D 定位误差中位数 `2.31 cm` |
+| 轻量指令模型 | 396 条留出句式测试 | Accuracy `1.0000`，Macro-F1 `1.0000` |
+| Qwen 工业 LoRA | 642 条常规与泛化测试 | JSON Schema 有效率 `1.0000`，意图准确率 `0.9860`，槽位 Micro-F1 `0.9547` |
 
-# 运行工业场景的端到端闭环仿真并生成轨迹视频
-python run_instruction_demo.py "现在请把钳子收纳至料箱的第3格，完成后报告状态" \
-  --config voltron/configs/plier_to_toolbox_cell3_industrial_i00.json \
-  --grounding configs/scene_grounding_industrial.json
-```
+这些结果来自固定种子的程序化工业数据，用于验证实现与对照实验，不代表真实工厂分布上的泛化性能。
 
-### 3. 真实物理机器人部署网桥（真机集成接口）
+## 模型与许可
 
-```bash
-# 启动底盘及线性升降台 15 字节串口网桥节点
-python scripts/chassis_serial_bridge.py --port /dev/ttyUSB_chassis --baudrate 115200
+- `models/industrial_instruction.joblib`：项目生成的中英文轻量指令模型。
+- `models/industrial_part_detector.pt`：项目训练的工业目标检测、分割和三维定位模型。
+- `models/qwen25_3b_industrial_lora/adapter_model.safetensors`：基于 Qwen2.5-3B-Instruct 的工业规划 LoRA。
+- `models/manifest.json`：模型大小、SHA-256、格式与来源。
 
-# 启动 4 相机系统（3x USB相机，1x Aurora 930深度相机及静态TF）集成驱动
-ros2 launch scripts/sensor_integration.launch.py
-```
-
-完整环境、路径、模型授权和故障排查见 `docs/user_guide.md`。
-
-## 已验证 Isaac Sim 结果
-
-本仓库在 `demo/` 目录下提供了完整的仿真轨迹录像集，用于评审、合规性检查与多维度能力验证（详见 [`demo/README.md`](demo/README.md)）：
-
-### 1. 核心评审基准演示
-1. **工业工件格位放置演示 (`demo/visiomind_industrial_demo.mp4`)**：
-   - **指令**：“现在请把钳子收纳至料箱的第3格，完成后报告状态”
-   - **场景**：工业混杂工具 workbench (对应 `outfit_a_basic_toolbox` 仿真环境)
-   - **运行轨迹**：展示了系统对钳子进行 3D 点云匹配定位、AnyGrasp 6-DoF 抓取姿态推断、无碰撞路径规划与抬升、底盘携物 A* 全局避障导航至工具箱旁、针对第三格格位进行局部 AABB 坐标切分及顶入式对齐、机械臂下探并安全释放的完整物理控制流程。该轨迹历经 2044 个物理控制步，配有时序卡与状态监控。
-
-2. **家庭场景午餐盒摆放演示 (`demo/visiomind_isaac_demo.mp4`)**：
-   - **指令**：“把半个苹果放进包装箱”
-   - **运行结果**：完成了完整的“拾取→导航→释放”闭环。选取的三次工程复测中有两次满足严格物理成功，另一次因物体超出带余量箱壁约 1.4 mm 被安全门控拒绝，不计成功。
-   - **物理证据**：`control_step=872`、`step_count=1282`、A* 路径 0.791 m、释放前下落高度 0.167 m、`released=true`、`aabb_contained=true`，且终态 `action_keys=[]` 不会重放上一帧动作。
-
-### 2. 拓展已验证演示集
-3. **半个苹果抓取与原位放置演示 (`demo/half_apple_pick_and_place_demo.mp4`)**：
-   - **指令**：“Pick up the half apple from the chopping board”
-   - **亮点**：展示 AnyGrasp 6-DoF 抓取推断、平稳抬升并在操作台原位精准放置的平滑物理轨迹。
-4. **家庭三明治食品抓取验证 (`demo/club_sandwich_pick_up_demo.mp4`)**：
-   - **亮点**：家庭厨房混杂台面下三明治目标的 100% 成功抓取验证。
-5. **$\pi_{0.5}$ 具身 VLA 大模型端到端策略控制 (`demo/turning_on_radio_pi05_vla_demo.mp4`)**：
-   - **指令**：“Turn on the radio”
-   - **亮点**：基于 OpenPI / $\pi_{0.5}$ 扩散策略大模型的端到端动作推断与物理交互，验证具身大模型闭环控制。
-6. **3D 开放词表语义大范围导航 (`demo/hovsg_multi_room_nav_demo.mp4`)**：
-   - **亮点**：结合 HOV-SG 3D 场景图与 Nav2，展示多房间、狭窄推拉门与障碍环境下的自主穿梭寻路。
-7. **长程跨房间杂货搬运闭环 (`demo/carrying_groceries_long_horizon_demo.mp4`)**：
-   - **指令**：“Carrying in groceries to the kitchen”
-   - **亮点**：多智能体端到端协作长程家务任务，包含抓取、跨房间长程导航与厨房台面对齐。
-
-逐运行哈希和几何数据见 [`reports/real_isaac_runs.md`](reports/real_isaac_runs.md) 与 JSON companion。
-
-## 成功判据
-
-一次合格的 `place_inside` 必须同时满足：
-
-1. AnyGrasp 锚定到指令指定实例；
-2. 抓取后目标抬升超过阈值，连续采样相对位姿稳定且 attachment 有效；
-3. 携物导航沿净空约束 A* 航点完成；
-4. 放置规划与执行完成，释放后夹爪无附着对象；
-5. 目标 AABB 完整位于容器 AABB 内（1 mm 数值容差）；
-6. 结构化结果中 `placement_success=true`、`placement_verified=true`、`released=true`、`aabb_contained=true`。
-
-仿真环境的 `task_success` 只作旁证，不能代替以上物理证据。
-
-## 模型与授权
-
-本仓库包含项目自行训练的轻量工业指令模型和 Qwen2.5-3B 工业规划 LoRA Adapter。
-Qwen 基础权重不分发；3B 版本及衍生 Adapter 受 Qwen Research License 约束，仅限
-非商业研究/评估，协议和 NOTICE 已随 Adapter 提交。AnyGrasp SDK、机器绑定许可证及
-296 MB 官方检测权重同样不在仓库中分发；请按官方流程申请。详见 `models/MODELS.md`
-和 `THIRD_PARTY_NOTICES.md`。
-
-比赛所需 Voltron Python 运行时代码已复制到本仓库，并由入口强制优先加载；Isaac
-Sim、OmniGibson/BEHAVIOR-1K、CuRobo 与 AnyGrasp 仍是需独立安装或授权的外部依赖。
-
-## 文档
-
-- `docs/technical_report.md`：架构、算法、实验、创新与局限；
-- `docs/user_guide.md`：环境、安装、训练、运行、接口与排障；
-- `docs/competition_compliance.md`：赛题条款到代码/证据的逐项映射；
-- `docs/model_card.md`：工业指令模型数据、指标和适用边界。
-- `docs/qwen25_industrial_lora_model_card.md`：工业大模型 LoRA、数据、基线、泛化实验与许可。
-
-本项目当前以 Ubuntu 22.04、Python 3.10、RTX 3090 24 GB、Isaac Sim 4.5/OmniGibson、R1 Pro 和 AnyGrasp 服务为已验证运行栈。
+Qwen Adapter 受目录内 `QWEN_RESEARCH_LICENSE.txt` 约束，仅用于非商业研究与评估。其他第三方组件及权重说明见 `THIRD_PARTY_NOTICES.md`。

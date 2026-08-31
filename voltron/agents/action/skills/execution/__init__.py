@@ -1,5 +1,3 @@
-"""Execution skills owned by the Action agent."""
-
 from .defaults import (
     ButtonInteractionSkill,
     DefaultManipulationSkill,

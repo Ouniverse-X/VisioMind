@@ -1,5 +1,3 @@
-"""Environment bootstrap and wrapper traversal helpers for BEHAVIOR."""
-
 from __future__ import annotations
 
 import importlib
@@ -66,7 +64,6 @@ def configure_recording_third_person_pose(
     local_offset: Any,
     look_at_offset: Any,
 ) -> bool:
-    """Override the GR00T recording camera with a robot-relative look-at pose."""
     wrapper = env
     seen: set[int] = set()
     while wrapper is not None and id(wrapper) not in seen:
@@ -162,9 +159,7 @@ def import_gymnasium() -> Any:
         ) from exc
 
 
-def load_behavior_register_fn(
-    *, load_behavior_module: Callable[[], Any]
-) -> Callable[[], None]:
+def load_behavior_register_fn(*, load_behavior_module: Callable[[], Any]) -> Callable[[], None]:
     module = load_behavior_module()
     return getattr(module, "register_behavior_envs")
 
@@ -201,9 +196,7 @@ def prepend_local_gr00t_repo(local_gr00t_root: Path) -> None:
             sys.path.insert(0, candidate)
 
 
-def install_behavior_rgb_wrapper_fallback(
-    *, load_behavior_module: Callable[[], Any]
-) -> None:
+def install_behavior_rgb_wrapper_fallback(*, load_behavior_module: Callable[[], Any]) -> None:
     try:
         module = load_behavior_module()
     except Exception:

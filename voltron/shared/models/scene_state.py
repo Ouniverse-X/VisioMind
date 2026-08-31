@@ -1,12 +1,3 @@
-"""Runtime scene-state contract shared between simulator producers and navigation consumers.
-
-The static HOV-SG assets describe the scene as it was exported; this module
-carries the *runtime* deltas (object poses, door open/close) so navigation can
-overlay them on top of the static assets without mutating them. The
-``signature`` field is the cache-invalidation key for every derived artifact
-(portal analysis maps, adjacency views, path plans).
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -67,15 +58,7 @@ def is_door_category(value: Any) -> bool:
 
 
 def navigation_role_from_category(value: Any) -> str:
-    """Classify static and runtime scene entities with one shared rule set."""
-
-    normalized = (
-        str(value or "")
-        .strip()
-        .lower()
-        .replace("-", "_")
-        .replace(" ", "_")
-    )
+    normalized = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
     tokens = set(normalized.split("_"))
     if any(normalized.startswith(prefix) for prefix in _STRUCTURAL_CATEGORY_PREFIXES):
         return NAVIGATION_ROLE_STRUCTURAL
@@ -103,13 +86,6 @@ def door_is_open_from_joints(
 
 
 def door_is_navigation_passable(door: "RuntimeDoorState") -> bool | None:
-    """Return the navigation-authoritative door state.
-
-    A Vision-confirmed passability latch is deliberately distinct from the
-    instantaneous articulated joint state.  When no latch is present, existing
-    open/closed behavior remains unchanged.
-    """
-
     if door.navigation_passable is not None:
         return bool(door.navigation_passable)
     return door.is_open
@@ -133,7 +109,7 @@ class RuntimeObjectState:
     category: str | None = None
     navigation_role: str | None = None
     position: dict[str, float] | None = None
-    aabb: dict[str, list[float]] | None = None  # {"min": [x,y,z], "max": [x,y,z]}
+    aabb: dict[str, list[float]] | None = None
     oriented_bbox: dict[str, Any] | None = None
     covariance_xy: list[list[float]] | None = None
     collision_parts: list[dict[str, Any]] = field(default_factory=list)
@@ -192,9 +168,7 @@ class RuntimeDoorState:
                 self.navigation_passable_observed_at_step
             )
         if self.navigation_passable_revision is not None:
-            payload["navigation_passable_revision"] = (
-                self.navigation_passable_revision
-            )
+            payload["navigation_passable_revision"] = self.navigation_passable_revision
         if self.position is not None:
             payload["position"] = dict(self.position)
         if self.aabb is not None:
@@ -280,22 +254,14 @@ class SceneRuntimeState:
         parts = []
         for name, door in sorted(self.doors.items()):
             state_text = (
-                "open"
-                if door.is_open is True
-                else "closed"
-                if door.is_open is False
-                else "unknown"
+                "open" if door.is_open is True else "closed" if door.is_open is False else "unknown"
             )
             parts.append(
                 f"{name}={state_text}"
                 f"/nav={_navigation_passability_text(door)}"
                 f"@{_collision_geometry_text(door.collision_parts, door.aabb, SIGNATURE_POSITION_QUANTUM_M)}"
             )
-        return (
-            hashlib.sha1(";".join(parts).encode("utf-8")).hexdigest()[:16]
-            if parts
-            else ""
-        )
+        return hashlib.sha1(";".join(parts).encode("utf-8")).hexdigest()[:16] if parts else ""
 
     def to_payload(self) -> dict[str, Any]:
         relation_signature = self.relation_signature or compute_relation_signature(
@@ -308,15 +274,11 @@ class SceneRuntimeState:
             "simulator_vertical_axis": self.simulator_vertical_axis,
             "scene_vertical_axis": self.scene_vertical_axis,
             "scene_from_simulator_transform": self.scene_from_simulator_transform,
-            "objects": {
-                name: state.to_payload() for name, state in self.objects.items()
-            },
+            "objects": {name: state.to_payload() for name, state in self.objects.items()},
             "doors": {name: state.to_payload() for name, state in self.doors.items()},
             "relations": [relation.to_payload() for relation in self.relations],
             "relation_signature": relation_signature,
-            "temporary_obstacles": [
-                obstacle.to_payload() for obstacle in self.temporary_obstacles
-            ],
+            "temporary_obstacles": [obstacle.to_payload() for obstacle in self.temporary_obstacles],
             "signature": self.signature,
         }
 
@@ -341,19 +303,10 @@ def compute_scene_state_signature(
             f"{_quantize_nested_numbers(scene_from_simulator_transform, quantum)}"
         )
     for name, door in sorted(doors.items()):
-        state_text = (
-            "open"
-            if door.is_open
-            else "closed"
-            if door.is_open is not None
-            else "unknown"
-        )
-        geometry_text = _collision_geometry_text(
-            door.collision_parts, door.aabb, quantum
-        )
+        state_text = "open" if door.is_open else "closed" if door.is_open is not None else "unknown"
+        geometry_text = _collision_geometry_text(door.collision_parts, door.aabb, quantum)
         parts.append(
-            f"door:{name}={state_text}/nav={_navigation_passability_text(door)}"
-            f"@{geometry_text}"
+            f"door:{name}={state_text}/nav={_navigation_passability_text(door)}@{geometry_text}"
         )
     for name, obj in sorted(objects.items()):
         geometry_text = _collision_geometry_text(obj.collision_parts, obj.aabb, quantum)
@@ -367,9 +320,7 @@ def compute_scene_state_signature(
     relation_signature = compute_relation_signature(relations or [])
     if relation_signature:
         parts.append(f"relations:{relation_signature}")
-    for obstacle in sorted(
-        temporary_obstacles or [], key=lambda item: item.obstacle_id
-    ):
+    for obstacle in sorted(temporary_obstacles or [], key=lambda item: item.obstacle_id):
         parts.append(
             "sensor:"
             f"{obstacle.obstacle_id}@{obstacle.source}@"
@@ -445,9 +396,9 @@ def _quantized_aabb_text(aabb: dict[str, list[float]] | None, quantum: float) ->
 def _oriented_bbox_text(value: dict[str, Any] | None, quantum: float) -> str:
     if not isinstance(value, dict):
         return "none"
-    return hashlib.sha1(
-        repr(_quantize_nested_numbers(value, quantum)).encode("utf-8")
-    ).hexdigest()[:12]
+    return hashlib.sha1(repr(_quantize_nested_numbers(value, quantum)).encode("utf-8")).hexdigest()[
+        :12
+    ]
 
 
 def _covariance_text(value: list[list[float]] | None, quantum: float) -> str:
@@ -476,18 +427,12 @@ def _collision_geometry_text(
 ) -> str:
     if collision_parts:
         parts = []
-        for part in sorted(
-            collision_parts, key=lambda item: str(item.get("link") or "")
-        ):
+        for part in sorted(collision_parts, key=lambda item: str(item.get("link") or "")):
             link = str(part.get("link") or "")
             geometry_hash = str(part.get("geometry_hash") or "")
-            polygons_text = _quantized_polygons_text(
-                part.get("world_polygons"), quantum
-            )
+            polygons_text = _quantized_polygons_text(part.get("world_polygons"), quantum)
             geometry_text = (
-                polygons_text
-                if polygons_text != "none"
-                else _quantized_aabb_text(part, quantum)
+                polygons_text if polygons_text != "none" else _quantized_aabb_text(part, quantum)
             )
             parts.append(f"{link}:{geometry_hash}:{geometry_text}")
         return ";".join(parts)
@@ -563,25 +508,19 @@ def scene_runtime_state_from_payload(payload: Any) -> SceneRuntimeState | None:
         return None
     objects: dict[str, RuntimeObjectState] = {}
     for name, entry in (
-        (payload.get("objects") or {}).items()
-        if isinstance(payload.get("objects"), dict)
-        else []
+        (payload.get("objects") or {}).items() if isinstance(payload.get("objects"), dict) else []
     ):
         state = _object_state_from_entry(name, entry)
         if state is not None:
             objects[state.name] = state
     doors: dict[str, RuntimeDoorState] = {}
     for name, entry in (
-        (payload.get("doors") or {}).items()
-        if isinstance(payload.get("doors"), dict)
-        else []
+        (payload.get("doors") or {}).items() if isinstance(payload.get("doors"), dict) else []
     ):
         state = _door_state_from_entry(name, entry)
         if state is not None:
             doors[state.name] = state
-    temporary_obstacles = _coerce_temporary_obstacles(
-        payload.get("temporary_obstacles")
-    )
+    temporary_obstacles = _coerce_temporary_obstacles(payload.get("temporary_obstacles"))
     relations = _coerce_relations(payload.get("relations"))
     if (
         not objects
@@ -589,16 +528,13 @@ def scene_runtime_state_from_payload(payload: Any) -> SceneRuntimeState | None:
         and not relations
         and not temporary_obstacles
         and not any(
-            key in payload
-            for key in ("scene_id", "step", "signature", "relation_signature")
+            key in payload for key in ("scene_id", "step", "signature", "relation_signature")
         )
     ):
         return None
     signature = str(payload.get("signature") or "")
     if not signature:
-        simulator_vertical_axis = _optional_axis(
-            payload.get("simulator_vertical_axis")
-        ) or "z"
+        simulator_vertical_axis = _optional_axis(payload.get("simulator_vertical_axis")) or "z"
         scene_vertical_axis = _optional_axis(payload.get("scene_vertical_axis"))
         scene_from_simulator_transform = _coerce_transform(
             payload.get("scene_from_simulator_transform")
@@ -613,9 +549,7 @@ def scene_runtime_state_from_payload(payload: Any) -> SceneRuntimeState | None:
             scene_from_simulator_transform=scene_from_simulator_transform,
         )
     else:
-        simulator_vertical_axis = _optional_axis(
-            payload.get("simulator_vertical_axis")
-        ) or "z"
+        simulator_vertical_axis = _optional_axis(payload.get("simulator_vertical_axis")) or "z"
         scene_vertical_axis = _optional_axis(payload.get("scene_vertical_axis"))
         scene_from_simulator_transform = _coerce_transform(
             payload.get("scene_from_simulator_transform")
@@ -677,9 +611,7 @@ def _door_state_from_entry(name: Any, entry: Any) -> RuntimeDoorState | None:
     is_open = entry.get("is_open")
     openness = entry.get("openness")
     navigation_passable = entry.get("navigation_passable")
-    navigation_passable_observed_at_step = entry.get(
-        "navigation_passable_observed_at_step"
-    )
+    navigation_passable_observed_at_step = entry.get("navigation_passable_observed_at_step")
     navigation_passable_revision = entry.get("navigation_passable_revision")
     return RuntimeDoorState(
         name=door_name,
@@ -687,13 +619,9 @@ def _door_state_from_entry(name: Any, entry: Any) -> RuntimeDoorState | None:
         is_open=bool(is_open) if isinstance(is_open, bool) else None,
         openness=float(openness) if isinstance(openness, (int, float)) else None,
         navigation_passable=(
-            bool(navigation_passable)
-            if isinstance(navigation_passable, bool)
-            else None
+            bool(navigation_passable) if isinstance(navigation_passable, bool) else None
         ),
-        navigation_passable_source=_optional_text(
-            entry.get("navigation_passable_source")
-        ),
+        navigation_passable_source=_optional_text(entry.get("navigation_passable_source")),
         navigation_passable_observed_at_step=(
             int(navigation_passable_observed_at_step)
             if isinstance(navigation_passable_observed_at_step, (int, float))
@@ -879,14 +807,10 @@ def _coerce_temporary_obstacles(value: Any) -> list[RuntimeObstacleState]:
                 obstacle_id=obstacle_id,
                 polygons=polygons,
                 source=_optional_text(entry.get("source")) or "sensor",
-                confidence=(
-                    float(confidence) if isinstance(confidence, (int, float)) else None
-                ),
+                confidence=(float(confidence) if isinstance(confidence, (int, float)) else None),
                 covariance_xy=covariance,
                 expires_at_step=(
-                    int(expires_at_step)
-                    if isinstance(expires_at_step, (int, float))
-                    else None
+                    int(expires_at_step) if isinstance(expires_at_step, (int, float)) else None
                 ),
             )
         )
@@ -914,25 +838,15 @@ def _coerce_relations(value: Any) -> list[RuntimeRelationState]:
                 subject_id=subject_id,
                 relation=relation.strip().lower(),
                 object_id=_optional_text(entry.get("object_id") or entry.get("object")),
-                confidence=(
-                    float(confidence)
-                    if isinstance(confidence, (int, float))
-                    else None
-                ),
+                confidence=(float(confidence) if isinstance(confidence, (int, float)) else None),
                 source=_optional_text(entry.get("source")),
                 observed_at_step=(
-                    int(observed_at_step)
-                    if isinstance(observed_at_step, (int, float))
-                    else None
+                    int(observed_at_step) if isinstance(observed_at_step, (int, float)) else None
                 ),
                 expires_at_step=(
-                    int(expires_at_step)
-                    if isinstance(expires_at_step, (int, float))
-                    else None
+                    int(expires_at_step) if isinstance(expires_at_step, (int, float)) else None
                 ),
-                revision=(
-                    revision if isinstance(revision, (str, int)) else None
-                ),
+                revision=(revision if isinstance(revision, (str, int)) else None),
                 removed=bool(entry.get("removed") or entry.get("tombstone")),
             )
         )

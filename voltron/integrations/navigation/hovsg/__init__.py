@@ -1,5 +1,3 @@
-"""HOV-SG navigation integration surface."""
-
 from .models import (
     HOVSGFloorAsset,
     HOVSGNavGraphAsset,

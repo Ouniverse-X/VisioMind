@@ -1,5 +1,3 @@
-"""Web-search constraint lookup tool for the Brain agent."""
-
 from __future__ import annotations
 
 import os
@@ -28,8 +26,6 @@ _FIELD_TRIP_FIXTURE = {
 
 
 class WebSearchTool:
-    """Lookup external planning constraints from fixture data or a configured search endpoint."""
-
     tool_names = ("web_search.lookup_constraints",)
 
     def __init__(self, http_get: Callable[..., Any] | None = None) -> None:
@@ -56,7 +52,11 @@ class WebSearchTool:
 
     def invoke(self, invocation: ToolInvocation) -> ToolResult:
         if invocation.tool_name != "web_search.lookup_constraints":
-            return self._error(invocation.tool_name, "unsupported_tool", f"Unsupported web search tool {invocation.tool_name!r}")
+            return self._error(
+                invocation.tool_name,
+                "unsupported_tool",
+                f"Unsupported web search tool {invocation.tool_name!r}",
+            )
         payload = invocation.payload
         mode = str(payload.get("mode") or "mock").strip().lower()
         if mode == "real":
@@ -82,7 +82,9 @@ class WebSearchTool:
     def _lookup_real(self, invocation: ToolInvocation) -> ToolResult:
         payload = invocation.payload
         query = str(payload.get("query") or "").strip()
-        endpoint = str(payload.get("endpoint") or os.getenv("VOLTRON_WEB_SEARCH_ENDPOINT") or "").strip()
+        endpoint = str(
+            payload.get("endpoint") or os.getenv("VOLTRON_WEB_SEARCH_ENDPOINT") or ""
+        ).strip()
         if not endpoint:
             return self._error(
                 invocation.tool_name,
@@ -90,7 +92,9 @@ class WebSearchTool:
                 "Real web_search mode requires endpoint or VOLTRON_WEB_SEARCH_ENDPOINT",
             )
 
-        api_key = str(payload.get("api_key") or os.getenv("VOLTRON_WEB_SEARCH_API_KEY") or "").strip()
+        api_key = str(
+            payload.get("api_key") or os.getenv("VOLTRON_WEB_SEARCH_API_KEY") or ""
+        ).strip()
         headers = {"Accept": "application/json"}
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
@@ -149,7 +153,9 @@ def _extract_constraints(raw: Any) -> tuple[dict[str, Any], dict[str, list[str]]
     facts: dict[str, Any] = {
         "event": "outdoor_field_trip" if "field trip" in lower or "outdoor" in lower else "unknown",
         "weather": "warm" if "warm" in lower or "hot" in lower else "unknown",
-        "microwave_available": False if "no microwave" in lower or "without microwave" in lower else None,
+        "microwave_available": False
+        if "no microwave" in lower or "without microwave" in lower
+        else None,
     }
     constraints = _copy_constraints(_FIELD_TRIP_FIXTURE["constraints"])
     if "nut" in lower and ("free" in lower or "allergy" in lower):

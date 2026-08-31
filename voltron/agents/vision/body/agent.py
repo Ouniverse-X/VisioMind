@@ -1,5 +1,3 @@
-"""Vision agent for scene understanding and semantic memory updates."""
-
 from __future__ import annotations
 
 import time
@@ -15,9 +13,9 @@ from voltron.shared.results import ToolResult
 
 
 class VisionAgent:
-    """Execute visual perception subtasks and write structured observations."""
-
-    def __init__(self, memory: MemoryAdapter, vision: VisionAdapter, tools: ToolCatalog | None = None):
+    def __init__(
+        self, memory: MemoryAdapter, vision: VisionAdapter, tools: ToolCatalog | None = None
+    ):
         self.memory = memory
         self.vision = vision
         self.tools = tools or self._build_default_tools()
@@ -63,7 +61,9 @@ class VisionAgent:
             return self._execute_tool_subtask(subtask=subtask, context=context, start=start)
 
         if self._is_environment_heartbeat_subtask(subtask):
-            return self._execute_environment_heartbeat(subtask=subtask, context=context, start=start)
+            return self._execute_environment_heartbeat(
+                subtask=subtask, context=context, start=start
+            )
 
         images = subtask.parameters.get("images")
         if not isinstance(images, list) or not images:
@@ -124,9 +124,9 @@ class VisionAgent:
             latency_ms=self._latency_ms(start),
         )
 
-    def run_episode(self, *, subtask: Subtask, context: ExecutionContext, runtime: Any) -> AgentResult:
-        """Run a complete perception episode using runtime-provided observations."""
-
+    def run_episode(
+        self, *, subtask: Subtask, context: ExecutionContext, runtime: Any
+    ) -> AgentResult:
         static_parameters = dict(subtask.parameters)
         last_result: AgentResult | None = None
 
@@ -155,7 +155,9 @@ class VisionAgent:
                     )
                 return result
 
-            step_outcome = runtime.apply_agent_result(subtask=subtask, result=result, context=context)
+            step_outcome = runtime.apply_agent_result(
+                subtask=subtask, result=result, context=context
+            )
             if getattr(step_outcome, "feedback", None):
                 runtime.update_feedback(
                     subtask=subtask,
@@ -194,14 +196,17 @@ class VisionAgent:
     def _latency_ms(start: float) -> int:
         return int((time.time() - start) * 1000)
 
-    def _execute_tool_subtask(self, *, subtask: Subtask, context: ExecutionContext, start: float) -> AgentResult:
+    def _execute_tool_subtask(
+        self, *, subtask: Subtask, context: ExecutionContext, start: float
+    ) -> AgentResult:
         tool_name = "vision.photo.capture"
         invocation = ToolInvocation(
             tool_name=tool_name,
             payload={
                 "views": subtask.parameters.get("views"),
                 "camera_capture": subtask.parameters.get("camera_capture"),
-                "run_dir": subtask.parameters.get("run_dir") or context.runtime_state.get("run_dir"),
+                "run_dir": subtask.parameters.get("run_dir")
+                or context.runtime_state.get("run_dir"),
                 "trace_id": context.trace_id,
                 "subtask_id": subtask.subtask_id,
             },
@@ -284,7 +289,9 @@ class VisionAgent:
                 latency_ms=self._latency_ms(start),
             )
 
-        instruction = str(subtask.parameters.get("instruction") or "Summarize current environment state.")
+        instruction = str(
+            subtask.parameters.get("instruction") or "Summarize current environment state."
+        )
         try:
             report = self.vision.analyze(
                 images_b64=images,
@@ -350,7 +357,11 @@ class VisionAgent:
         )
         recorded = recorder(payload)
         if isinstance(recorded, dict):
-            return {"recorded": bool(recorded.get("recorded", False)), **recorded, "payload": payload}
+            return {
+                "recorded": bool(recorded.get("recorded", False)),
+                **recorded,
+                "payload": payload,
+            }
         return {"recorded": False, "payload": payload}
 
     @staticmethod

@@ -1,5 +1,3 @@
-"""Portal candidate generation helpers for HOV-SG room transitions."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -114,7 +112,9 @@ def segment_pair_transition_candidates(
                 "normal_axis_index": normal_axis_index,
                 "span_min": span_min,
                 "span_max": span_max,
-                "preferred_span_value": max(span_min, min(span_max, (carrier_mid + other_mid) * 0.5)),
+                "preferred_span_value": max(
+                    span_min, min(span_max, (carrier_mid + other_mid) * 0.5)
+                ),
             }
         )
     return candidates

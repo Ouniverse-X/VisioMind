@@ -1,5 +1,3 @@
-"""Registry for VLA skill implementations."""
-
 from __future__ import annotations
 
 import logging
@@ -24,8 +22,6 @@ logger = logging.getLogger(__name__)
 
 
 class VLASkillRegistry(SkillRegistryBase[VLASkill]):
-    """Resolve VLA skills by semantic skill id with safe fallback."""
-
     def __init__(self, skills: list[VLASkill]) -> None:
         super().__init__(skills, default_skill_id="default_manipulation_skill")
 
@@ -57,7 +53,9 @@ class VLASkillRegistry(SkillRegistryBase[VLASkill]):
                     anygrasp_config=anygrasp_config,
                 ),
             )
-            logger.info("AnyGraspSkill registered (replaces GraspManipulationSkill for grasp actions)")
+            logger.info(
+                "AnyGraspSkill registered (replaces GraspManipulationSkill for grasp actions)"
+            )
         else:
             skills.insert(
                 0,
@@ -80,7 +78,7 @@ class VLASkillRegistry(SkillRegistryBase[VLASkill]):
 
 
 class ActionSkillRegistry(VLASkillRegistry):
-    """Canonical registry type for Action agent skills."""
+    pass
 
 
 __all__ = ["ActionSkillRegistry", "VLASkillRegistry"]

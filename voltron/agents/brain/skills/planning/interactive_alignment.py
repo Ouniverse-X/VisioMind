@@ -1,5 +1,3 @@
-"""Validate that a refinement preserves a confirmed interactive action contract."""
-
 from __future__ import annotations
 
 import re
@@ -25,7 +23,7 @@ _ACTION_ALIASES = {
     "turn_off": "turn_off",
 }
 
-# These are permitted only as implementation details of an explicitly assigned Action stage.
+
 _SUPPORTING_ACTIONS = {
     "approach",
     "align",
@@ -38,15 +36,13 @@ _SUPPORTING_ACTIONS = {
     "withdraw",
 }
 
-# A grouped pick-up decomposition may establish the pickup state by its final lift.
+
 _TERMINAL_REFINEMENTS = {"pick_up": {"lift"}, "place": {"release"}}
 
 
 def confirmed_action_steps(
     text_plan: TextPlanDraft | dict[str, Any],
 ) -> list[CollaborativePlanStep]:
-    """Return required milestone Action stages in their confirmed outline order."""
-
     return [
         step
         for step in action_contract_steps(text_plan)
@@ -57,39 +53,21 @@ def confirmed_action_steps(
 def action_contract_steps(
     text_plan: TextPlanDraft | dict[str, Any],
 ) -> list[CollaborativePlanStep]:
-    """Return all Action contracts, including optional runtime contingencies."""
-
     steps: list[CollaborativePlanStep] = []
     for raw_step in _collaborative_steps(text_plan):
         step = (
-            raw_step
-            if isinstance(raw_step, CollaborativePlanStep)
-            else _step_from_dict(raw_step)
+            raw_step if isinstance(raw_step, CollaborativePlanStep) else _step_from_dict(raw_step)
         )
         if str(step.semantic_anchors.get("agent") or "").strip().upper() == "ACTION":
             steps.append(step)
     return steps
 
 
-def align_refined_plan(
-    confirmed_steps: list[CollaborativePlanStep], refined_plan: Plan
-) -> Plan:
-    """Align an executable refinement with a human-facing outline contract.
-
-    Required milestone Actions must remain covered and ordered. Conditional
-    contingency Actions may be omitted, inserted, or moved to wherever runtime
-    reachability requires them. Supporting implementation Actions are accepted
-    only when their target matches an authorized milestone or contingency.
-    """
-
-    subtasks = [
-        _copy_subtask_without_step_id(subtask) for subtask in refined_plan.subtasks
-    ]
+def align_refined_plan(confirmed_steps: list[CollaborativePlanStep], refined_plan: Plan) -> Plan:
+    subtasks = [_copy_subtask_without_step_id(subtask) for subtask in refined_plan.subtasks]
     action_contract = list(confirmed_steps)
     milestone_steps = [
-        step
-        for step in action_contract
-        if _step_role(step) == "milestone" and step.required
+        step for step in action_contract if _step_role(step) == "milestone" and step.required
     ]
     optional_steps = [step for step in action_contract if step not in milestone_steps]
     explicit_groups = _explicit_groups(refined_plan.subtasks, action_contract)
@@ -194,9 +172,7 @@ def _collaborative_steps(
     if not isinstance(text_plan, dict):
         return []
     collaborative_plan = text_plan.get("collaborative_plan")
-    if isinstance(collaborative_plan, dict) and isinstance(
-        collaborative_plan.get("steps"), list
-    ):
+    if isinstance(collaborative_plan, dict) and isinstance(collaborative_plan.get("steps"), list):
         return list(collaborative_plan["steps"])
     steps = text_plan.get("collaborative_steps") or text_plan.get("steps") or []
     return list(steps) if isinstance(steps, list) else []
@@ -267,10 +243,8 @@ def _find_greedy_match(
 
 
 def _matches_confirmed_step(step: CollaborativePlanStep, subtask: Subtask) -> bool:
-    return (
-        _confirmed_action(step)
-        == _canonical_action(subtask.action)
-        and _target_anchors_match(step, subtask)
+    return _confirmed_action(step) == _canonical_action(subtask.action) and _target_anchors_match(
+        step, subtask
     )
 
 
@@ -313,15 +287,11 @@ def _state_establishing_descendant_index(
 ) -> int:
     confirmed_action = _confirmed_action(step)
     exact_matches = [
-        index
-        for index in group
-        if _canonical_action(subtasks[index].action) == confirmed_action
+        index for index in group if _canonical_action(subtasks[index].action) == confirmed_action
     ]
     terminal_actions = _TERMINAL_REFINEMENTS.get(confirmed_action, set())
     terminal_matches = [
-        index
-        for index in group
-        if _canonical_action(subtasks[index].action) in terminal_actions
+        index for index in group if _canonical_action(subtasks[index].action) in terminal_actions
     ]
     state_establishing_matches = [*exact_matches, *terminal_matches]
     if state_establishing_matches:

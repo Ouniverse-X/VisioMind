@@ -1,5 +1,3 @@
-"""Supervised BF16 LoRA fine-tuning for Qwen2.5 industrial planning."""
-
 from __future__ import annotations
 
 import argparse
@@ -97,8 +95,7 @@ def main() -> None:
     parser.add_argument("--learning-rate", type=float, default=2e-4)
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--gradient-accumulation", type=int, default=8)
-    # Rank 8 keeps the distributable adapter below GitHub's 100 MB per-file
-    # limit while still adapting every attention and MLP projection.
+
     parser.add_argument("--lora-r", type=int, default=8)
     parser.add_argument("--lora-alpha", type=int, default=16)
     parser.add_argument("--seed", type=int, default=20262504)
@@ -126,9 +123,7 @@ def main() -> None:
     if args.max_validation_records is not None:
         validation_records = validation_records[: args.max_validation_records]
     train_dataset = ChatSftDataset(train_records, tokenizer, args.max_length)
-    validation_dataset = ChatSftDataset(
-        validation_records, tokenizer, args.max_length
-    )
+    validation_dataset = ChatSftDataset(validation_records, tokenizer, args.max_length)
 
     model = AutoModelForCausalLM.from_pretrained(
         args.base_model,
@@ -138,9 +133,7 @@ def main() -> None:
         attn_implementation="sdpa",
     ).cuda()
     model.config.use_cache = False
-    model.gradient_checkpointing_enable(
-        gradient_checkpointing_kwargs={"use_reentrant": False}
-    )
+    model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
     model.enable_input_require_grads()
     lora_config = LoraConfig(
         r=args.lora_r,
@@ -159,11 +152,8 @@ def main() -> None:
         ],
     )
     model = get_peft_model(model, lora_config)
-    # Store the public model identifier rather than this machine's absolute
-    # cache path so the adapter remains portable after publication.
-    model.peft_config["default"].base_model_name_or_path = (
-        "Qwen/Qwen2.5-3B-Instruct"
-    )
+
+    model.peft_config["default"].base_model_name_or_path = "Qwen/Qwen2.5-3B-Instruct"
     trainable_parameters = sum(
         parameter.numel() for parameter in model.parameters() if parameter.requires_grad
     )
@@ -210,17 +200,11 @@ def main() -> None:
     started = time.time()
     train_result = trainer.train()
 
-    # Persist the primary deliverable before the optional final validation pass.
-    # Epoch evaluation has already exercised the validation set, while this
-    # ordering prevents a late evaluation/runtime failure from discarding a
-    # successfully trained adapter.
     args.output_dir.mkdir(parents=True, exist_ok=True)
     model.save_pretrained(args.output_dir, safe_serialization=True)
     license_source = args.base_model / "LICENSE"
     if license_source.is_file():
-        shutil.copyfile(
-            license_source, args.output_dir / "QWEN_RESEARCH_LICENSE.txt"
-        )
+        shutil.copyfile(license_source, args.output_dir / "QWEN_RESEARCH_LICENSE.txt")
     (args.output_dir / "NOTICE").write_text(
         "Improved using Qwen.\n\n"
         "Qwen is licensed under the Qwen RESEARCH LICENSE AGREEMENT,\n"

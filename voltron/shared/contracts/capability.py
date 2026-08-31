@@ -1,5 +1,3 @@
-"""Agent capability contracts for model-facing manifests."""
-
 from __future__ import annotations
 
 from copy import deepcopy
@@ -11,8 +9,6 @@ from voltron.shared.enums import AgentName
 
 @dataclass(frozen=True)
 class AgentCapability:
-    """Serializable description of an agent capability."""
-
     capability_id: str
     agent: AgentName
     kind: str
@@ -23,8 +19,6 @@ class AgentCapability:
     output_schema: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        """Return the model-facing capability payload."""
-
         return {
             "capability_id": self.capability_id,
             "agent": self.agent.value,
@@ -38,15 +32,11 @@ class AgentCapability:
 
 
 class AgentCapabilityProvider(Protocol):
-    """Protocol for components that publish agent capabilities."""
-
     def capability_manifest(self) -> list[AgentCapability]:
-        """Return capabilities exposed by this provider."""
+        pass
 
 
 def serialize_agent_capabilities(
     capabilities: list[AgentCapability],
 ) -> list[dict[str, Any]]:
-    """Serialize capabilities into model-facing payloads."""
-
     return [capability.to_dict() for capability in capabilities]

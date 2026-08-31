@@ -1,10 +1,10 @@
-"""Recording and telemetry bridge helpers for the BEHAVIOR runtime facade."""
-
 from __future__ import annotations
 
 from typing import Any, Callable
 
-from voltron.integrations.simulator.behavior.artifacts import process_logger as behavior_process_logger
+from voltron.integrations.simulator.behavior.artifacts import (
+    process_logger as behavior_process_logger,
+)
 from voltron.integrations.simulator.behavior.artifacts import recorder as behavior_recorder
 from voltron.integrations.simulator.behavior.tools import runtime_inputs as behavior_runtime_inputs
 
@@ -44,9 +44,12 @@ def start_recording(
         timestamp_factory=timestamp_factory,
         safe_slug=safe_slug_fn or safe_slug,
         open_record_file=open_record_file,
-        finalize_previous=finalize_previous or _fallback_runtime_callback(runtime, "_finalize_recording"),
-        launch_watchdog=launch_watchdog or _fallback_runtime_callback(runtime, "_launch_transcode_watchdog"),
-        install_exit_guard=install_exit_guard or _fallback_runtime_callback(runtime, "_install_recording_exit_guard"),
+        finalize_previous=finalize_previous
+        or _fallback_runtime_callback(runtime, "_finalize_recording"),
+        launch_watchdog=launch_watchdog
+        or _fallback_runtime_callback(runtime, "_launch_transcode_watchdog"),
+        install_exit_guard=install_exit_guard
+        or _fallback_runtime_callback(runtime, "_install_recording_exit_guard"),
         record_event=record_event_callback or _runtime_record_event_callback(runtime),
         start_recording_session=start_recording_session,
     )
@@ -61,7 +64,8 @@ def finalize_recording(
     behavior_recorder.finalize_recording_runtime(
         runtime,
         finalize_recording_session=finalize_recording_session,
-        transcode_recording=transcode_recording or _fallback_runtime_callback(runtime, "_transcode_recording"),
+        transcode_recording=transcode_recording
+        or _fallback_runtime_callback(runtime, "_transcode_recording"),
     )
 
 
@@ -133,8 +137,10 @@ def install_recording_exit_guard(
         signal_setsignal=signal_setsignal,
         signal_numbers=signal_numbers,
         install_recording_exit_guard_impl=install_recording_exit_guard_impl,
-        close_from_exit_guard=close_from_exit_guard or _fallback_runtime_callback(runtime, "_close_from_exit_guard"),
-        handle_termination_signal=handle_termination_signal or _fallback_runtime_callback(runtime, "_handle_termination_signal"),
+        close_from_exit_guard=close_from_exit_guard
+        or _fallback_runtime_callback(runtime, "_close_from_exit_guard"),
+        handle_termination_signal=handle_termination_signal
+        or _fallback_runtime_callback(runtime, "_handle_termination_signal"),
     )
 
 
@@ -151,7 +157,8 @@ def remove_recording_exit_guard(
         atexit_unregister=atexit_unregister,
         signal_setsignal=signal_setsignal,
         remove_recording_exit_guard_impl=remove_recording_exit_guard_impl,
-        close_from_exit_guard=close_from_exit_guard or _fallback_runtime_callback(runtime, "_close_from_exit_guard"),
+        close_from_exit_guard=close_from_exit_guard
+        or _fallback_runtime_callback(runtime, "_close_from_exit_guard"),
     )
 
 
@@ -166,7 +173,8 @@ def close_from_exit_guard(
         runtime,
         close_from_exit_guard_impl=close_from_exit_guard_impl,
         close_runtime=close_runtime or runtime.close,
-        finalize_recording=finalize_recording or _fallback_runtime_callback(runtime, "_finalize_recording"),
+        finalize_recording=finalize_recording
+        or _fallback_runtime_callback(runtime, "_finalize_recording"),
     )
 
 
@@ -198,11 +206,14 @@ def handle_termination_signal(
         record_event=record_event_callback or _runtime_record_event_callback(runtime),
         remove_recording_exit_guard=remove_recording_exit_guard_callback
         or _fallback_runtime_callback(runtime, "_remove_recording_exit_guard"),
-        finalize_recording=finalize_recording_callback or _fallback_runtime_callback(runtime, "_finalize_recording"),
+        finalize_recording=finalize_recording_callback
+        or _fallback_runtime_callback(runtime, "_finalize_recording"),
     )
 
 
-def record_event(*, record_file: Any, event: str, payload: dict[str, Any], write_event_record: Callable[..., Any]) -> None:
+def record_event(
+    *, record_file: Any, event: str, payload: dict[str, Any], write_event_record: Callable[..., Any]
+) -> None:
     write_event_record(
         record_file=record_file,
         event=event,
@@ -300,9 +311,18 @@ def record_frame(
         runtime,
         obs,
         record_observation_frame=record_observation_frame,
-        call_env_method=call_env_method or (lambda method_name: _fallback_runtime_callback(runtime, "_call_behavior_env_method")(method_name)),
-        subtask_name=subtask_name if subtask_name is not None else _fallback_runtime_callback(runtime, "_recording_subtask_name")(),
-        instruction=instruction if instruction is not None else _fallback_runtime_callback(runtime, "_recording_subtask_instruction")(),
+        call_env_method=call_env_method
+        or (
+            lambda method_name: _fallback_runtime_callback(runtime, "_call_behavior_env_method")(
+                method_name
+            )
+        ),
+        subtask_name=subtask_name
+        if subtask_name is not None
+        else _fallback_runtime_callback(runtime, "_recording_subtask_name")(),
+        instruction=instruction
+        if instruction is not None
+        else _fallback_runtime_callback(runtime, "_recording_subtask_instruction")(),
         record_event=record_event_callback or _runtime_record_event_callback(runtime),
     )
 

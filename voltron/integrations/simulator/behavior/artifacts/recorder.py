@@ -1,12 +1,12 @@
-"""Recording and recording-guard helpers for the BEHAVIOR runtime bridge."""
-
 from __future__ import annotations
 
 from typing import Any, Callable
 
 import numpy as np
 
-from voltron.integrations.simulator.behavior.artifacts import process_logger as behavior_process_logger
+from voltron.integrations.simulator.behavior.artifacts import (
+    process_logger as behavior_process_logger,
+)
 from voltron.shared.context import Plan, TaskRequest
 
 
@@ -63,7 +63,9 @@ def annotate_recording_overlay_lines(
     total_height = sum(height for _, height in valid_sizes) + (line_gap * (len(valid_sizes) - 1))
     baseline_y = max(valid_sizes[0][1], frame.shape[0] - margin - total_height + valid_sizes[0][1])
 
-    for index, (line, (line_width, line_height)) in enumerate(zip(filtered_lines, line_sizes, strict=False)):
+    for index, (line, (line_width, line_height)) in enumerate(
+        zip(filtered_lines, line_sizes, strict=False)
+    ):
         if line_width <= 0 or line_height <= 0:
             continue
         x = max(0, frame.shape[1] - line_width - margin)
@@ -115,7 +117,9 @@ def compose_recording_frame(
         cv2=cv2,
     )
     left_column = np.vstack([left_top, left_bottom])
-    first_person_box = resize_recording_frame_to_box(frame=head, width=target_w, height=target_h, cv2=cv2)
+    first_person_box = resize_recording_frame_to_box(
+        frame=head, width=target_w, height=target_h, cv2=cv2
+    )
     third_person_box = resize_recording_frame_to_box(
         frame=third_person,
         width=target_w,
@@ -125,7 +129,9 @@ def compose_recording_frame(
     tiled_rgb = np.hstack([left_column, first_person_box, third_person_box])
     tiled_bgr = cv2.cvtColor(tiled_rgb, cv2.COLOR_RGB2BGR)
     if overlay_lines:
-        return annotate_recording_overlay_lines(tiled_bgr, cv2=cv2, lines=overlay_lines, video_scale=video_scale)
+        return annotate_recording_overlay_lines(
+            tiled_bgr, cv2=cv2, lines=overlay_lines, video_scale=video_scale
+        )
     return tiled_bgr
 
 
@@ -197,7 +203,9 @@ def write_recording_frame(
     writer = video_writer
     if writer is None:
         fourcc = cv2.VideoWriter_fourcc(*"MJPG")
-        writer = cv2.VideoWriter(str(video_raw_path), fourcc, 10.0, (tiled_bgr.shape[1], tiled_bgr.shape[0]))
+        writer = cv2.VideoWriter(
+            str(video_raw_path), fourcc, 10.0, (tiled_bgr.shape[1], tiled_bgr.shape[0])
+        )
         if not writer.isOpened():
             record_event(
                 "video_writer_open_failed",
@@ -579,9 +587,7 @@ def record_frame_runtime(
         return
 
     prefer_live_capture = bool(
-        getattr(adapter, "env_kwargs", {}).get(
-            "recording_third_person_prefer_live_capture", False
-        )
+        getattr(adapter, "env_kwargs", {}).get("recording_third_person_prefer_live_capture", False)
     )
     recording_obs = obs
     if prefer_live_capture:

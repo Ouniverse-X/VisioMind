@@ -1,5 +1,3 @@
-"""HTTP client adapter for the standalone Memory Agent service."""
-
 from __future__ import annotations
 
 from dataclasses import asdict
@@ -12,13 +10,6 @@ from voltron.shared.models import PerceptionReport
 
 
 class MemoryAgentClient:
-    """Implement `MemoryAdapter` by forwarding calls to Memory Agent RPC endpoint.
-
-    The public methods intentionally mirror `voltron.shared.contracts.MemoryAdapter`
-    so business agents can switch between local `HEMSAdapter` and remote
-    `MemoryAgentClient` without code changes.
-    """
-
     def __init__(
         self,
         endpoint: str = "http://127.0.0.1:8070/rpc",
@@ -28,8 +19,6 @@ class MemoryAgentClient:
         self.endpoint = endpoint
         self.timeout_s = timeout_s
         self.session = session or requests.Session()
-
-    # ------------------------ Task lifecycle ------------------------
 
     def start_task(self, task_description: str, task_type: Any) -> str:
         task_type_value = getattr(task_type, "value", task_type)
@@ -41,15 +30,17 @@ class MemoryAgentClient:
     def reflect(self, similar_top_k: int = 5) -> dict[str, Any]:
         return self._rpc("reflect", similar_top_k=similar_top_k)
 
-    def get_consolidation_job(self, job_id: str | None = None) -> dict[str, Any] | list[dict[str, Any]]:
+    def get_consolidation_job(
+        self, job_id: str | None = None
+    ) -> dict[str, Any] | list[dict[str, Any]]:
         return self._rpc("get_consolidation_job", job_id=job_id)
 
     def wait_for_consolidation_jobs(self, timeout_s: float | None = None) -> list[dict[str, Any]]:
         return self._rpc("wait_for_consolidation_jobs", timeout_s=timeout_s)
 
-    # ------------------------ Retrieval ------------------------
-
-    def find_object(self, name: str, attributes: dict[str, Any] | None = None, top_k: int = 5) -> Any:
+    def find_object(
+        self, name: str, attributes: dict[str, Any] | None = None, top_k: int = 5
+    ) -> Any:
         return self._rpc("find_object", name=name, attributes=attributes, top_k=top_k)
 
     def find_objects_near(self, position: tuple[float, float, float], radius: float = 2.0) -> Any:
@@ -152,7 +143,9 @@ class MemoryAgentClient:
             recent_observation_limit=recent_observation_limit,
         )
 
-    def annotate_completed_episode(self, episode_id: str, annotation: dict[str, Any]) -> dict[str, Any]:
+    def annotate_completed_episode(
+        self, episode_id: str, annotation: dict[str, Any]
+    ) -> dict[str, Any]:
         return self._rpc("annotate_completed_episode", episode_id=episode_id, annotation=annotation)
 
     def store_experience_hint(self, hint: dict[str, Any]) -> dict[str, Any]:
@@ -320,8 +313,6 @@ class MemoryAgentClient:
             metadata=metadata,
         )
 
-    # ------------------------ Updates ------------------------
-
     def record_perception(self, report: PerceptionReport) -> dict[str, Any]:
         return self._rpc("record_perception", report=asdict(report))
 
@@ -337,16 +328,16 @@ class MemoryAgentClient:
     def record_monitor_summary(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self._rpc("record_monitor_summary", payload=payload)
 
-    # ------------------------ Internal ------------------------
-
     def _rpc(self, method: str, **kwargs) -> Any:
         request_payload = {"method": method, "kwargs": kwargs}
 
         try:
-            response = self.session.post(self.endpoint, json=request_payload, timeout=self.timeout_s)
+            response = self.session.post(
+                self.endpoint, json=request_payload, timeout=self.timeout_s
+            )
             response.raise_for_status()
             data = response.json()
-        except Exception as exc:  # pragma: no cover - network dependent
+        except Exception as exc:
             raise AdapterError(f"Memory Agent request failed: {exc}") from exc
 
         if not isinstance(data, dict):

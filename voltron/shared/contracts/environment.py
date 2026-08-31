@@ -1,5 +1,3 @@
-"""Runtime environment protocol for closed-loop task execution."""
-
 from __future__ import annotations
 
 from typing import Any, Protocol
@@ -10,16 +8,14 @@ from voltron.shared.models import SubtaskStepOutcome
 
 
 class RuntimeEnvironment(Protocol):
-    """Protocol for simulator/robot adapters used by the closed-loop orchestrator."""
-
     def reset(self, request: TaskRequest, plan: Plan, context: ExecutionContext) -> dict[str, Any]:
-        """Reset environment for a new task episode."""
+        pass
 
     def update_plan(self, plan: Plan, context: ExecutionContext) -> None:
-        """Append or refresh runtime plan information after dynamic planning."""
+        pass
 
     def build_runtime_inputs(self, subtask: Subtask, context: ExecutionContext) -> dict[str, Any]:
-        """Collect freshest runtime payload for the current subtask."""
+        pass
 
     def on_agent_result(
         self,
@@ -27,7 +23,7 @@ class RuntimeEnvironment(Protocol):
         result: AgentResult,
         context: ExecutionContext,
     ) -> SubtaskStepOutcome:
-        """Apply one agent result to the environment and return step outcome."""
+        pass
 
     def on_subtask_completion_decision(
         self,
@@ -35,13 +31,13 @@ class RuntimeEnvironment(Protocol):
         decision: dict[str, Any],
         context: ExecutionContext,
     ) -> None:
-        """Consume a terminal completion verdict when the adapter needs it."""
+        pass
 
     def task_succeeded(self, context: ExecutionContext) -> bool:
-        """Return whether the full task is complete and successful."""
+        pass
 
     def summary(self) -> dict[str, Any]:
-        """Return environment-level diagnostics/summary."""
+        pass
 
     def close(self) -> None:
-        """Release environment resources."""
+        pass

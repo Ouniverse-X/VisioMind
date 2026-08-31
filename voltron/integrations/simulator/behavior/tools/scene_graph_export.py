@@ -1,15 +1,3 @@
-"""Export BEHAVIOR scenes into lightweight scene maps and HOV-SG-style assets.
-
-This module builds a minimal navigation graph directly from BEHAVIOR scene assets:
-
-- ``scenes/<scene_model>/layout/floor_{ins,sem,trav}_0.png``
-- ``scenes/<scene_model>/json/<scene_model>_best.json``
-
-The output mirrors the subset of HOV-SG artifacts consumed by
-``HOVSGNavigatorAdapter`` so Voltron can exercise room / object grounding and
-cross-room path planning without importing the full HOV-SG mapping stack.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -71,8 +59,6 @@ def export_behavior_scene_graph(
     map_resolution: float = DEFAULT_MAP_RESOLUTION,
     trav_map_filename: str = "floor_trav_0.png",
 ) -> dict[str, Any]:
-    """Export a BEHAVIOR scene into lightweight graph assets and a scene map."""
-
     assets_root = Path(behavior_assets_root).expanduser().resolve()
     output_dir = Path(output_root).expanduser().resolve() / scene_model
     graph_dir = output_dir / "graph"
@@ -126,11 +112,7 @@ def export_behavior_scene_graph(
     )
     room_by_instance = {room.instance_name: room for room in room_regions}
 
-    object_registry = (
-        scene_payload.get("state", {})
-        .get("registry", {})
-        .get("object_registry", {})
-    )
+    object_registry = scene_payload.get("state", {}).get("registry", {}).get("object_registry", {})
     included_categories = _normalize_category_set(include_object_categories)
     object_entries = _extract_object_entries(
         scene_payload=scene_payload,
@@ -172,7 +154,9 @@ def export_behavior_scene_graph(
             "room_id": room.room_id,
             "name": room.instance_name,
             "floor_id": room.floor_id,
-            "objects": [entry["object_id"] for entry in object_entries if entry["room_id"] == room.room_id],
+            "objects": [
+                entry["object_id"] for entry in object_entries if entry["room_id"] == room.room_id
+            ],
             "vertices": room.vertices,
             "position": dict(room.centroid),
         }
@@ -202,7 +186,7 @@ def export_behavior_scene_graph(
                 {
                     "type": "voronoi_graph",
                     "filename": "sparse_voronoi_graph.json",
-                }
+                },
             ],
             "vertical_axis": DEFAULT_VERTICAL_AXIS,
         },
@@ -299,7 +283,9 @@ def _extract_room_regions(
         room_type = room_categories[sem_id - 1]
         for local_index, ins_id in enumerate(ins_ids):
             rows, cols = np.where(room_ins_map == ins_id)
-            centroid_xy = _interior_point(rows, cols, map_size=map_size, map_resolution=map_resolution)
+            centroid_xy = _interior_point(
+                rows, cols, map_size=map_size, map_resolution=map_resolution
+            )
             regions.append(
                 RoomRegion(
                     room_id=f"{DEFAULT_FLOOR_ID}_{room_index}",
@@ -337,8 +323,14 @@ def _extract_object_entries(
     for object_name, object_info in object_infos.items():
         object_args = object_info.get("args", {})
         object_category = _normalize_category(object_args.get("category"))
-        keep_selected_category = bool(object_category and object_category in include_object_categories)
-        if not include_structural_objects and not keep_selected_category and _is_structural_object(object_name):
+        keep_selected_category = bool(
+            object_category and object_category in include_object_categories
+        )
+        if (
+            not include_structural_objects
+            and not keep_selected_category
+            and _is_structural_object(object_name)
+        ):
             continue
 
         room_names = object_args.get("in_rooms", [])
@@ -382,7 +374,9 @@ def _build_room_adjacency(
     room_regions: list[RoomRegion],
     scene_payload: dict[str, Any],
 ) -> dict[str, set[str]]:
-    adjacency_by_ins_id = _adjacency_from_traversable_boundaries(room_ins_map=room_ins_map, trav_map=trav_map)
+    adjacency_by_ins_id = _adjacency_from_traversable_boundaries(
+        room_ins_map=room_ins_map, trav_map=trav_map
+    )
     room_name_by_ins_id = {room.ins_id: room.instance_name for room in room_regions}
     adjacency: dict[str, set[str]] = {room.instance_name: set() for room in room_regions}
 
@@ -426,8 +420,12 @@ def _add_explicit_door_adjacency(
             continue
         if not _is_door_category(object_args.get("category")):
             continue
-        object_name = object_args.get("name") if isinstance(object_args.get("name"), str) else str(object_key)
-        if not _door_state_is_open(object_registry.get(object_name) or object_registry.get(str(object_key))):
+        object_name = (
+            object_args.get("name") if isinstance(object_args.get("name"), str) else str(object_key)
+        )
+        if not _door_state_is_open(
+            object_registry.get(object_name) or object_registry.get(str(object_key))
+        ):
             continue
         raw_room_names = object_args.get("in_rooms", [])
         if isinstance(raw_room_names, str):
@@ -447,7 +445,9 @@ def _door_state_is_open(state: Any) -> bool:
     if not isinstance(state, dict):
         return True
     joint_pos = state.get("joint_pos")
-    is_open = door_is_open_from_joints([value for value in joint_pos if _is_number(value)] if isinstance(joint_pos, list) else None)
+    is_open = door_is_open_from_joints(
+        [value for value in joint_pos if _is_number(value)] if isinstance(joint_pos, list) else None
+    )
     return True if is_open is None else is_open
 
 
@@ -566,7 +566,9 @@ def _build_nav_graph(
     room_regions: list[RoomRegion],
     adjacency_by_room: dict[str, set[str]],
 ) -> dict[str, Any]:
-    node_id_by_room = {room.instance_name: [index, index, room.floor_id] for index, room in enumerate(room_regions)}
+    node_id_by_room = {
+        room.instance_name: [index, index, room.floor_id] for index, room in enumerate(room_regions)
+    }
     nodes = [
         {
             "id": node_id_by_room[room.instance_name],
@@ -641,7 +643,8 @@ def _build_sparse_voronoi_graph(
         interest_coords = [max_clearance_coord]
         farthest_coord = max(
             skeleton_coords,
-            key=lambda coord: (coord[0] - max_clearance_coord[0]) ** 2 + (coord[1] - max_clearance_coord[1]) ** 2,
+            key=lambda coord: (coord[0] - max_clearance_coord[0]) ** 2
+            + (coord[1] - max_clearance_coord[1]) ** 2,
         )
         if farthest_coord != max_clearance_coord:
             interest_coords.append(farthest_coord)
@@ -688,7 +691,9 @@ def _build_sparse_voronoi_graph(
             previous_coord = start_coord
             current_coord = next_coord
             while current_coord not in interest_set:
-                candidates = [coord for coord in neighbors_by_coord[current_coord] if coord != previous_coord]
+                candidates = [
+                    coord for coord in neighbors_by_coord[current_coord] if coord != previous_coord
+                ]
                 if not candidates:
                     break
                 previous_coord = current_coord
@@ -735,7 +740,8 @@ def _voronoi_node_payload(
     if room is None:
         room = min(
             room_by_name.values(),
-            key=lambda candidate: (candidate.centroid["x"] - x_coord) ** 2 + (candidate.centroid["y"] - y_coord) ** 2,
+            key=lambda candidate: (candidate.centroid["x"] - x_coord) ** 2
+            + (candidate.centroid["y"] - y_coord) ** 2,
         )
     clearance_m = float(distance_map[row, col]) * map_resolution
     return {
@@ -839,7 +845,9 @@ def _interior_point(
 ) -> tuple[float, float]:
     mean_row = float(rows.mean())
     mean_col = float(cols.mean())
-    distances = (rows.astype(np.float64) - mean_row) ** 2 + (cols.astype(np.float64) - mean_col) ** 2
+    distances = (rows.astype(np.float64) - mean_row) ** 2 + (
+        cols.astype(np.float64) - mean_col
+    ) ** 2
     index = int(np.argmin(distances))
     return _map_to_world(
         row=float(rows[index]),
@@ -857,7 +865,9 @@ def _room_vertices(
     map_size: int,
     map_resolution: float,
 ) -> list[list[float]]:
-    contour_vertices = _contour_vertices(mask=mask, map_size=map_size, map_resolution=map_resolution)
+    contour_vertices = _contour_vertices(
+        mask=mask, map_size=map_size, map_resolution=map_resolution
+    )
     if contour_vertices:
         return contour_vertices
     return _bbox_vertices(rows=rows, cols=cols, map_size=map_size, map_resolution=map_resolution)
@@ -869,7 +879,9 @@ def _contour_vertices(
     map_size: int,
     map_resolution: float,
 ) -> list[list[float]]:
-    contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(
+        mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    )
     if not contours:
         return []
     contour = max(contours, key=cv2.contourArea)
@@ -897,8 +909,12 @@ def _bbox_vertices(
     max_row = float(rows.max())
     min_col = float(cols.min())
     max_col = float(cols.max())
-    min_x, min_y = _map_to_world(row=min_row, col=min_col, map_size=map_size, map_resolution=map_resolution)
-    max_x, max_y = _map_to_world(row=max_row, col=max_col, map_size=map_size, map_resolution=map_resolution)
+    min_x, min_y = _map_to_world(
+        row=min_row, col=min_col, map_size=map_size, map_resolution=map_resolution
+    )
+    max_x, max_y = _map_to_world(
+        row=max_row, col=max_col, map_size=map_size, map_resolution=map_resolution
+    )
     low_x, high_x = sorted((min_x, max_x))
     low_y, high_y = sorted((min_y, max_y))
     return [
@@ -909,7 +925,9 @@ def _bbox_vertices(
     ]
 
 
-def _map_to_world(*, row: float, col: float, map_size: int, map_resolution: float) -> tuple[float, float]:
+def _map_to_world(
+    *, row: float, col: float, map_size: int, map_resolution: float
+) -> tuple[float, float]:
     x = (col - map_size / 2.0) * map_resolution
     y = (row - map_size / 2.0) * map_resolution
     return x, y
@@ -999,8 +1017,12 @@ def _normalize_maps(
 
     target_size = int(room_ins_map.shape[0] * DEFAULT_LAYOUT_PIXEL_RESOLUTION / map_resolution)
     target_size = max(target_size, 1)
-    room_ins_map = cv2.resize(room_ins_map, (target_size, target_size), interpolation=cv2.INTER_NEAREST)
-    room_sem_map = cv2.resize(room_sem_map, (target_size, target_size), interpolation=cv2.INTER_NEAREST)
+    room_ins_map = cv2.resize(
+        room_ins_map, (target_size, target_size), interpolation=cv2.INTER_NEAREST
+    )
+    room_sem_map = cv2.resize(
+        room_sem_map, (target_size, target_size), interpolation=cv2.INTER_NEAREST
+    )
     trav_map = cv2.resize(trav_map, (target_size, target_size))
     trav_map[trav_map < 255] = 0
     return room_ins_map, room_sem_map, trav_map
@@ -1025,7 +1047,9 @@ def _default_behavior_assets_root() -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--scene-model", required=True, help="BEHAVIOR scene model, e.g. house_single_floor")
+    parser.add_argument(
+        "--scene-model", required=True, help="BEHAVIOR scene model, e.g. house_single_floor"
+    )
     parser.add_argument(
         "--behavior-assets-root",
         default=_default_behavior_assets_root(),
@@ -1036,7 +1060,9 @@ def build_parser() -> argparse.ArgumentParser:
         default="/mnt/data/huangyixuan/hovsg_exports",
         help="Directory for generated scene exports",
     )
-    parser.add_argument("--scene-instance", default=None, help="Optional scene instance JSON name without .json")
+    parser.add_argument(
+        "--scene-instance", default=None, help="Optional scene instance JSON name without .json"
+    )
     parser.add_argument(
         "--scene-file",
         default=None,

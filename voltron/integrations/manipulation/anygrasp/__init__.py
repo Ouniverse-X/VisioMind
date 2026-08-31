@@ -1,5 +1,3 @@
-"""AnyGrasp integration — point-cloud-based grasp detection for Voltron."""
-
 from .detector import AnyGraspDetector, GraspCandidate
 from .frame_adapter import AnyGraspFrameAdapter
 from .grasp_executor import GraspExecution, GraspExecutor, GraspResult

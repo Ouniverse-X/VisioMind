@@ -1,5 +1,3 @@
-"""Persistence helpers for the HEMS integration."""
-
 from __future__ import annotations
 
 import json

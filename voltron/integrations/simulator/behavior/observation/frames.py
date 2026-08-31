@@ -1,5 +1,3 @@
-"""Observation and image frame shaping helpers for BEHAVIOR."""
-
 from __future__ import annotations
 
 import base64
@@ -8,7 +6,9 @@ from typing import Any
 
 import numpy as np
 
-from voltron.integrations.simulator.behavior.artifacts import process_logger as behavior_process_logger
+from voltron.integrations.simulator.behavior.artifacts import (
+    process_logger as behavior_process_logger,
+)
 
 
 def to_policy_observation(obs: dict[str, Any]) -> dict[str, Any]:

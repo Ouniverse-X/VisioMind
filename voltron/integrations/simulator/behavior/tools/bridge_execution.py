@@ -1,18 +1,34 @@
-"""Step-execution orchestration helpers for the BEHAVIOR runtime facade."""
-
 from __future__ import annotations
 
 from typing import Any
 
-from voltron.integrations.simulator.behavior.artifacts import process_logger as behavior_process_logger
-from voltron.integrations.simulator.behavior.execution import action_stepper as behavior_action_stepper
-from voltron.integrations.simulator.behavior.execution import reward_status as behavior_reward_status
-from voltron.integrations.simulator.behavior.tools import bridge_environment as behavior_bridge_environment
-from voltron.integrations.simulator.behavior.tools import bridge_lifecycle as behavior_bridge_lifecycle
-from voltron.integrations.simulator.behavior.tools import bridge_localization as behavior_bridge_localization
-from voltron.integrations.simulator.behavior.tools import bridge_recording as behavior_bridge_recording
-from voltron.integrations.simulator.behavior.tools import bridge_subtasks as behavior_bridge_subtasks
-from voltron.integrations.simulator.behavior.tools import runtime_adapter_state as behavior_runtime_adapter_state
+from voltron.integrations.simulator.behavior.artifacts import (
+    process_logger as behavior_process_logger,
+)
+from voltron.integrations.simulator.behavior.execution import (
+    action_stepper as behavior_action_stepper,
+)
+from voltron.integrations.simulator.behavior.execution import (
+    reward_status as behavior_reward_status,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_environment as behavior_bridge_environment,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_lifecycle as behavior_bridge_lifecycle,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_localization as behavior_bridge_localization,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_recording as behavior_bridge_recording,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_subtasks as behavior_bridge_subtasks,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    runtime_adapter_state as behavior_runtime_adapter_state,
+)
 from voltron.integrations.simulator.behavior.tools import runtime_vla as behavior_runtime_vla
 from voltron.integrations.simulator.behavior.tools import step_setup as behavior_step_setup
 
@@ -43,7 +59,9 @@ def on_agent_result(
             current,
             runtime.default_subtask_max_steps,
         ),
-        record_event=lambda event, payload: behavior_bridge_lifecycle.record_event(runtime, event, payload),
+        record_event=lambda event, payload: behavior_bridge_lifecycle.record_event(
+            runtime, event, payload
+        ),
         emit_progress=lambda message: behavior_bridge_lifecycle.emit_progress(runtime, message),
     )
     prepared_state = behavior_runtime_adapter_state.apply_prepared_step_state(runtime, prepared)
@@ -70,7 +88,9 @@ def on_agent_result(
         resolved_subtask_name=resolved_subtask_name,
         env_subtask_name=env_subtask_name,
         summarize_sequence=behavior_bridge_recording.summarize_sequence,
-        record_event=lambda event, payload: behavior_bridge_lifecycle.record_event(runtime, event, payload),
+        record_event=lambda event, payload: behavior_bridge_lifecycle.record_event(
+            runtime, event, payload
+        ),
         emit_progress=lambda message: behavior_bridge_lifecycle.emit_progress(runtime, message),
     )
     if terminal_outcome is not None:
@@ -98,7 +118,9 @@ def on_agent_result(
         build_action_missing_response=behavior_action_stepper.build_action_missing_response,
         build_env_step_error_response=behavior_action_stepper.build_env_step_error_response,
         emit_step_response=behavior_action_stepper.emit_step_response,
-        record_event=lambda event, payload: behavior_bridge_lifecycle.record_event(runtime, event, payload),
+        record_event=lambda event, payload: behavior_bridge_lifecycle.record_event(
+            runtime, event, payload
+        ),
         emit_progress=lambda message: behavior_bridge_lifecycle.emit_progress(runtime, message),
     )
     if executed["terminal_outcome"] is not None:
@@ -163,7 +185,9 @@ def on_agent_result(
             info=info if isinstance(info, dict) else {},
             action=action,
             env_action=env_action,
-            runtime_artifacts=result.runtime_artifacts if isinstance(result.runtime_artifacts, dict) else {},
+            runtime_artifacts=result.runtime_artifacts
+            if isinstance(result.runtime_artifacts, dict)
+            else {},
         )
     return behavior_action_stepper.finalize_step(
         subtask=subtask,
@@ -188,9 +212,13 @@ def on_agent_result(
         record_frame=lambda obs: behavior_bridge_lifecycle.record_frame(runtime, obs),
         record_step_events=lambda **kwargs: behavior_process_logger.record_step_events(
             **kwargs,
-            record_event=lambda event, payload: behavior_bridge_lifecycle.record_event(runtime, event, payload),
+            record_event=lambda event, payload: behavior_bridge_lifecycle.record_event(
+                runtime, event, payload
+            ),
         ),
-        maybe_log_progress=lambda **kwargs: behavior_bridge_lifecycle.maybe_log_progress(runtime, **kwargs),
+        maybe_log_progress=lambda **kwargs: behavior_bridge_lifecycle.maybe_log_progress(
+            runtime, **kwargs
+        ),
         subtask_failure_reason=behavior_bridge_recording.subtask_failure_reason,
         format_float=behavior_bridge_recording.format_float,
         feedback_factory=lambda extras=None: behavior_bridge_lifecycle.build_runtime_feedback(
@@ -198,7 +226,9 @@ def on_agent_result(
             subtask=subtask,
             extras=extras,
         ),
-        record_event=lambda event, payload: behavior_bridge_lifecycle.record_event(runtime, event, payload),
+        record_event=lambda event, payload: behavior_bridge_lifecycle.record_event(
+            runtime, event, payload
+        ),
         emit_progress=lambda message: behavior_bridge_lifecycle.emit_progress(runtime, message),
         environment_success_evidence_only=environment_success_evidence_only,
     )
@@ -219,7 +249,15 @@ def _environment_success_evidence_only(runtime: Any) -> bool:
 
 def _should_hold_grippers_closed(*, context: Any, subtask: Any) -> bool:
     runtime_state = getattr(context, "runtime_state", None)
-    if not isinstance(runtime_state, dict) or not isinstance(runtime_state.get("carried_object"), dict):
+    if not isinstance(runtime_state, dict) or not isinstance(
+        runtime_state.get("carried_object"), dict
+    ):
         return False
-    action = " ".join(str(getattr(subtask, "action", "") or "").replace("_", " ").replace("-", " ").lower().split())
+    action = " ".join(
+        str(getattr(subtask, "action", "") or "")
+        .replace("_", " ")
+        .replace("-", " ")
+        .lower()
+        .split()
+    )
     return action not in {"place", "put", "put down", "putdown", "drop", "release"}

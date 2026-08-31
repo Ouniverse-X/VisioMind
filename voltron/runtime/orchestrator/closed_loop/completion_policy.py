@@ -1,5 +1,3 @@
-"""Completion and memory-update helpers for closed-loop orchestration."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -191,7 +189,9 @@ def build_action_subtask_record_payload(
     collaborative_step_id = subtask.parameters.get("collaborative_step_id")
     completion_condition_source = subtask.parameters.get("completion_condition_source")
     completion_criteria = [
-        dict(item) for item in subtask.parameters.get("completion_criteria") or [] if isinstance(item, dict)
+        dict(item)
+        for item in subtask.parameters.get("completion_criteria") or []
+        if isinstance(item, dict)
     ]
 
     parameters = {
@@ -199,7 +199,9 @@ def build_action_subtask_record_payload(
         "agent": subtask.agent.value,
         "action": subtask.action,
         "target": dict(subtask.target),
-        "instruction": str(subtask.parameters.get("instruction") or subtask.context.get("instruction") or ""),
+        "instruction": str(
+            subtask.parameters.get("instruction") or subtask.context.get("instruction") or ""
+        ),
         "collaborative_step_id": collaborative_step_id,
         "completion_condition_source": completion_condition_source,
         "completion_criteria": completion_criteria,
@@ -210,12 +212,16 @@ def build_action_subtask_record_payload(
         "task_success": env_feedback.get("task_success"),
         "execution_mode": runtime_artifacts.get("action_execution_mode"),
         "execution_plan": _compact_action_execution_plan(execution_plan),
-        "execution_progress": dict(execution_progress) if isinstance(execution_progress, dict) else {},
+        "execution_progress": dict(execution_progress)
+        if isinstance(execution_progress, dict)
+        else {},
         "active_internal_step": _compact_internal_step(active_internal_step),
         "internal_steps": _compact_action_internal_steps(
             runtime_artifacts.get("action_internal_steps"),
             execution_plan=execution_plan if isinstance(execution_plan, dict) else {},
-            active_internal_step=active_internal_step if isinstance(active_internal_step, dict) else {},
+            active_internal_step=active_internal_step
+            if isinstance(active_internal_step, dict)
+            else {},
             execution_progress=execution_progress if isinstance(execution_progress, dict) else {},
             failure_reason=failure_reason,
         ),
@@ -262,7 +268,9 @@ def _compact_action_execution_plan(value: Any) -> dict[str, Any]:
         "parent_subtask_id": value.get("parent_subtask_id"),
         "goal_summary": value.get("goal_summary"),
         "source": value.get("source"),
-        "steps": [_compact_internal_step(step) for step in steps] if isinstance(steps, list) else [],
+        "steps": [_compact_internal_step(step) for step in steps]
+        if isinstance(steps, list)
+        else [],
     }
 
 
@@ -321,7 +329,11 @@ def _compact_action_internal_steps(
                 step["status"] = "failure"
             else:
                 step["status"] = "pending"
-        if failure_reason and step["status"] not in {"success", "completed"} and not step.get("failure_reason"):
+        if (
+            failure_reason
+            and step["status"] not in {"success", "completed"}
+            and not step.get("failure_reason")
+        ):
             step["failure_reason"] = failure_reason
         compact_steps.append(step)
     return compact_steps
@@ -359,7 +371,9 @@ def extract_object_approach_context(
     candidate = result.runtime_artifacts.get("selected_object_approach")
     if not isinstance(candidate, dict) or not candidate:
         return None
-    grounded_goal = result.result.get("grounded_goal") or result.runtime_artifacts.get("grounded_goal") or {}
+    grounded_goal = (
+        result.result.get("grounded_goal") or result.runtime_artifacts.get("grounded_goal") or {}
+    )
     if not isinstance(grounded_goal, dict):
         grounded_goal = {}
     scene_id = (

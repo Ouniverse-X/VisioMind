@@ -1,5 +1,3 @@
-"""Waypoint planning helpers for the HOV-SG navigator."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -236,7 +234,11 @@ def preferred_direct_room_step_index(
     preferred_metrics = None
     for candidate_index in range(len(room_steps) - 1, current_index + 1, -1):
         candidate_room_id = room_steps[candidate_index].get("room_id")
-        if not isinstance(candidate_room_id, str) or not candidate_room_id or candidate_room_id == current_room_id:
+        if (
+            not isinstance(candidate_room_id, str)
+            or not candidate_room_id
+            or candidate_room_id == current_room_id
+        ):
             continue
         metrics = strong_room_transition_metrics(
             adapter,
@@ -317,7 +319,10 @@ def explicit_portal_transition_metrics(
         source_point = target_point = adapter._project_horizontal(scene, portal)
     gap = float(portal.get("portal_gap", 0.0) or 0.0)
     if source_point is not None and target_point is not None and gap <= 0.0:
-        gap = ((float(target_point[0]) - float(source_point[0])) ** 2 + (float(target_point[1]) - float(source_point[1])) ** 2) ** 0.5
+        gap = (
+            (float(target_point[0]) - float(source_point[0])) ** 2
+            + (float(target_point[1]) - float(source_point[1])) ** 2
+        ) ** 0.5
     return {
         "source_point": tuple(source_point) if source_point is not None else None,
         "target_point": tuple(target_point) if target_point is not None else None,

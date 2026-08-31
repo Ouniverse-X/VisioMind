@@ -1,5 +1,3 @@
-"""Deterministic waypoint-following policy adapter for VLN navigation."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -20,14 +18,6 @@ from . import waypoint_policy_waypoints
 
 
 class WaypointPolicyAdapter:
-    """Convert scene-level waypoints into base velocity commands.
-
-    This adapter intentionally stays lightweight:
-    - it consumes ``options["nav_waypoints"]`` from the navigation bridge
-    - it reads current robot pose / orientation from the observation payload
-    - it outputs ``action.base`` as a simple forward + yaw-rate command
-    """
-
     def __init__(
         self,
         *,

@@ -1,5 +1,3 @@
-"""Execution flow for the waypoint policy adapter."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -25,7 +23,9 @@ def get_action(
             "reason": "nav_waypoints_missing",
         }
 
-    adapter._path_tracking_mode = adapter._resolve_path_tracking_mode(options=options, waypoints=waypoints)
+    adapter._path_tracking_mode = adapter._resolve_path_tracking_mode(
+        options=options, waypoints=waypoints
+    )
 
     signature = adapter._waypoint_list_signature(
         waypoints=waypoints,
@@ -135,15 +135,21 @@ def get_action(
         }
 
     axis_x, axis_y = horizontal_axes
-    target, tracking_target, tracking_distance, distance, heading_error, local_forward, local_lateral = (
-        adapter._tracking_state(
-            pose=pose,
-            yaw=yaw,
-            waypoints=waypoints,
-            active_index=active_index,
-            axis_x=axis_x,
-            axis_y=axis_y,
-        )
+    (
+        target,
+        tracking_target,
+        tracking_distance,
+        distance,
+        heading_error,
+        local_forward,
+        local_lateral,
+    ) = adapter._tracking_state(
+        pose=pose,
+        yaw=yaw,
+        waypoints=waypoints,
+        active_index=active_index,
+        axis_x=axis_x,
+        axis_y=axis_y,
     )
     adapter._update_portal_stage_lock(target=target)
 
@@ -175,15 +181,21 @@ def get_action(
         active_index = min(active_index + 1, len(waypoints) - 1)
         adapter._active_waypoint_index = active_index
         adapter._reset_waypoint_tracking_state()
-        target, tracking_target, tracking_distance, distance, heading_error, local_forward, local_lateral = (
-            adapter._tracking_state(
-                pose=pose,
-                yaw=yaw,
-                waypoints=waypoints,
-                active_index=active_index,
-                axis_x=axis_x,
-                axis_y=axis_y,
-            )
+        (
+            target,
+            tracking_target,
+            tracking_distance,
+            distance,
+            heading_error,
+            local_forward,
+            local_lateral,
+        ) = adapter._tracking_state(
+            pose=pose,
+            yaw=yaw,
+            waypoints=waypoints,
+            active_index=active_index,
+            axis_x=axis_x,
+            axis_y=axis_y,
         )
     if adapter._should_start_recovery(
         nav_feedback=nav_feedback,
@@ -275,7 +287,10 @@ def _should_discard_stale_pre_transition_path(
     nav_plan: Any,
     normalize_label: Any,
 ) -> bool:
-    if str(pending_transition_goal.get("waypoint_type") or "").strip().lower() != "post_portal_goal":
+    if (
+        str(pending_transition_goal.get("waypoint_type") or "").strip().lower()
+        != "post_portal_goal"
+    ):
         return False
     if not isinstance(nav_plan, dict):
         return False

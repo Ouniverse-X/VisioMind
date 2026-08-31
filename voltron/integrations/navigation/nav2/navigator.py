@@ -1,5 +1,3 @@
-"""Nav2-backed navigator that keeps HOV-SG as the semantic grounding layer."""
-
 from __future__ import annotations
 
 import json
@@ -21,8 +19,6 @@ from . import semantic_plan as nav2_semantic_plan
 
 @dataclass(frozen=True)
 class Nav2VersionProfile:
-    """Pinned Nav2 runtime profile used for environment validation and subprocess calls."""
-
     profile_id: str
     ros_distro: str
     isaac_sim_version: str
@@ -60,10 +56,8 @@ DEFAULT_R1PRO_NAV_FOOTPRINT: tuple[tuple[float, float], ...] = (
     (-0.40, 0.34),
 )
 DEFAULT_R1PRO_NAV_FOOTPRINT_PADDING_M = 0.02
-# Conservative clearance already accounted for by the runtime costmap.  This
-# is intentionally smaller than runtime_worker's outer inflation radius: cells
-# in the outer inflation band are traversable soft costs used to bias Navfn
-# toward corridor centerlines, not guaranteed hard clearance.
+
+
 NAV2_RUNTIME_GUARANTEED_CLEARANCE_RADIUS_M = 0.25
 
 
@@ -73,8 +67,6 @@ def _uses_objectless_base_map(filename: str | None) -> bool:
 
 
 class SemanticNavigator(Protocol):
-    """Subset of the navigator protocol used by the Nav2 adapter."""
-
     def update(
         self,
         observation: dict[str, Any],
@@ -107,8 +99,6 @@ class SemanticNavigator(Protocol):
 
 
 class Nav2PathClient(Protocol):
-    """Compute a 2D path in the Nav2 map frame."""
-
     def inspect_environment(self) -> dict[str, Any]: ...
 
     def compute_path(
@@ -123,8 +113,6 @@ class Nav2PathClient(Protocol):
 
 
 class SubprocessNav2ComputePathClient:
-    """Invoke Nav2 from a ROS-sourced subprocess to avoid polluting the Voltron env."""
-
     def __init__(
         self,
         *,
@@ -136,9 +124,7 @@ class SubprocessNav2ComputePathClient:
         self.action_name = str(action_name).strip() or "compute_path_to_pose"
         default_script = Path(__file__).resolve().parent / "compute_path_worker.py"
         self.worker_script = (
-            Path(worker_script).expanduser()
-            if worker_script is not None
-            else default_script
+            Path(worker_script).expanduser() if worker_script is not None else default_script
         )
         self._environment_summary: dict[str, Any] | None = None
 
@@ -218,15 +204,11 @@ class SubprocessNav2ComputePathClient:
         try:
             payload = json.loads(result.stdout.strip() or "{}")
         except json.JSONDecodeError as exc:
-            raise RuntimeError(
-                f"Invalid Nav2 worker response: {result.stdout.strip()}"
-            ) from exc
+            raise RuntimeError(f"Invalid Nav2 worker response: {result.stdout.strip()}") from exc
         return payload
 
 
 class Nav2NavigatorAdapter:
-    """Use HOV-SG for semantic grounding and Nav2 for reachable geometric paths."""
-
     def __init__(
         self,
         *,
@@ -275,15 +257,11 @@ class Nav2NavigatorAdapter:
         )
         self.waypoint_spacing = max(0.05, float(waypoint_spacing))
         self.global_waypoint_tolerance = max(0.05, float(global_waypoint_tolerance))
-        self.final_global_waypoint_tolerance = max(
-            0.05, float(final_global_waypoint_tolerance)
-        )
+        self.final_global_waypoint_tolerance = max(0.05, float(final_global_waypoint_tolerance))
         self.final_global_waypoint_heading_tolerance_rad = max(
             0.05, float(abs(final_global_waypoint_heading_tolerance_rad))
         )
-        self.portal_analysis_map_resolution = max(
-            0.02, float(portal_analysis_map_resolution)
-        )
+        self.portal_analysis_map_resolution = max(0.02, float(portal_analysis_map_resolution))
         self.portal_clearance_radius_m = max(0.0, float(portal_clearance_radius_m))
         self.portal_corridor_standoff_m = max(0.05, float(portal_corridor_standoff_m))
         self.portal_sampling_step_m = max(0.02, float(portal_sampling_step_m))
@@ -303,19 +281,12 @@ class Nav2NavigatorAdapter:
         )
         self.portal_egress_depth_m = max(
             0.30,
-            max(
-                math.hypot(float(point[0]), float(point[1]))
-                for point in self.portal_footprint
-            )
+            max(math.hypot(float(point[0]), float(point[1])) for point in self.portal_footprint)
             + self.portal_footprint_padding_m
             + 0.10,
         )
-        self.local_path_clearance_radius_m = max(
-            0.0, float(local_path_clearance_radius_m)
-        )
-        self.local_path_waypoint_spacing_m = max(
-            0.05, float(local_path_waypoint_spacing_m)
-        )
+        self.local_path_clearance_radius_m = max(0.0, float(local_path_clearance_radius_m))
+        self.local_path_waypoint_spacing_m = max(0.05, float(local_path_waypoint_spacing_m))
         self.path_client = path_client or SubprocessNav2ComputePathClient(
             profile=self.profile,
             action_name=self.action_name,
@@ -441,10 +412,7 @@ class Nav2NavigatorAdapter:
         goal = dict(goal)
         scene_id = (
             str(
-                goal.get("scene_id")
-                or start.get("scene_id")
-                or context.get("scene_id")
-                or ""
+                goal.get("scene_id") or start.get("scene_id") or context.get("scene_id") or ""
             ).strip()
             or None
         )
@@ -466,29 +434,25 @@ class Nav2NavigatorAdapter:
                     goal=goal,
                     context=context,
                 )
-                preliminary_trav_map_filename = (
-                    self._resolve_nav2_trav_map_filename(
-                        start=start,
-                        goal=goal,
-                        context=context,
-                    )
+                preliminary_trav_map_filename = self._resolve_nav2_trav_map_filename(
+                    start=start,
+                    goal=goal,
+                    context=context,
                 )
-                candidate_validation = (
-                    nav2_candidate_validation.validate_object_approach_candidates(
-                        self,
-                        start=start_pose,
-                        candidates=candidates,
-                        selected_candidate_id=(
-                            str(selected_candidate.get("candidate_id") or "")
-                            if isinstance(selected_candidate, dict)
-                            else None
-                        ),
-                        scene_id=scene_id,
-                        vertical_axis=preliminary_vertical_axis,
-                        nav2_trav_map_filename=preliminary_trav_map_filename,
-                        nav2_scene_obstacle_inflation_radius_m=self._nav2_scene_obstacle_inflation_radius_m(),
-                        navigation_goal=goal,
-                    )
+                candidate_validation = nav2_candidate_validation.validate_object_approach_candidates(
+                    self,
+                    start=start_pose,
+                    candidates=candidates,
+                    selected_candidate_id=(
+                        str(selected_candidate.get("candidate_id") or "")
+                        if isinstance(selected_candidate, dict)
+                        else None
+                    ),
+                    scene_id=scene_id,
+                    vertical_axis=preliminary_vertical_axis,
+                    nav2_trav_map_filename=preliminary_trav_map_filename,
+                    nav2_scene_obstacle_inflation_radius_m=self._nav2_scene_obstacle_inflation_radius_m(),
+                    navigation_goal=goal,
                 )
                 generation_diagnostics = (
                     self._last_object_approach_generation_diagnostics
@@ -512,9 +476,7 @@ class Nav2NavigatorAdapter:
                         "nav2_path_length_m": (
                             candidate_validation.get("selected_candidate_result") or {}
                         ).get("path_length_m"),
-                        "runtime_map_revision": candidate_validation.get(
-                            "runtime_map_revision"
-                        ),
+                        "runtime_map_revision": candidate_validation.get("runtime_map_revision"),
                         "runtime_overlay_signature": candidate_validation.get(
                             "runtime_overlay_signature"
                         ),
@@ -540,9 +502,7 @@ class Nav2NavigatorAdapter:
         )
         if candidate_validation is not None:
             semantic_plan["nav2_candidate_validation"] = candidate_validation
-            semantic_diagnostics = dict(
-                semantic_plan.get("object_approach_diagnostics") or {}
-            )
+            semantic_diagnostics = dict(semantic_plan.get("object_approach_diagnostics") or {})
             semantic_diagnostics.update(
                 {
                     key: candidate_validation.get(key)
@@ -564,9 +524,7 @@ class Nav2NavigatorAdapter:
             )
             semantic_plan["object_approach_diagnostics"] = semantic_diagnostics
             if isinstance(goal.get("selected_object_approach"), dict):
-                semantic_plan["selected_object_approach"] = dict(
-                    goal["selected_object_approach"]
-                )
+                semantic_plan["selected_object_approach"] = dict(goal["selected_object_approach"])
         vertical_axis = self._resolve_vertical_axis(
             start=start,
             goal=goal,
@@ -579,9 +537,7 @@ class Nav2NavigatorAdapter:
             context=context,
         )
         global_waypoints = self._normalize_waypoints(semantic_plan.get("waypoints"))
-        dense_waypoints = self._normalize_waypoints(
-            semantic_plan.get("dense_waypoints")
-        )
+        dense_waypoints = self._normalize_waypoints(semantic_plan.get("dense_waypoints"))
         if not semantic_plan.get("found", True) or not global_waypoints:
             fallback = dict(semantic_plan)
             fallback.setdefault("planner", "hovsg_global_nav2_local")
@@ -596,9 +552,7 @@ class Nav2NavigatorAdapter:
             fallback["object_approach_candidates"] = semantic_plan.get(
                 "object_approach_candidates", []
             )
-            fallback["selected_object_approach"] = semantic_plan.get(
-                "selected_object_approach"
-            )
+            fallback["selected_object_approach"] = semantic_plan.get("selected_object_approach")
             return fallback
 
         start_pose = start.get("pose")
@@ -613,9 +567,7 @@ class Nav2NavigatorAdapter:
             global_waypoints=global_waypoints,
             current_region=current_region,
             vertical_axis=vertical_axis,
-            previous_index=self._resolve_previous_global_waypoint_index(
-                context=context
-            ),
+            previous_index=self._resolve_previous_global_waypoint_index(context=context),
         )
         if (
             active_global_waypoint_index >= len(global_waypoints)
@@ -654,12 +606,8 @@ class Nav2NavigatorAdapter:
                 "transition_anchor": transition_anchor,
                 "waypoint_tracking_mode": "global_local_hybrid",
                 "waypoint_scope": "dynamic_local_segment",
-                "object_approach_candidates": semantic_plan.get(
-                    "object_approach_candidates", []
-                ),
-                "selected_object_approach": semantic_plan.get(
-                    "selected_object_approach"
-                ),
+                "object_approach_candidates": semantic_plan.get("object_approach_candidates", []),
+                "selected_object_approach": semantic_plan.get("selected_object_approach"),
             }
 
         if active_global_waypoint_index >= len(global_waypoints):
@@ -672,34 +620,27 @@ class Nav2NavigatorAdapter:
             active_index=active_global_waypoint_index,
             current_region=current_region,
         )
-        if (
-            isinstance(transition_anchor, dict)
-            and nav2_portal_safety.has_portal_frame(transition_anchor)
+        if isinstance(transition_anchor, dict) and nav2_portal_safety.has_portal_frame(
+            transition_anchor
         ):
             transition_anchor = dict(transition_anchor)
-            transition_anchor["portal_required_egress_depth_m"] = (
-                self.portal_egress_depth_m
-            )
-        transition_anchor, doorway_corridor = (
-            self._refine_transition_anchor_with_traversability(
-                scene_id=scene_id,
-                vertical_axis=vertical_axis,
-                current_region=current_region,
-                transition_anchor=transition_anchor,
-                execution_goal=execution_goal,
-                nav2_trav_map_filename=nav2_trav_map_filename,
-            )
+            transition_anchor["portal_required_egress_depth_m"] = self.portal_egress_depth_m
+        transition_anchor, doorway_corridor = self._refine_transition_anchor_with_traversability(
+            scene_id=scene_id,
+            vertical_axis=vertical_axis,
+            current_region=current_region,
+            transition_anchor=transition_anchor,
+            execution_goal=execution_goal,
+            nav2_trav_map_filename=nav2_trav_map_filename,
         )
         if pending_portal_egress_anchor is None:
             self._remember_pending_portal_egress_anchor(
                 scene_id=scene_id,
                 anchor=transition_anchor,
             )
-            pending_portal_egress_anchor = (
-                self._active_pending_portal_egress_anchor(
-                    scene_id=scene_id,
-                    pose=start_pose,
-                )
+            pending_portal_egress_anchor = self._active_pending_portal_egress_anchor(
+                scene_id=scene_id,
+                pose=start_pose,
             )
         if pending_portal_egress_anchor is not None:
             transition_anchor = dict(pending_portal_egress_anchor)
@@ -726,12 +667,8 @@ class Nav2NavigatorAdapter:
         ):
             nav2_compute_goal = dict(execution_goal)
         if doorway_corridor is not None and pre_transition_stage:
-            # Drive the local planner toward the doorway centerline from the start instead of
-            # first biasing toward a side standoff and only correcting near the door.
             nav2_compute_goal = dict(doorway_corridor["midpoint"])
-        nav2_scene_obstacle_inflation_radius_m = (
-            self._nav2_scene_obstacle_inflation_radius_m()
-        )
+        nav2_scene_obstacle_inflation_radius_m = self._nav2_scene_obstacle_inflation_radius_m()
         local_path_plan = nav2_local_path_planning.plan_local_path(
             self,
             scene_id=scene_id,
@@ -756,9 +693,7 @@ class Nav2NavigatorAdapter:
         nav2_path_points = list(local_path_plan["nav2_path_points"])
         dense_waypoint_index = 0
         nav2_cache_reused = False
-        nav2_path_clipped_for_clearance = bool(
-            local_path_plan["nav2_path_clipped_for_clearance"]
-        )
+        nav2_path_clipped_for_clearance = bool(local_path_plan["nav2_path_clipped_for_clearance"])
         if (
             nav2_path_clipped_for_clearance
             and doorway_corridor is not None
@@ -828,9 +763,7 @@ class Nav2NavigatorAdapter:
                     "object_approach_candidates": semantic_plan.get(
                         "object_approach_candidates", []
                     ),
-                    "selected_object_approach": semantic_plan.get(
-                        "selected_object_approach"
-                    ),
+                    "selected_object_approach": semantic_plan.get("selected_object_approach"),
                 }
             if nav2_error == "room_exit_path" and not (
                 doorway_corridor is not None and pre_transition_stage
@@ -874,9 +807,7 @@ class Nav2NavigatorAdapter:
                     "object_approach_candidates": semantic_plan.get(
                         "object_approach_candidates", []
                     ),
-                    "selected_object_approach": semantic_plan.get(
-                        "selected_object_approach"
-                    ),
+                    "selected_object_approach": semantic_plan.get("selected_object_approach"),
                 }
             if (
                 nav2_error is not None
@@ -1012,12 +943,8 @@ class Nav2NavigatorAdapter:
                 "dense_waypoint_index": dense_waypoint_index,
                 "waypoint_tracking_mode": "global_local_hybrid",
                 "waypoint_scope": "dynamic_local_segment",
-                "object_approach_candidates": semantic_plan.get(
-                    "object_approach_candidates", []
-                ),
-                "selected_object_approach": semantic_plan.get(
-                    "selected_object_approach"
-                ),
+                "object_approach_candidates": semantic_plan.get("object_approach_candidates", []),
+                "selected_object_approach": semantic_plan.get("selected_object_approach"),
             }
 
         return {
@@ -1059,26 +986,19 @@ class Nav2NavigatorAdapter:
             "dense_waypoint_index": dense_waypoint_index,
             "waypoint_tracking_mode": "global_local_hybrid",
             "waypoint_scope": "dynamic_local_segment",
-            "object_approach_candidates": semantic_plan.get(
-                "object_approach_candidates", []
-            ),
+            "object_approach_candidates": semantic_plan.get("object_approach_candidates", []),
             "selected_object_approach": semantic_plan.get("selected_object_approach"),
         }
 
     def _nav2_scene_obstacle_inflation_radius_m(self) -> float:
-        """Keep the Nav2 request map conservative without double-counting worker inflation."""
-
         if self.local_path_clearance_radius_m <= 0.0:
             return 0.0
         return max(
             0.0,
-            self.local_path_clearance_radius_m
-            - NAV2_RUNTIME_GUARANTEED_CLEARANCE_RADIUS_M,
+            self.local_path_clearance_radius_m - NAV2_RUNTIME_GUARANTEED_CLEARANCE_RADIUS_M,
         )
 
     def _local_path_post_clearance_radius_m(self) -> float:
-        """Validate only clearance not already enforced by the Nav2 costmap."""
-
         return self._nav2_scene_obstacle_inflation_radius_m()
 
     @staticmethod
@@ -1149,17 +1069,13 @@ class Nav2NavigatorAdapter:
             "waypoint_tracking_mode": "global_local_hybrid",
             "waypoint_scope": "dynamic_local_segment",
             "failure_type": "portal_path_unavailable",
-            "object_approach_candidates": semantic_plan.get(
-                "object_approach_candidates", []
-            ),
+            "object_approach_candidates": semantic_plan.get("object_approach_candidates", []),
             "selected_object_approach": semantic_plan.get("selected_object_approach"),
         }
 
     def _runtime_door_map_overlays(
         self, scene_id: str | None
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
-        """Closed-door footprints from the semantic backend's runtime overlay,
-        so Nav2's static map reflects doors that closed after export."""
         backend = getattr(self, "semantic_backend", None)
         if backend is None or not scene_id:
             return [], [], ""
@@ -1209,8 +1125,8 @@ class Nav2NavigatorAdapter:
         str,
         str,
     ]:
-        door_obstacles, door_clear_regions, door_signature = (
-            self._runtime_door_map_overlays(scene_id)
+        door_obstacles, door_clear_regions, door_signature = self._runtime_door_map_overlays(
+            scene_id
         )
         object_obstacles: list[dict[str, Any]] = []
         object_clear_regions: list[dict[str, Any]] = []
@@ -1261,9 +1177,7 @@ class Nav2NavigatorAdapter:
         except Exception:
             pass
         signature_parts = [
-            part
-            for part in (door_signature, object_signature, sensor_signature)
-            if part
+            part for part in (door_signature, object_signature, sensor_signature) if part
         ]
         signature = "|".join(signature_parts)
         return (
@@ -1373,9 +1287,7 @@ class Nav2NavigatorAdapter:
             )
             self._last_runtime_overlay_signature = str(obstacles_signature or "")
             self._last_runtime_overlay_geometry = [
-                dict(obstacle)
-                for obstacle in obstacles
-                if isinstance(obstacle, dict)
+                dict(obstacle) for obstacle in obstacles if isinstance(obstacle, dict)
             ]
             map_response = runtime_bridge.ensure_scene(
                 scene_id=scene_id,
@@ -1388,13 +1300,8 @@ class Nav2NavigatorAdapter:
                 object_clear_regions=object_clear_regions,
                 obstacles_signature=obstacles_signature,
             )
-            if (
-                isinstance(map_response, dict)
-                and str(map_response.get("status") or "ok") != "ok"
-            ):
-                raise RuntimeError(
-                    str(map_response.get("error") or "nav2_map_update_failed")
-                )
+            if isinstance(map_response, dict) and str(map_response.get("status") or "ok") != "ok":
+                raise RuntimeError(str(map_response.get("error") or "nav2_map_update_failed"))
             if isinstance(map_response, dict):
                 dynamic_map_update = map_response.get("dynamic_map_update")
                 map_revision = map_response.get("map_revision")
@@ -1518,9 +1425,7 @@ class Nav2NavigatorAdapter:
         )
 
     @staticmethod
-    def _same_waypoint_signature(
-        first: Any, second: Any, *, tolerance: float = 1e-4
-    ) -> bool:
+    def _same_waypoint_signature(first: Any, second: Any, *, tolerance: float = 1e-4) -> bool:
         if not isinstance(first, dict) or not isinstance(second, dict):
             return False
         for axis in ("x", "y", "z"):
@@ -1577,9 +1482,7 @@ class Nav2NavigatorAdapter:
                 "reason": reason,
             }
 
-        fallback = dict(
-            self.semantic_backend.plan_path(start=start, goal=goal, context=context)
-        )
+        fallback = dict(self.semantic_backend.plan_path(start=start, goal=goal, context=context))
         fallback["path_backend"] = "semantic_fallback"
         fallback["requested_planner"] = "nav2_compute_path_to_pose"
         fallback["nav2_profile"] = self.version_profile
@@ -1598,9 +1501,7 @@ class Nav2NavigatorAdapter:
         return nav2_semantic_plan.waypoint_position(waypoint)
 
     @staticmethod
-    def _resolve_current_region(
-        *, start: dict[str, Any], context: dict[str, Any]
-    ) -> str | None:
+    def _resolve_current_region(*, start: dict[str, Any], context: dict[str, Any]) -> str | None:
         parameters = context.get("parameters", {})
         map_state = context.get("map_state", {})
         for candidate in (
@@ -1623,18 +1524,10 @@ class Nav2NavigatorAdapter:
         parameters = context.get("parameters", {})
         map_state = context.get("map_state", {})
         for candidate in (
-            parameters.get("global_waypoint_index")
-            if isinstance(parameters, dict)
-            else None,
-            map_state.get("global_waypoint_index")
-            if isinstance(map_state, dict)
-            else None,
-            parameters.get("active_waypoint_index")
-            if isinstance(parameters, dict)
-            else None,
-            map_state.get("active_waypoint_index")
-            if isinstance(map_state, dict)
-            else None,
+            parameters.get("global_waypoint_index") if isinstance(parameters, dict) else None,
+            map_state.get("global_waypoint_index") if isinstance(map_state, dict) else None,
+            parameters.get("active_waypoint_index") if isinstance(parameters, dict) else None,
+            map_state.get("active_waypoint_index") if isinstance(map_state, dict) else None,
         ):
             index = Nav2NavigatorAdapter._coerce_index(candidate)
             if index is not None:
@@ -1646,12 +1539,8 @@ class Nav2NavigatorAdapter:
         parameters = context.get("parameters", {})
         map_state = context.get("map_state", {})
         for candidate in (
-            parameters.get("dense_waypoint_index")
-            if isinstance(parameters, dict)
-            else None,
-            map_state.get("dense_waypoint_index")
-            if isinstance(map_state, dict)
-            else None,
+            parameters.get("dense_waypoint_index") if isinstance(parameters, dict) else None,
+            map_state.get("dense_waypoint_index") if isinstance(map_state, dict) else None,
         ):
             index = Nav2NavigatorAdapter._coerce_index(candidate)
             if index is not None:
@@ -1700,9 +1589,7 @@ class Nav2NavigatorAdapter:
             vertical_axis=vertical_axis,
         )
         tolerance = (
-            self.final_global_waypoint_tolerance
-            if is_final
-            else self.global_waypoint_tolerance
+            self.final_global_waypoint_tolerance if is_final else self.global_waypoint_tolerance
         )
         waypoint_type = str(target.get("waypoint_type", "")).strip().lower()
         waypoint_region = self._normalize_label(target.get("room_name"))
@@ -1808,14 +1695,10 @@ class Nav2NavigatorAdapter:
         )
 
     @staticmethod
-    def _has_explicit_nav2_compute_goal(
-        *, semantic_plan: dict[str, Any] | None
-    ) -> bool:
+    def _has_explicit_nav2_compute_goal(*, semantic_plan: dict[str, Any] | None) -> bool:
         return (
             isinstance(semantic_plan, dict)
-            and nav2_semantic_plan.valid_waypoint_override(
-                semantic_plan.get("nav2_compute_goal")
-            )
+            and nav2_semantic_plan.valid_waypoint_override(semantic_plan.get("nav2_compute_goal"))
             is not None
         )
 
@@ -1939,11 +1822,7 @@ class Nav2NavigatorAdapter:
 
         span_axis = str(transition_anchor.get("portal_span_axis") or "").strip()
         normal_axis = str(transition_anchor.get("portal_normal_axis") or "").strip()
-        if (
-            span_axis not in plane_axes
-            or normal_axis not in plane_axes
-            or span_axis == normal_axis
-        ):
+        if span_axis not in plane_axes or normal_axis not in plane_axes or span_axis == normal_axis:
             return transition_anchor, None
 
         span_min = float(transition_anchor["portal_span_min"])
@@ -1954,18 +1833,10 @@ class Nav2NavigatorAdapter:
             return transition_anchor, None
 
         boundary_value = float(transition_anchor["portal_boundary_value"])
-        normal_sign = (
-            1.0 if float(transition_anchor["portal_normal_sign"]) >= 0.0 else -1.0
-        )
-        portal_clearance = max(
-            self.portal_clearance_radius_m, self._portal_half_width_m
-        )
-        source_standoff = max(
-            self.portal_corridor_standoff_m, self._portal_forward_extent_m + 0.05
-        )
-        target_standoff = max(
-            self.portal_corridor_standoff_m, self._portal_rear_extent_m + 0.05
-        )
+        normal_sign = 1.0 if float(transition_anchor["portal_normal_sign"]) >= 0.0 else -1.0
+        portal_clearance = max(self.portal_clearance_radius_m, self._portal_half_width_m)
+        source_standoff = max(self.portal_corridor_standoff_m, self._portal_forward_extent_m + 0.05)
+        target_standoff = max(self.portal_corridor_standoff_m, self._portal_rear_extent_m + 0.05)
         target_offset = abs(float(transition_anchor[normal_axis]) - boundary_value)
         target_offset = max(target_offset, target_standoff)
         source_offset = source_standoff
@@ -2073,9 +1944,7 @@ class Nav2NavigatorAdapter:
         widest_run_width = max(abs(item[1] - item[0]) for item in sampled_runs)
         comparable_width_threshold = widest_run_width * 0.8
         comparable_runs = [
-            item
-            for item in sampled_runs
-            if abs(item[1] - item[0]) >= comparable_width_threshold
+            item for item in sampled_runs if abs(item[1] - item[0]) >= comparable_width_threshold
         ]
         comparable_runs.sort(
             key=lambda item: (
@@ -2140,9 +2009,7 @@ class Nav2NavigatorAdapter:
             run_min, run_max = item
             if run_min <= preferred_span_value <= run_max:
                 return 0.0
-            return min(
-                abs(preferred_span_value - run_min), abs(preferred_span_value - run_max)
-            )
+            return min(abs(preferred_span_value - run_min), abs(preferred_span_value - run_max))
 
         chosen_run = min(
             sampled_runs,
@@ -2226,9 +2093,7 @@ class Nav2NavigatorAdapter:
             dense_waypoints=dense_waypoints,
             vertical_axis=vertical_axis,
         )
-        start_index = max(
-            nearest_index, min(previous_dense_index, len(dense_waypoints) - 1)
-        )
+        start_index = max(nearest_index, min(previous_dense_index, len(dense_waypoints) - 1))
         target_index = self._dense_target_waypoint_index(
             target=target,
             dense_waypoints=dense_waypoints,
@@ -2249,10 +2114,7 @@ class Nav2NavigatorAdapter:
 
         if local_waypoints:
             final_waypoint = dict(target)
-            if (
-                self._distance(local_waypoints[-1], final_waypoint)
-                < self.waypoint_spacing * 0.5
-            ):
+            if self._distance(local_waypoints[-1], final_waypoint) < self.waypoint_spacing * 0.5:
                 local_waypoints[-1] = final_waypoint
             else:
                 local_waypoints.append(final_waypoint)
@@ -2292,14 +2154,10 @@ class Nav2NavigatorAdapter:
         navigation_goal: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         if not isinstance(start_pose, dict):
-            return [
-                dict(waypoint) for waypoint in waypoints if isinstance(waypoint, dict)
-            ]
+            return [dict(waypoint) for waypoint in waypoints if isinstance(waypoint, dict)]
         clearance_radius_m = self._local_path_post_clearance_radius_m()
         if not scene_id or clearance_radius_m <= 0.0:
-            return [
-                dict(waypoint) for waypoint in waypoints if isinstance(waypoint, dict)
-            ]
+            return [dict(waypoint) for waypoint in waypoints if isinstance(waypoint, dict)]
 
         try:
             from .nav2_runtime_bridge import (
@@ -2308,9 +2166,7 @@ class Nav2NavigatorAdapter:
                 segment_has_clearance,
             )
         except Exception:
-            return [
-                dict(waypoint) for waypoint in waypoints if isinstance(waypoint, dict)
-            ]
+            return [dict(waypoint) for waypoint in waypoints if isinstance(waypoint, dict)]
 
         try:
             map_spec = self._load_stamped_traversability_grid(
@@ -2321,30 +2177,21 @@ class Nav2NavigatorAdapter:
                 vertical_axis=vertical_axis,
             )
         except Exception:
-            return [
-                dict(waypoint) for waypoint in waypoints if isinstance(waypoint, dict)
-            ]
+            return [dict(waypoint) for waypoint in waypoints if isinstance(waypoint, dict)]
 
-        previous_xy = self._world_pose_to_nav2_plane(
-            start_pose, vertical_axis=vertical_axis
-        )
+        previous_xy = self._world_pose_to_nav2_plane(start_pose, vertical_axis=vertical_axis)
         if previous_xy is None:
-            return [
-                dict(waypoint) for waypoint in waypoints if isinstance(waypoint, dict)
-            ]
+            return [dict(waypoint) for waypoint in waypoints if isinstance(waypoint, dict)]
 
         filtered_waypoints: list[dict[str, Any]] = []
         step_m = max(
-            float(map_spec.get("resolution", self.portal_analysis_map_resolution))
-            * 0.5,
+            float(map_spec.get("resolution", self.portal_analysis_map_resolution)) * 0.5,
             0.025,
         )
         for waypoint in waypoints:
             if not isinstance(waypoint, dict):
                 continue
-            current_xy = self._world_pose_to_nav2_plane(
-                waypoint, vertical_axis=vertical_axis
-            )
+            current_xy = self._world_pose_to_nav2_plane(waypoint, vertical_axis=vertical_axis)
             if current_xy is None:
                 continue
             if not point_has_clearance(
@@ -2411,9 +2258,7 @@ class Nav2NavigatorAdapter:
         waypoint_type = str(target.get("waypoint_type", "")).strip().lower()
         if target_room_id:
             for index in range(start_index, len(dense_waypoints)):
-                candidate_room_id = (
-                    str(dense_waypoints[index].get("room_id") or "").strip() or None
-                )
+                candidate_room_id = str(dense_waypoints[index].get("room_id") or "").strip() or None
                 if candidate_room_id == target_room_id:
                     if waypoint_type == "portal":
                         return index
@@ -2452,12 +2297,8 @@ class Nav2NavigatorAdapter:
         plane_axes = Nav2NavigatorAdapter._plane_axes(vertical_axis)
         if plane_axes is None:
             return float("inf")
-        dx = float(second.get(plane_axes[0], 0.0)) - float(
-            first.get(plane_axes[0], 0.0)
-        )
-        dy = float(second.get(plane_axes[1], 0.0)) - float(
-            first.get(plane_axes[1], 0.0)
-        )
+        dx = float(second.get(plane_axes[0], 0.0)) - float(first.get(plane_axes[0], 0.0))
+        dy = float(second.get(plane_axes[1], 0.0)) - float(first.get(plane_axes[1], 0.0))
         return math.hypot(dx, dy)
 
     @staticmethod
@@ -2471,9 +2312,7 @@ class Nav2NavigatorAdapter:
         parameters = context.get("parameters", {})
         map_state = context.get("map_state", {})
         for candidate in (
-            semantic_plan.get("vertical_axis")
-            if isinstance(semantic_plan, dict)
-            else None,
+            semantic_plan.get("vertical_axis") if isinstance(semantic_plan, dict) else None,
             goal.get("vertical_axis"),
             start.get("vertical_axis"),
             context.get("vertical_axis"),
@@ -2526,12 +2365,8 @@ class Nav2NavigatorAdapter:
             goal.get("nav2_trav_map_filename"),
             start.get("nav2_trav_map_filename"),
             context.get("nav2_trav_map_filename"),
-            parameters.get("nav2_trav_map_filename")
-            if isinstance(parameters, dict)
-            else None,
-            map_state.get("nav2_trav_map_filename")
-            if isinstance(map_state, dict)
-            else None,
+            parameters.get("nav2_trav_map_filename") if isinstance(parameters, dict) else None,
+            map_state.get("nav2_trav_map_filename") if isinstance(map_state, dict) else None,
         ):
             if isinstance(candidate, str) and candidate.strip():
                 return candidate.strip()
@@ -2627,9 +2462,7 @@ class Nav2NavigatorAdapter:
                 continue
             x_coord = point.get("x")
             y_coord = point.get("y")
-            if not isinstance(x_coord, (int, float)) or not isinstance(
-                y_coord, (int, float)
-            ):
+            if not isinstance(x_coord, (int, float)) or not isinstance(y_coord, (int, float)):
                 continue
             points.append({"x": float(x_coord), "y": float(y_coord)})
         return points
@@ -2643,9 +2476,6 @@ class Nav2NavigatorAdapter:
         navigation_goal: dict[str, Any] | None = None,
         vertical_axis: str = "z",
     ) -> tuple[list[dict[str, float]], bool]:
-        # Room polygons are semantic labels, not geometric motion bounds. A
-        # valid Nav2 detour may temporarily cross an adjacent open room to
-        # avoid furniture, so preserve the collision-checked Nav2 path here.
         room_clipped = False
         if self.local_path_waypoint_spacing_m < (self.waypoint_spacing - 1e-6):
             densified_points = self._densify_nav2_path_points(
@@ -2679,8 +2509,7 @@ class Nav2NavigatorAdapter:
 
         safe_points = [dict(densified_points[0])]
         step_m = max(
-            float(map_spec.get("resolution", self.portal_analysis_map_resolution))
-            * 0.5,
+            float(map_spec.get("resolution", self.portal_analysis_map_resolution)) * 0.5,
             0.025,
         )
         for point in densified_points[1:]:
@@ -2701,14 +2530,6 @@ class Nav2NavigatorAdapter:
             safe_points.append(dict(point))
 
         if len(safe_points) < 2:
-            # The first Nav2 point is normally the current pose. If the very
-            # next point or the connecting segment violates clearance, there
-            # is no executable safe prefix. Returning the original path here
-            # bypasses the clearance guard and can repeatedly drive the robot
-            # into an inside wall corner. Door transitions still get a chance
-            # to use the footprint-aware doorway corridor fallback in
-            # ``plan_path`` instead of treating a scalar clearance radius as a
-            # globally inflated no-go region.
             return [], True
         return safe_points, room_clipped or len(safe_points) < len(densified_points)
 
@@ -2784,9 +2605,7 @@ class Nav2NavigatorAdapter:
         *,
         spacing: float | None = None,
     ) -> bool:
-        min_spacing = (
-            self.waypoint_spacing if spacing is None else max(0.0, float(spacing))
-        )
+        min_spacing = self.waypoint_spacing if spacing is None else max(0.0, float(spacing))
         if not waypoints:
             waypoints.append(dict(waypoint))
             return True

@@ -1,9 +1,3 @@
-"""RGB-D observation preparation for AnyGrasp.
-
-The functions in this module are simulator-light and intentionally testable
-without importing OmniGibson.  OmniGibson objects are accepted by duck type.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -20,8 +14,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class GraspObservation:
-    """Aligned AnyGrasp inputs captured from one optical camera frame."""
-
     points: np.ndarray
     colors: np.ndarray
     region_mask: np.ndarray | None
@@ -30,7 +22,6 @@ class GraspObservation:
 
 
 def to_numpy(value: Any) -> np.ndarray:
-    """Convert numpy / torch-like values without mutating the source."""
     if isinstance(value, np.ndarray):
         return value
     detach = getattr(value, "detach", None)
@@ -50,9 +41,7 @@ def _normalize_name(value: Any) -> str:
 
 
 def _identity_prefix(value: Any) -> str:
-    tokens = "".join(
-        ch if ch.isalnum() else " " for ch in str(value).strip().lower()
-    ).split()
+    tokens = "".join(ch if ch.isalnum() else " " for ch in str(value).strip().lower()).split()
     return tokens[0] if tokens else ""
 
 
@@ -61,7 +50,6 @@ def target_mask_from_segmentation(
     id_to_labels: dict[Any, Any] | None,
     target_name: str,
 ) -> np.ndarray | None:
-    """Return a pixel mask for an instance name using OG's remapped labels."""
     if segmentation is None or not id_to_labels or not str(target_name).strip():
         return None
     seg = np.squeeze(to_numpy(segmentation))
@@ -98,7 +86,6 @@ def target_mask_from_industrial_detector(
     detector: Any | None = None,
     conf_threshold: float = 0.35,
 ) -> np.ndarray | None:
-    """Extract a target instance segmentation mask using the industrial vision model."""
     if rgb is None or not str(target_name).strip():
         return None
 
@@ -113,9 +100,7 @@ def target_mask_from_industrial_detector(
             from visiomind.perception import IndustrialPartDetector
 
             detector_weights = (
-                Path(__file__).resolve().parents[4]
-                / "models"
-                / "industrial_part_detector.pt"
+                Path(__file__).resolve().parents[4] / "models" / "industrial_part_detector.pt"
             )
             detector = IndustrialPartDetector(
                 weights_path=detector_weights if detector_weights.exists() else None,
@@ -151,7 +136,6 @@ def target_mask_from_industrial_detector(
 
 
 def dilate_mask(mask: np.ndarray, radius_px: int) -> np.ndarray:
-    """Small dependency-free binary dilation used to tolerate mask edges."""
     result = np.asarray(mask, dtype=bool)
     radius = max(0, int(radius_px))
     if radius == 0:
@@ -173,7 +157,6 @@ def rgbd_to_points(
     depth_trunc: float,
     target_mask: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
-    """Project metric depth into OpenCV optical coordinates (x right, y down, z forward)."""
     depth_arr = np.squeeze(to_numpy(depth)).astype(np.float32, copy=False)
     color_arr = to_numpy(colors)
     if depth_arr.ndim != 2:
@@ -229,11 +212,6 @@ def _quat_pose_matrix(position: Any, quaternion_xyzw: Any) -> np.ndarray:
 
 
 def optical_camera_pose_world(position: Any, quaternion_xyzw: Any) -> np.ndarray:
-    """Convert an OpenUSD camera prim pose to an OpenCV optical-frame pose.
-
-    USD cameras look along -Z with +Y up. AnyGrasp point clouds use +Z
-    forward with +Y down, so the frames differ by a 180 degree X rotation.
-    """
     world_from_usd = _quat_pose_matrix(position, quaternion_xyzw)
     usd_from_optical = np.eye(4, dtype=np.float64)
     usd_from_optical[:3, :3] = np.diag([1.0, -1.0, -1.0])
@@ -265,7 +243,6 @@ def _find_sensor(robot: Any, sensor_name: str) -> Any:
 
 
 def _render_sensor_warmup(frames: int) -> bool:
-    """Render frames without stepping physics so newly attached annotators become ready."""
     try:
         import omnigibson as og
     except ImportError:
@@ -284,7 +261,6 @@ def _read_sensor_with_retries(
     retries: int,
     warmup_frames: int,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Read a complete frame, rendering between transient annotator failures."""
     attempts = max(1, int(retries))
     last_error: Exception | None = None
     for attempt in range(attempts):
@@ -298,9 +274,7 @@ def _read_sensor_with_retries(
             if missing:
                 last_error = RuntimeError(f"empty sensor modalities: {missing}")
             else:
-                intrinsics = to_numpy(sensor.intrinsic_matrix).astype(
-                    np.float64, copy=False
-                )
+                intrinsics = to_numpy(sensor.intrinsic_matrix).astype(np.float64, copy=False)
                 valid_intrinsics = bool(
                     intrinsics.shape == (3, 3)
                     and np.isfinite(intrinsics).all()
@@ -309,9 +283,7 @@ def _read_sensor_with_retries(
                 )
                 if valid_intrinsics:
                     return obs, info
-                last_error = ValueError(
-                    f"invalid sensor intrinsics: {intrinsics}"
-                )
+                last_error = ValueError(f"invalid sensor intrinsics: {intrinsics}")
         except Exception as exc:
             last_error = exc
         if attempt + 1 < attempts:
@@ -335,7 +307,6 @@ def _write_perception_audit(
     camera_pose_world: np.ndarray,
     observation_audit: dict[str, Any],
 ) -> str:
-    """Persist raw RGB-D, target mask, point cloud, and metadata for offline review."""
     root = Path(audit_dir).expanduser()
     root.mkdir(parents=True, exist_ok=True)
     sample_dir = root / f"{sensor_name.replace(':', '_').replace('/', '_')}_{time.time_ns()}"
@@ -372,9 +343,7 @@ def _write_perception_audit(
     if target_mask is not None:
         from PIL import Image
 
-        Image.fromarray((target_mask.astype(np.uint8) * 255)).save(
-            sample_dir / "target_mask.png"
-        )
+        Image.fromarray((target_mask.astype(np.uint8) * 255)).save(sample_dir / "target_mask.png")
     if aligned_mask is not None:
         target_points = points[aligned_mask]
         target_colors = colors[aligned_mask]
@@ -435,7 +404,6 @@ def capture_grasp_observation(
     perception_audit_dir: str | None = None,
     target_depth_outlier_m: float | None = None,
 ) -> GraspObservation:
-    """Capture one synchronized RGB-D-instance frame from an OG VisionSensor."""
     sensor = _find_sensor(robot, sensor_name)
     modalities = set(getattr(sensor, "modalities", ()))
     added_modality = False
@@ -505,9 +473,7 @@ def capture_grasp_observation(
         ),
         "depth_trunc": float(depth_trunc),
         "valid_depth_count": int(len(points)),
-        "target_pixel_count": (
-            None if target_mask is None else int(np.count_nonzero(target_mask))
-        ),
+        "target_pixel_count": (None if target_mask is None else int(np.count_nonzero(target_mask))),
         "target_aligned_count": (
             None if aligned_mask is None else int(np.count_nonzero(aligned_mask))
         ),
@@ -519,9 +485,7 @@ def capture_grasp_observation(
         },
         "depth_unit_assumption": "meters_linear_optical_z",
     }
-    logger.info(
-        "%s", json.dumps(observation_audit, sort_keys=True, separators=(",", ":"))
-    )
+    logger.info("%s", json.dumps(observation_audit, sort_keys=True, separators=(",", ":")))
     if len(points) == 0:
         raise ValueError(f"sensor '{sensor_name}' produced no valid depth points")
     position, orientation = sensor.get_position_orientation()

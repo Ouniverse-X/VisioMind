@@ -1,5 +1,3 @@
-"""HTTP adapter for VLM FastAPI service (`/process`)."""
-
 from __future__ import annotations
 
 import time
@@ -12,8 +10,6 @@ from voltron.shared.models import PerceptionObject, PerceptionRelation, Percepti
 
 
 class VLMHttpAdapter:
-    """Call VLM service and normalize response into `PerceptionReport`."""
-
     def __init__(
         self,
         endpoint: str = "http://127.0.0.1:8081/process",
@@ -79,7 +75,7 @@ class VLMHttpAdapter:
                 ) from exc
             except requests.exceptions.RequestException as exc:
                 raise AdapterError(f"VLM request failed: {exc}") from exc
-            except Exception as exc:  # pragma: no cover - network dependent
+            except Exception as exc:
                 raise AdapterError(f"VLM request failed: {exc}") from exc
 
         if self.custom_parser is not None:
@@ -88,7 +84,6 @@ class VLMHttpAdapter:
         return self._default_parse(data)
 
     def _default_parse(self, data: dict[str, Any]) -> PerceptionReport:
-        """Parse current VLM endpoint output while remaining forward-compatible."""
         objects: list[PerceptionObject] = []
         for item in data.get("objects", []):
             objects.append(

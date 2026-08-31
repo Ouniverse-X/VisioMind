@@ -1,5 +1,3 @@
-"""Action agent for dual-arm manipulation execution."""
-
 from __future__ import annotations
 
 from dataclasses import asdict, replace
@@ -30,8 +28,6 @@ from voltron.shared.contracts import MemoryAdapter, PolicyAdapter
 
 
 class ActionAgent:
-    """Execute manipulation subtasks through local skill selection."""
-
     def __init__(
         self,
         memory: MemoryAdapter,
@@ -68,9 +64,15 @@ class ActionAgent:
         self.verify_every_control_steps = max(1, verify_every_control_steps)
         self.verify_after_first_success = verify_after_first_success
         self.verification_positive_streak = max(1, verification_positive_streak)
-        self.max_verification_failures_before_replan = max(1, max_verification_failures_before_replan)
-        self.max_unverified_internal_step_control_steps = max(1, int(max_unverified_internal_step_control_steps))
-        self.require_verified_internal_step_completion = bool(require_verified_internal_step_completion)
+        self.max_verification_failures_before_replan = max(
+            1, max_verification_failures_before_replan
+        )
+        self.max_unverified_internal_step_control_steps = max(
+            1, int(max_unverified_internal_step_control_steps)
+        )
+        self.require_verified_internal_step_completion = bool(
+            require_verified_internal_step_completion
+        )
         self._deliberation_cache: dict[str, VLADeliberation] = {}
         self._target_refinement_cache: dict[str, VLATargetRefinement] = {}
         self._selection_cache: dict[str, LocalSkillSelection] = {}
@@ -87,7 +89,9 @@ class ActionAgent:
             plan_created = True
             planning_subtask = self._subtask_with_applicable_memory_skills(subtask, context)
             try:
-                planning_prompt = self.task_planning_skill.build_plan_prompt(subtask=planning_subtask, context=context)
+                planning_prompt = self.task_planning_skill.build_plan_prompt(
+                    subtask=planning_subtask, context=context
+                )
                 planning_response = self.task_planner.generate_plan(
                     subtask=planning_subtask,
                     context=context,
@@ -134,9 +138,9 @@ class ActionAgent:
             plan_created=plan_created,
         )
 
-    def run_episode(self, *, subtask: Subtask, context: ExecutionContext, runtime: Any) -> AgentResult:
-        """Run a complete action subtask episode using the agent's internal plan state."""
-
+    def run_episode(
+        self, *, subtask: Subtask, context: ExecutionContext, runtime: Any
+    ) -> AgentResult:
         static_parameters = dict(subtask.parameters)
         last_result: AgentResult | None = None
 
@@ -165,7 +169,9 @@ class ActionAgent:
                     )
                 return result
 
-            step_outcome = runtime.apply_agent_result(subtask=subtask, result=result, context=context)
+            step_outcome = runtime.apply_agent_result(
+                subtask=subtask, result=result, context=context
+            )
             if getattr(step_outcome, "feedback", None):
                 runtime.update_feedback(
                     subtask=subtask,
@@ -209,8 +215,12 @@ class ActionAgent:
         return execution_runtime.create_execution_session(execution_plan)
 
     @staticmethod
-    def _serialize_internal_step(step_payload: Any, *, selected_skill_id: str | None = None) -> dict[str, Any]:
-        return execution_runtime.serialize_internal_step(step_payload, selected_skill_id=selected_skill_id)
+    def _serialize_internal_step(
+        step_payload: Any, *, selected_skill_id: str | None = None
+    ) -> dict[str, Any]:
+        return execution_runtime.serialize_internal_step(
+            step_payload, selected_skill_id=selected_skill_id
+        )
 
     def _subtask_with_applicable_memory_skills(
         self,
@@ -298,7 +308,9 @@ class ActionAgent:
             "metadata": dict(metadata) if isinstance(metadata, dict) else {},
         }
 
-    def _execute_single_subtask(self, *, subtask: Subtask, context: ExecutionContext) -> AgentResult:
+    def _execute_single_subtask(
+        self, *, subtask: Subtask, context: ExecutionContext
+    ) -> AgentResult:
         execution_subtask = subtask
         deliberation = VLADeliberation()
         target_refinement = VLATargetRefinement()
@@ -336,7 +348,9 @@ class ActionAgent:
                 available_skill_ids=available_skill_ids,
             )
             self._selection_cache[cache_key] = selection
-        skill = self.skill_registry.resolve(subtask=execution_subtask, context=context, selection=selection)
+        skill = self.skill_registry.resolve(
+            subtask=execution_subtask, context=context, selection=selection
+        )
         if skill is None:
             return AgentResult(
                 subtask_id=execution_subtask.subtask_id,
@@ -368,14 +382,16 @@ class ActionAgent:
     ) -> AgentResult:
         completed_steps = list(session.get("completed_steps", []))
         next_step_index = int(session.get("next_step_index", 0))
-        session, execution_plan, completed_steps, next_step_index = self._apply_pending_verification_outcome(
-            subtask=subtask,
-            context=context,
-            session=session,
-            execution_plan=execution_plan,
-            completed_steps=completed_steps,
-            next_step_index=next_step_index,
-            allow_local_replan=allow_local_replan,
+        session, execution_plan, completed_steps, next_step_index = (
+            self._apply_pending_verification_outcome(
+                subtask=subtask,
+                context=context,
+                session=session,
+                execution_plan=execution_plan,
+                completed_steps=completed_steps,
+                next_step_index=next_step_index,
+                allow_local_replan=allow_local_replan,
+            )
         )
         total_steps = len(execution_plan.steps)
         completed_steps, next_step_index = self._advance_verified_step_if_ready(
@@ -387,7 +403,9 @@ class ActionAgent:
         session["completed_steps"] = completed_steps
         session["next_step_index"] = next_step_index
         step_advanced_this_call = bool(session.pop("step_advanced_this_call", False))
-        applied_step_verification = self._serialize_step_verification(session.pop("applied_step_verification", None))
+        applied_step_verification = self._serialize_step_verification(
+            session.pop("applied_step_verification", None)
+        )
 
         if total_steps == 0:
             return self._decorate_execution_result(
@@ -409,8 +427,8 @@ class ActionAgent:
                     "completed_step_ids": [],
                     "pending_step_ids": [],
                     "plan_completed": True,
-                    },
-                )
+                },
+            )
 
         if next_step_index >= total_steps:
             last_success_record = session.get("active_step_last_success_record")
@@ -465,7 +483,9 @@ class ActionAgent:
         if isinstance(skill_selection, dict):
             selected_skill_id = str(skill_selection.get("skill_id") or "").strip() or None
 
-        active_internal_step = self._serialize_internal_step(step, selected_skill_id=selected_skill_id)
+        active_internal_step = self._serialize_internal_step(
+            step, selected_skill_id=selected_skill_id
+        )
         active_internal_step["step_index"] = next_step_index + 1
         active_internal_step["total_steps"] = total_steps
 
@@ -485,7 +505,7 @@ class ActionAgent:
         if step_result.status != AgentStatus.SUCCESS and allow_local_replan:
             session["active_step_last_success_record"] = None
             session["last_step_verification"] = None
-            replan_decision = self.task_planning_skill.replan(  # type: ignore[union-attr]
+            replan_decision = self.task_planning_skill.replan(
                 subtask=subtask,
                 context=context,
                 active_step_id=step.internal_step_id,
@@ -503,14 +523,17 @@ class ActionAgent:
                         "active_step_id": step.internal_step_id,
                         "reason": replan_decision.reason or step_result.error_code or "replan",
                         "replacement_step_ids": [
-                            replacement_step.internal_step_id for replacement_step in replan_decision.replacement_steps
+                            replacement_step.internal_step_id
+                            for replacement_step in replan_decision.replacement_steps
                         ],
                         "metadata": dict(replan_decision.metadata),
                     }
                 ]
                 session["next_step_index"] = next_step_index
                 replacement_active_step_id = (
-                    replan_decision.replacement_steps[0].internal_step_id if replan_decision.replacement_steps else None
+                    replan_decision.replacement_steps[0].internal_step_id
+                    if replan_decision.replacement_steps
+                    else None
                 )
                 execution_runtime.reset_active_step_tracking(session, replacement_active_step_id)
                 return self._execute_plan(
@@ -523,7 +546,9 @@ class ActionAgent:
                 )
 
         if step_result.status == AgentStatus.SUCCESS:
-            session["active_step_control_steps"] = int(session.get("active_step_control_steps", 0)) + 1
+            session["active_step_control_steps"] = (
+                int(session.get("active_step_control_steps", 0)) + 1
+            )
             session["active_step_last_success_record"] = step_record
             if self.step_verifier is None:
                 active_step_control_steps = int(session.get("active_step_control_steps", 0))
@@ -599,7 +624,9 @@ class ActionAgent:
             session=session,
             step_verification=step_verification or applied_step_verification,
         )
-        plan_completed = step_result.status == AgentStatus.SUCCESS and session["next_step_index"] >= total_steps
+        plan_completed = (
+            step_result.status == AgentStatus.SUCCESS and session["next_step_index"] >= total_steps
+        )
         if plan_completed or step_result.status != AgentStatus.SUCCESS:
             self._execution_sessions(context).pop(subtask.subtask_id, None)
 
@@ -664,7 +691,9 @@ class ActionAgent:
 
     @staticmethod
     def _build_internal_subtask(*, parent_subtask: Subtask, step_payload: Any) -> Subtask:
-        return execution_runtime.build_internal_subtask(parent_subtask=parent_subtask, step_payload=step_payload)
+        return execution_runtime.build_internal_subtask(
+            parent_subtask=parent_subtask, step_payload=step_payload
+        )
 
     @staticmethod
     def _replace_pending_steps(
@@ -685,7 +714,9 @@ class ActionAgent:
             execution_runtime.reset_active_step_tracking(session, active_step_id)
 
     @staticmethod
-    def _serialize_step_verification(verification: ActionStepVerification | dict[str, Any] | None) -> dict[str, Any] | None:
+    def _serialize_step_verification(
+        verification: ActionStepVerification | dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
         if verification is None:
             return None
         if isinstance(verification, dict):
@@ -707,7 +738,9 @@ class ActionAgent:
         last_step_verification = session.get("last_step_verification")
         last_success_record = session.get("active_step_last_success_record")
         active_step_id = session.get("active_step_id")
-        if not isinstance(last_step_verification, dict) or not last_step_verification.get("step_completed"):
+        if not isinstance(last_step_verification, dict) or not last_step_verification.get(
+            "step_completed"
+        ):
             return completed_steps, next_step_index
         if not isinstance(last_success_record, dict):
             return completed_steps, next_step_index
@@ -719,7 +752,9 @@ class ActionAgent:
         session["completed_steps"] = completed_steps
         session["next_step_index"] = next_step_index
         if next_step_index < len(execution_plan.steps):
-            execution_runtime.reset_active_step_tracking(session, execution_plan.steps[next_step_index].internal_step_id)
+            execution_runtime.reset_active_step_tracking(
+                session, execution_plan.steps[next_step_index].internal_step_id
+            )
             session["step_advanced_this_call"] = True
         else:
             session["active_step_id"] = active_step_id
@@ -758,11 +793,15 @@ class ActionAgent:
         )
         session["active_step_verification_checks"] = verification_checks + 1
         if verification_result.step_completed:
-            session["active_step_positive_streak"] = int(session.get("active_step_positive_streak", 0)) + 1
+            session["active_step_positive_streak"] = (
+                int(session.get("active_step_positive_streak", 0)) + 1
+            )
             session["active_step_negative_streak"] = 0
         else:
             session["active_step_positive_streak"] = 0
-            session["active_step_negative_streak"] = int(session.get("active_step_negative_streak", 0)) + 1
+            session["active_step_negative_streak"] = (
+                int(session.get("active_step_negative_streak", 0)) + 1
+            )
         session["last_step_verification"] = asdict(verification_result)
         return verification_result
 
@@ -787,11 +826,20 @@ class ActionAgent:
         verification_checks: int,
         last_step_verification: Any,
     ) -> bool:
-        if self.verify_after_first_success and verification_checks == 0 and executed_control_steps >= 1:
+        if (
+            self.verify_after_first_success
+            and verification_checks == 0
+            and executed_control_steps >= 1
+        ):
             return True
-        if isinstance(last_step_verification, dict) and not last_step_verification.get("step_completed"):
+        if isinstance(last_step_verification, dict) and not last_step_verification.get(
+            "step_completed"
+        ):
             return True
-        return executed_control_steps > 0 and executed_control_steps % self.verify_every_control_steps == 0
+        return (
+            executed_control_steps > 0
+            and executed_control_steps % self.verify_every_control_steps == 0
+        )
 
     def _should_replan_after_verification(
         self,
@@ -803,7 +851,10 @@ class ActionAgent:
             return True
         if verification.indeterminate:
             return False
-        return int(session.get("active_step_negative_streak", 0)) >= self.max_verification_failures_before_replan
+        return (
+            int(session.get("active_step_negative_streak", 0))
+            >= self.max_verification_failures_before_replan
+        )
 
     def _decorate_active_internal_step(
         self,
@@ -836,10 +887,14 @@ class ActionAgent:
         if self.step_verifier is None or self.task_planning_skill is None:
             return session, execution_plan, completed_steps, next_step_index
         last_step_verification = session.get("last_step_verification")
-        if not isinstance(last_step_verification, dict) or last_step_verification.get("step_completed"):
+        if not isinstance(last_step_verification, dict) or last_step_verification.get(
+            "step_completed"
+        ):
             return session, execution_plan, completed_steps, next_step_index
         verification = ActionStepVerification(**last_step_verification)
-        if not allow_local_replan or not self._should_replan_after_verification(verification=verification, session=session):
+        if not allow_local_replan or not self._should_replan_after_verification(
+            verification=verification, session=session
+        ):
             return session, execution_plan, completed_steps, next_step_index
         if next_step_index >= len(execution_plan.steps):
             return session, execution_plan, completed_steps, next_step_index
@@ -863,13 +918,16 @@ class ActionAgent:
                 "active_step_id": active_step_id,
                 "reason": replan_decision.reason or verification.reason or "verification_replan",
                 "replacement_step_ids": [
-                    replacement_step.internal_step_id for replacement_step in replan_decision.replacement_steps
+                    replacement_step.internal_step_id
+                    for replacement_step in replan_decision.replacement_steps
                 ],
                 "metadata": dict(replan_decision.metadata),
             }
         ]
         session["next_step_index"] = next_step_index
-        execution_runtime.reset_active_step_tracking(session, replan_decision.replacement_steps[0].internal_step_id)
+        execution_runtime.reset_active_step_tracking(
+            session, replan_decision.replacement_steps[0].internal_step_id
+        )
         session["step_advanced_this_call"] = True
         return session, replacement_plan, completed_steps, next_step_index
 

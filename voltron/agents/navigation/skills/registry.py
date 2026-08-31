@@ -1,5 +1,3 @@
-"""Registry for Navigation skill implementations."""
-
 from __future__ import annotations
 
 from voltron.shared.context import ExecutionContext, LocalSkillSelection, Subtask
@@ -37,7 +35,7 @@ class VLNSkillRegistry(SkillRegistryBase):
 
 
 class NavigationSkillRegistry(VLNSkillRegistry):
-    """Canonical registry type for Navigation agent skills."""
+    pass
 
 
 __all__ = ["NavigationSkillRegistry", "VLNSkillRegistry"]

@@ -1,5 +1,3 @@
-"""Perception-write helpers for the HEMS backend."""
-
 from __future__ import annotations
 
 from typing import Any, Callable

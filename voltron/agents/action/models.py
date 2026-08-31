@@ -1,5 +1,3 @@
-"""Action-agent private models."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -8,8 +6,6 @@ from typing import Any
 
 @dataclass(frozen=True)
 class VLADeliberation:
-    """Decision emitted by the Action agent's internal controller."""
-
     use_tool: bool = False
     tool_name: str | None = None
     reason: str = ""
@@ -21,8 +17,6 @@ class VLADeliberation:
 
 @dataclass(frozen=True)
 class VLATargetRefinement:
-    """Structured target/tool output consumed by Action skill selection and execution."""
-
     refined_instruction: str = ""
     refined_target: dict[str, Any] = field(default_factory=dict)
     selector_hints: dict[str, Any] = field(default_factory=dict)
@@ -33,8 +27,6 @@ class VLATargetRefinement:
 
 @dataclass(frozen=True)
 class ActionInternalStep:
-    """One internal execution step inside an Action subtask."""
-
     internal_step_id: str
     name: str
     instruction: str
@@ -49,8 +41,6 @@ class ActionInternalStep:
 
 @dataclass(frozen=True)
 class ActionExecutionPlan:
-    """Internal Action plan derived from one parent subtask."""
-
     parent_subtask_id: str
     goal_summary: str
     steps: list[ActionInternalStep] = field(default_factory=list)
@@ -60,8 +50,6 @@ class ActionExecutionPlan:
 
 @dataclass(frozen=True)
 class ActionReplanDecision:
-    """Decision describing whether to replace pending internal Action steps."""
-
     should_replan: bool = False
     reason: str = ""
     replacement_steps: list[ActionInternalStep] = field(default_factory=list)
@@ -70,8 +58,6 @@ class ActionReplanDecision:
 
 @dataclass(frozen=True)
 class ActionStepVerification:
-    """Verification result for the currently active Action internal step."""
-
     step_completed: bool = False
     confidence: float = 0.0
     reason: str = ""

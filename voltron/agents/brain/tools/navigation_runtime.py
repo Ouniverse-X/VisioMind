@@ -1,5 +1,3 @@
-"""Navigation/runtime state helpers owned by the Brain agent."""
-
 from __future__ import annotations
 
 import re
@@ -82,7 +80,9 @@ def build_navigation_report(
     merged = dict(navigation_state or {})
     latest_feedback = runtime_feedback_dict(latest_result.get("env_feedback"))
     if latest_feedback:
-        merged.update({key: value for key, value in latest_feedback.items() if value not in (None, "", {})})
+        merged.update(
+            {key: value for key, value in latest_feedback.items() if value not in (None, "", {})}
+        )
 
     distance_to_execution_goal_m = coerce_float(
         merged.get("best_distance_to_waypoint"),
@@ -204,7 +204,9 @@ def room_display_label(
 
     semantic = normalize_label(first_non_empty(room, region))
     canonical = first_non_empty(
-        canonical_room_name(canonical_room_name_value) if canonical_room_name_value not in (None, "", {}) else None,
+        canonical_room_name(canonical_room_name_value)
+        if canonical_room_name_value not in (None, "", {})
+        else None,
         canonical_room_name(room_name),
     )
     if semantic:
@@ -247,7 +249,11 @@ def room_state_matches_target(
 ) -> bool:
     target_room_id = first_non_empty(target_hints.get("room_id"))
     current_room_id = first_non_empty(navigation_state.get("room_id"))
-    if target_room_id and current_room_id and str(target_room_id).strip() == str(current_room_id).strip():
+    if (
+        target_room_id
+        and current_room_id
+        and str(target_room_id).strip() == str(current_room_id).strip()
+    ):
         return True
 
     target_aliases = room_aliases(
@@ -267,7 +273,9 @@ def room_state_matches_target(
             )
         ),
     )
-    return bool(target_aliases and current_aliases and not target_aliases.isdisjoint(current_aliases))
+    return bool(
+        target_aliases and current_aliases and not target_aliases.isdisjoint(current_aliases)
+    )
 
 
 def label_variants(value: Any) -> set[str]:

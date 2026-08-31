@@ -1,5 +1,3 @@
-"""BEHAVIOR environment integration helpers."""
-
 from .client import (
     call_env_method,
     ensure_env,

@@ -1,5 +1,3 @@
-"""Planning skill contract and parser for Brain initial planning."""
-
 from __future__ import annotations
 
 import json
@@ -10,7 +8,9 @@ from voltron.shared.context import Plan, Subtask
 from voltron.shared.enums import AgentName
 from voltron.shared.telemetry.payload_sanitizer import strip_image_payloads
 
-_ALLOWED_AGENTS = ", ".join(agent.value for agent in (AgentName.NAVIGATION, AgentName.VISION, AgentName.ACTION))
+_ALLOWED_AGENTS = ", ".join(
+    agent.value for agent in (AgentName.NAVIGATION, AgentName.VISION, AgentName.ACTION)
+)
 NAVIGATION_INSTRUCTION_GUIDANCE = (
     "For every NAVIGATION subtask, write `parameters.instruction` as a task-refined natural-language goal. "
     "When the navigation destination is chosen to enable later work, include the follow-up object, part, or action "
@@ -96,8 +96,6 @@ Planning rules:
 
 
 class DefaultBrainPlanningSkill:
-    """Prompt/schema/parser skill for Brain initial planning."""
-
     def system_prompt(self) -> str:
         return _SYSTEM_PROMPT
 
@@ -252,7 +250,9 @@ class DefaultBrainPlanningSkill:
         if mentions_object or mentions_part:
             return None
 
-        if subtask.agent == AgentName.NAVIGATION and not cls.requires_object_named_instruction(subtask):
+        if subtask.agent == AgentName.NAVIGATION and not cls.requires_object_named_instruction(
+            subtask
+        ):
             return None
 
         return (
@@ -302,7 +302,9 @@ class DefaultBrainPlanningSkill:
         right_text = cls.normalized_text(right)
         if not left_text or not right_text:
             return False
-        return left_text == right_text or cls.normalize_room_label(left_text) == cls.normalize_room_label(right_text)
+        return left_text == right_text or cls.normalize_room_label(
+            left_text
+        ) == cls.normalize_room_label(right_text)
 
     @classmethod
     def requires_object_named_instruction(cls, subtask: Subtask) -> bool:
@@ -402,12 +404,8 @@ class DefaultBrainPlanningSkill:
                 else {}
             ),
             "local_goal": cls._compact_navigation_goal(context.get("local_goal")),
-            "transition_anchor": cls._compact_navigation_goal(
-                context.get("transition_anchor")
-            ),
-            "execution_goal": cls._compact_navigation_goal(
-                context.get("execution_goal")
-            ),
+            "transition_anchor": cls._compact_navigation_goal(context.get("transition_anchor")),
+            "execution_goal": cls._compact_navigation_goal(context.get("execution_goal")),
             "door_candidates": [
                 cls._select_fields(
                     item,
@@ -513,8 +511,12 @@ class DefaultBrainPlanningSkill:
             "query_type": value.get("query_type"),
             "query": cls._strip_heavy_fields(value.get("query", {})),
             "retrieval": {
-                "experience_hints": cls._compact_retrieval_results(retrieval.get("experience_hints"), limit=3),
-                "failure_patterns": cls._compact_retrieval_results(retrieval.get("failure_patterns"), limit=3),
+                "experience_hints": cls._compact_retrieval_results(
+                    retrieval.get("experience_hints"), limit=3
+                ),
+                "failure_patterns": cls._compact_retrieval_results(
+                    retrieval.get("failure_patterns"), limit=3
+                ),
                 "causal": cls._compact_causal_evidence(retrieval.get("causal")),
                 "counterfactual": cls._compact_counterfactual_evidence(
                     retrieval.get("counterfactual")
@@ -593,11 +595,7 @@ class DefaultBrainPlanningSkill:
             "query_type": counterfactual.get("query_type", "counterfactual"),
             "query": cls._strip_heavy_fields(counterfactual.get("query", {})),
             "results": [
-                {
-                    key: cls._strip_heavy_fields(item[key])
-                    for key in keep_keys
-                    if key in item
-                }
+                {key: cls._strip_heavy_fields(item[key]) for key in keep_keys if key in item}
                 for item in result_items[:3]
                 if isinstance(item, dict)
             ],
@@ -679,9 +677,13 @@ class DefaultBrainPlanningSkill:
     @classmethod
     def serialize_context(cls, context: dict[str, Any]) -> str:
         compact = {
-            "objects": context.get("objects", [])[:3] if isinstance(context.get("objects"), list) else context.get("objects"),
+            "objects": context.get("objects", [])[:3]
+            if isinstance(context.get("objects"), list)
+            else context.get("objects"),
             "similar_episodes": cls.compact_similar_episodes(context.get("similar_episodes")),
-            "skills": context.get("skills", [])[:3] if isinstance(context.get("skills"), list) else context.get("skills"),
+            "skills": context.get("skills", [])[:3]
+            if isinstance(context.get("skills"), list)
+            else context.get("skills"),
             "memory_evidence_summary": cls.compact_memory_evidence_summary(
                 context.get("memory_evidence_summary")
             ),
@@ -698,7 +700,9 @@ class DefaultBrainPlanningSkill:
             "working_state": context.get("working_state", {}),
             "task_context": context.get("task_context", {}),
             "available_tools": context.get("available_tools", []),
-            "tool_trace": context.get("tool_trace", [])[-5:] if isinstance(context.get("tool_trace"), list) else [],
+            "tool_trace": context.get("tool_trace", [])[-5:]
+            if isinstance(context.get("tool_trace"), list)
+            else [],
             "external_constraints": context.get("external_constraints", {}),
             "schedule_state": context.get("schedule_state", {}),
             "recent_observations": (
@@ -717,8 +721,12 @@ class DefaultBrainPlanningSkill:
             "next_subtask_index": execution_state.get("next_subtask_index"),
             "latest_result": cls.compact_latest_result(execution_state.get("latest_result")),
             "last_scene_report": cls.compact_scene_report(execution_state.get("last_scene_report")),
-            "navigation_state": cls.compact_navigation_state(execution_state.get("navigation_state")),
-            "navigation_report": cls.compact_navigation_report(execution_state.get("navigation_report")),
+            "navigation_state": cls.compact_navigation_state(
+                execution_state.get("navigation_state")
+            ),
+            "navigation_report": cls.compact_navigation_report(
+                execution_state.get("navigation_report")
+            ),
             "task_progress": execution_state.get("task_progress"),
             "failure_reason": execution_state.get("failure_reason"),
             "failed_subtask": cls.compact_failed_subtask(execution_state.get("failed_subtask")),
@@ -728,7 +736,9 @@ class DefaultBrainPlanningSkill:
         return json.dumps(compact, ensure_ascii=False, default=str)
 
     @classmethod
-    def planning_decision_summary(cls, *, context: dict[str, Any], execution_state: dict[str, Any]) -> dict[str, Any]:
+    def planning_decision_summary(
+        cls, *, context: dict[str, Any], execution_state: dict[str, Any]
+    ) -> dict[str, Any]:
         target_hints = (
             context.get("interaction_target_hints")
             if isinstance(context.get("interaction_target_hints"), dict)
@@ -871,7 +881,11 @@ class DefaultBrainPlanningSkill:
                 return "The target is visible, but navigation_report does not show a reachable local approach yet. Prefer one clarifying VISION inspect only if the target/part is ambiguous; otherwise replan conservatively without room-only navigation."
             if approach_stalled:
                 return "The target is visible but the object-level approach appears stalled. Do not repeat room-only navigation. Either retry NAVIGATION approach_target with an object-centered instruction or use one VISION clarification step if the target part is still ambiguous."
-            if failed_agent == "vln" and "approach" in failed_action and failure_reason in {"SUBTASK_TIMEOUT", "NO_PROGRESS", "STALLED"}:
+            if (
+                failed_agent == "vln"
+                and "approach" in failed_action
+                and failure_reason in {"SUBTASK_TIMEOUT", "NO_PROGRESS", "STALLED"}
+            ):
                 return "Same-room is already satisfied. Do not repeat room-only navigation. Either approach the object with an object-centered NAVIGATION instruction or use one VISION clarification step if the target part is still ambiguous."
             return "Use NAVIGATION approach_target toward the object. The instruction must name the target object or part, not the room instance name."
         if object_level_status == "visual_disambiguation_required":

@@ -1,5 +1,3 @@
-"""Persist Vision-confirmed doorway passability across navigation subtasks."""
-
 from __future__ import annotations
 
 import re
@@ -24,8 +22,6 @@ def apply_completion_decision(
     subtask: Any,
     decision: dict[str, Any],
 ) -> dict[str, Any] | None:
-    """Latch or clear a doorway override from a terminal Vision decision."""
-
     verdict = decision.get("verdict")
     if not isinstance(verdict, dict):
         return None
@@ -96,22 +92,12 @@ def apply_runtime_override(
     current_step: int,
     closed_observation_streak: int = DEFAULT_CLOSED_OBSERVATION_STREAK,
 ) -> RuntimeDoorState:
-    """Merge a latched override into a freshly sampled physical door state.
-
-    Explicit close actions clear the latch immediately.  External closing is
-    handled with a small consecutive-sample hysteresis so one noisy joint
-    sample cannot re-block a doorway between planning calls.
-    """
-
     overrides = _override_store(runtime, create=False)
     override_key = _matching_override_key(overrides, door.name)
     if override_key is None:
         return door
     override = overrides.get(override_key)
-    if (
-        not isinstance(override, dict)
-        or override.get("navigation_passable") is not True
-    ):
+    if not isinstance(override, dict) or override.get("navigation_passable") is not True:
         return door
 
     if door.is_open is True:
@@ -127,9 +113,7 @@ def apply_runtime_override(
         override["closed_observation_streak"] = 0
 
     door.navigation_passable = True
-    door.navigation_passable_source = str(
-        override.get("source") or VISION_COMPLETION_SOURCE
-    )
+    door.navigation_passable_source = str(override.get("source") or VISION_COMPLETION_SOURCE)
     observed_at_step = override.get("observed_at_step")
     if isinstance(observed_at_step, (int, float)):
         door.navigation_passable_observed_at_step = int(observed_at_step)
@@ -177,9 +161,7 @@ def _resolve_door_name(
     feedback: dict[str, Any],
 ) -> str | None:
     diagnostics = _action_completion_diagnostics(runtime, feedback)
-    selected = (
-        diagnostics.get("selected_candidate") if isinstance(diagnostics, dict) else None
-    )
+    selected = diagnostics.get("selected_candidate") if isinstance(diagnostics, dict) else None
     if isinstance(selected, dict):
         selected_name = _optional_text(selected.get("name"))
         selected_category = selected.get("category")
@@ -218,11 +200,7 @@ def _resolve_door_name(
         if candidate is None:
             continue
         exact = next(
-            (
-                name
-                for name in live_door_names
-                if _normalize(name) == _normalize(candidate)
-            ),
+            (name for name in live_door_names if _normalize(name) == _normalize(candidate)),
             None,
         )
         if exact is not None:
@@ -286,9 +264,7 @@ def _action_completion_diagnostics(
         return diagnostics
     last_info = getattr(runtime, "_last_info", None)
     diagnostics = (
-        last_info.get("action_completion_diagnostics")
-        if isinstance(last_info, dict)
-        else None
+        last_info.get("action_completion_diagnostics") if isinstance(last_info, dict) else None
     )
     return diagnostics if isinstance(diagnostics, dict) else {}
 
@@ -351,9 +327,7 @@ def _normalize(value: Any) -> str:
 
 
 def _optional_text(value: Any) -> str | None:
-    return (
-        str(value).strip() if value not in (None, "") and str(value).strip() else None
-    )
+    return str(value).strip() if value not in (None, "") and str(value).strip() else None
 
 
 def _optional_float(value: Any) -> float | None:

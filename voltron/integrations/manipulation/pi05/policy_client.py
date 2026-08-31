@@ -1,10 +1,3 @@
-"""Pi0.5 VLA policy adapter for BEHAVIOR-1K via WebSocket.
-
-Implements the PolicyAdapter protocol to connect Voltron's ActionAgent
-to a Pi05 server using the same msgpack + numpy encoding as the
-OmniGibson websocket client.
-"""
-
 from __future__ import annotations
 
 import functools
@@ -23,18 +16,21 @@ logger = logging.getLogger(__name__)
 
 
 def pack_array(obj: Any) -> Any:
-    """Encode numpy arrays/scalars for msgpack serialization."""
     if isinstance(obj, (np.ndarray, np.generic)) and obj.dtype.kind in ("V", "O", "c"):
         raise ValueError(f"Unsupported dtype: {obj.dtype}")
     if isinstance(obj, np.ndarray):
-        return {b"__ndarray__": True, b"data": obj.tobytes(), b"dtype": obj.dtype.str, b"shape": obj.shape}
+        return {
+            b"__ndarray__": True,
+            b"data": obj.tobytes(),
+            b"dtype": obj.dtype.str,
+            b"shape": obj.shape,
+        }
     if isinstance(obj, np.generic):
         return {b"__npgeneric__": True, b"data": obj.item(), b"dtype": obj.dtype.str}
     return obj
 
 
 def unpack_array(obj: dict) -> Any:
-    """Decode numpy arrays/scalars from msgpack deserialization."""
     if b"__ndarray__" in obj:
         return np.ndarray(buffer=obj[b"data"], dtype=np.dtype(obj[b"dtype"]), shape=obj[b"shape"])
     if b"__npgeneric__" in obj:
@@ -69,8 +65,6 @@ def _summarize_named_arrays(values: dict[str, Any]) -> dict[str, dict[str, Any]]
 
 
 class ActionConverter:
-    """Convert a flat 23-dim Pi0.5 action into named body-part tensors."""
-
     _SLICES: tuple[tuple[str, int, int], ...] = (
         ("action.base", 0, 3),
         ("action.torso", 3, 7),
@@ -94,8 +88,6 @@ class ActionConverter:
 
 
 class ObservationConverter:
-    """Convert GR00T-format policy observations into OmniGibson raw observations."""
-
     _REQUIRED_IMAGE_VIEWS: tuple[str, ...] = ("head", "left_wrist", "right_wrist")
     _EXPECTED_PROPRIO_DIMS: frozenset[int] = frozenset({256, 258})
 
@@ -167,7 +159,8 @@ class ObservationConverter:
             return True
         proprio_dim = ObservationConverter._proprio_dim(observation)
         return missing_image or (
-            proprio_dim is not None and proprio_dim not in ObservationConverter._EXPECTED_PROPRIO_DIMS
+            proprio_dim is not None
+            and proprio_dim not in ObservationConverter._EXPECTED_PROPRIO_DIMS
         )
 
     @staticmethod
@@ -400,8 +393,6 @@ class ObservationConverter:
 
 
 class Pi05PolicyAdapter:
-    """PolicyAdapter implementation for Pi0.5 via WebSocket."""
-
     _DEFAULT_CHUNK_SIZE: int = 20
 
     def __init__(
@@ -445,7 +436,9 @@ class Pi05PolicyAdapter:
             logger.info("Pi05PolicyAdapter connected to %s", self.endpoint)
         except Exception as exc:
             self._ws = None
-            raise AdapterError(f"Pi05 WebSocket connection failed ({self.endpoint}): {exc}") from exc
+            raise AdapterError(
+                f"Pi05 WebSocket connection failed ({self.endpoint}): {exc}"
+            ) from exc
 
     def _ensure_connected(self) -> None:
         if self._ws is None:
@@ -487,7 +480,9 @@ class Pi05PolicyAdapter:
         if isinstance(raw_observation, dict) and raw_observation:
             normalized_observation["raw_observation"] = raw_observation
 
-        og_obs = ObservationConverter.convert(normalized_observation, options, default_prompt=self.default_prompt)
+        og_obs = ObservationConverter.convert(
+            normalized_observation, options, default_prompt=self.default_prompt
+        )
         if self.task_id is not None and "task_id" not in og_obs:
             og_obs["task_id"] = np.array([self.task_id])
 
@@ -514,7 +509,11 @@ class Pi05PolicyAdapter:
                 actions_raw.append(np.asarray(resp["action"]).flatten())
                 infos.append(self._extract_info(resp))
             except AdapterError:
-                logger.warning("Pi05 prefetch interrupted, using %d/%d actions", len(actions_raw), self.chunk_size)
+                logger.warning(
+                    "Pi05 prefetch interrupted, using %d/%d actions",
+                    len(actions_raw),
+                    self.chunk_size,
+                )
                 break
 
         for raw, info in zip(actions_raw, infos):

@@ -1,5 +1,3 @@
-"""Persistent ROS worker that hosts Nav2 planner/controller servers for Voltron."""
-
 from __future__ import annotations
 
 import json
@@ -31,11 +29,8 @@ from tf2_ros import TransformBroadcaster
 
 R1PRO_NAV_FOOTPRINT = "[[0.24, 0.34], [0.24, -0.34], [-0.40, -0.34], [-0.40, 0.34]]"
 R1PRO_NAV_FOOTPRINT_PADDING = 0.02
-# Keep a broad, non-lethal cost gradient around walls so Navfn prefers the
-# middle of traversable corridors instead of optimizing only geometric path
-# length and clipping inside corners.  The footprint remains the source of
-# hard collision geometry; this outer radius is deliberately a soft planning
-# preference so narrow but footprint-valid doors remain traversable.
+
+
 NAV2_COSTMAP_INFLATION_RADIUS = 0.75
 NAV2_COSTMAP_COST_SCALING_FACTOR = 3.0
 NAV2_COSTMAP_UPDATE_BARRIER_TIMEOUT_S = 3.0
@@ -83,13 +78,10 @@ class Nav2RuntimeWorker(Node):
         self._follow_goal_handle: Any = None
         self._follow_result_future: Any = None
         log_root = (
-            Path(os.environ.get("VOLTRON_HOME", Path(__file__).resolve().parents[3]))
-            / "logs"
+            Path(os.environ.get("VOLTRON_HOME", Path(__file__).resolve().parents[3])) / "logs"
         )
         log_root.mkdir(parents=True, exist_ok=True)
-        self._runtime_dir = Path(
-            tempfile.mkdtemp(prefix="nav2_runtime_", dir=str(log_root))
-        )
+        self._runtime_dir = Path(tempfile.mkdtemp(prefix="nav2_runtime_", dir=str(log_root)))
         self._params_path = self._runtime_dir / "nav2_params.yaml"
         self._log_paths = {
             "planner_server": self._runtime_dir / "planner_server.log",
@@ -105,16 +97,10 @@ class Nav2RuntimeWorker(Node):
             reliability=ReliabilityPolicy.RELIABLE,
         )
         self._map_pub = self.create_publisher(OccupancyGrid, "map", map_qos)
-        self._map_update_pub = self.create_publisher(
-            OccupancyGridUpdate, "map_updates", 10
-        )
-        self._global_costmap_client = self.create_client(
-            GetCostmap, "/global_costmap/get_costmap"
-        )
+        self._map_update_pub = self.create_publisher(OccupancyGridUpdate, "map_updates", 10)
+        self._global_costmap_client = self.create_client(GetCostmap, "/global_costmap/get_costmap")
         self._odom_pub = self.create_publisher(Odometry, "odom", 10)
-        self._cmd_vel_sub = self.create_subscription(
-            Twist, "cmd_vel", self._on_cmd_vel, 10
-        )
+        self._cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self._on_cmd_vel, 10)
         self._tf_pub = TransformBroadcaster(self)
         self._state_timer = self.create_timer(0.05, self._publish_state)
         self._path_client = ActionClient(self, ComputePathToPose, self._action_name)
@@ -138,15 +124,12 @@ class Nav2RuntimeWorker(Node):
             except Exception:
                 pass
         self._log_files.clear()
-        # Keep planner/controller logs under VOLTRON_HOME/logs for post-run diagnosis.
 
     def configure(self, payload: dict[str, Any]) -> dict[str, Any]:
         with self._lock:
             self._scene_id = str(payload.get("scene_id") or "").strip() or None
             self._frame_id = str(payload.get("frame_id") or "map")
-            self._action_name = str(
-                payload.get("action_name") or "compute_path_to_pose"
-            )
+            self._action_name = str(payload.get("action_name") or "compute_path_to_pose")
             self._map_msg = self._build_map_message(payload["map"])
             self._map_revision += 1
             map_publish_stamp_ns = self._publish_map()
@@ -407,7 +390,6 @@ class Nav2RuntimeWorker(Node):
         *,
         timeout_s: float,
     ) -> str | None:
-        """Wait until the global costmap reports a revision after the map publish."""
         if minimum_stamp_ns is None:
             time.sleep(NAV2_COSTMAP_FALLBACK_BARRIER_S)
             return "timed_fallback"
@@ -424,11 +406,7 @@ class Nav2RuntimeWorker(Node):
             costmap = getattr(response, "map", None)
             header = getattr(costmap, "header", None)
             stamp_ns = _stamp_nanoseconds(getattr(header, "stamp", None))
-            if (
-                stamp_ns is not None
-                and stamp_ns >= minimum_stamp_ns
-                and time.time() >= not_before
-            ):
+            if stamp_ns is not None and stamp_ns >= minimum_stamp_ns and time.time() >= not_before:
                 return "global_costmap_stamp"
             time.sleep(0.05)
         return None
@@ -547,10 +525,7 @@ class Nav2RuntimeWorker(Node):
 
     def _launch_processes(self) -> None:
         planner_exec = (
-            Path(get_package_prefix("nav2_planner"))
-            / "lib"
-            / "nav2_planner"
-            / "planner_server"
+            Path(get_package_prefix("nav2_planner")) / "lib" / "nav2_planner" / "planner_server"
         )
         controller_exec = (
             Path(get_package_prefix("nav2_controller"))
@@ -713,9 +688,7 @@ class Nav2RuntimeWorker(Node):
                 }
             },
         }
-        self._params_path.write_text(
-            yaml.safe_dump(params, sort_keys=False), encoding="utf-8"
-        )
+        self._params_path.write_text(yaml.safe_dump(params, sort_keys=False), encoding="utf-8")
 
     def _collect_log_tails(self) -> dict[str, str]:
         tails: dict[str, str] = {}

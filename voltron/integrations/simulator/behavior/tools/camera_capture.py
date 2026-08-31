@@ -1,5 +1,3 @@
-"""BEHAVIOR robot-camera capture adapter for Vision tools."""
-
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -14,8 +12,6 @@ VIEW_TO_OBS_KEY = {
 
 
 class BehaviorCameraCaptureAdapter:
-    """Capture robot camera frames from the latest BEHAVIOR observation."""
-
     def __init__(self, observation_provider: Callable[[], dict[str, Any]]) -> None:
         self._observation_provider = observation_provider
 

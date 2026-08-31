@@ -1,5 +1,3 @@
-"""Helpers for adapting semantic navigation plans into Nav2-local planning inputs."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -92,8 +90,12 @@ def resolve_local_execution_goal(
     waypoint_type = str(local_goal.get("waypoint_type", "")).strip().lower()
     if waypoint_type != "portal":
         if object_approach_goal is not None:
-            return dict(object_approach_goal), dict(explicit_transition_anchor) if explicit_transition_anchor is not None else None
-        return local_goal, dict(explicit_transition_anchor) if explicit_transition_anchor is not None else None
+            return dict(object_approach_goal), dict(
+                explicit_transition_anchor
+            ) if explicit_transition_anchor is not None else None
+        return local_goal, dict(
+            explicit_transition_anchor
+        ) if explicit_transition_anchor is not None else None
 
     if explicit_transition_anchor is not None:
         post_transition = _final_execution_goal(
@@ -101,9 +103,7 @@ def resolve_local_execution_goal(
             active_index=active_index,
             object_approach_goal=object_approach_goal,
         )
-        post_transition.setdefault(
-            "transition_anchor", dict(explicit_transition_anchor)
-        )
+        post_transition.setdefault("transition_anchor", dict(explicit_transition_anchor))
         post_transition["waypoint_type"] = "post_portal_goal"
         return post_transition, dict(explicit_transition_anchor)
 
@@ -121,18 +121,14 @@ def resolve_local_execution_goal(
                 object_approach_goal=object_approach_goal,
             )
             return final_goal, (
-                dict(explicit_transition_anchor)
-                if explicit_transition_anchor is not None
-                else None
+                dict(explicit_transition_anchor) if explicit_transition_anchor is not None else None
             )
         transition_anchor = dict(global_waypoints[transition_index])
 
     next_index = transition_index + 1
     if next_index >= len(global_waypoints):
         return transition_anchor, (
-            dict(explicit_transition_anchor)
-            if explicit_transition_anchor is not None
-            else None
+            dict(explicit_transition_anchor) if explicit_transition_anchor is not None else None
         )
 
     post_transition = (
@@ -148,13 +144,6 @@ def resolve_local_execution_goal(
 
 
 def portal_requires_segmented_navigation(waypoint: dict[str, Any]) -> bool:
-    """Return whether a portal represents a physical or state-gated crossing.
-
-    Semantic room boundaries are useful for grounding, but they are not motion
-    constraints. Only transitions carrying explicit interaction / transport
-    metadata should split an otherwise continuous Nav2 path.
-    """
-
     for key in (
         "requires_segmented_navigation",
         "portal_requires_segmented_navigation",

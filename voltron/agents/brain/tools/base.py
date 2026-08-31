@@ -1,5 +1,3 @@
-"""Brain-local tool protocols and context patch helpers."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -11,24 +9,20 @@ from voltron.shared.results import ToolResult
 
 @dataclass(frozen=True)
 class ContextPatch:
-    """Structured context updates produced by one Brain tool invocation."""
-
     planning_context_updates: dict[str, Any] = field(default_factory=dict)
     task_context_updates: dict[str, Any] = field(default_factory=dict)
     tool_trace_entry: dict[str, Any] | None = None
 
 
 class BrainTool(Protocol):
-    """Optional richer protocol for tools used inside Brain planning."""
-
     def invoke(self, invocation: ToolInvocation) -> ToolResult:
-        """Execute the tool invocation."""
+        pass
 
     def describe_tool(self, tool_name: str) -> dict[str, Any]:
-        """Return a model-facing tool description."""
+        pass
 
     def build_context_patch(self, invocation: ToolInvocation, result: ToolResult) -> ContextPatch:
-        """Build planning and memory context updates from a tool result."""
+        pass
 
 
 def default_tool_trace_entry(tool_name: str, result: ToolResult) -> dict[str, Any]:

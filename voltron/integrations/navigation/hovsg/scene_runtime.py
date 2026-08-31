@@ -1,5 +1,3 @@
-"""Scene runtime and goal-grounding helpers for the HOV-SG navigator."""
-
 from __future__ import annotations
 
 import re
@@ -63,7 +61,9 @@ def load_scene(
         "nav_nodes": scene_asset.nav_graph.number_of_nodes(),
         "nav_edges": scene_asset.nav_graph.number_of_edges(),
         "nav_graph_type": scene_asset.nav_graph_type,
-        "nav_graph_asset_path": str(scene_asset.nav_graph_asset_path) if scene_asset.nav_graph_asset_path else None,
+        "nav_graph_asset_path": str(scene_asset.nav_graph_asset_path)
+        if scene_asset.nav_graph_asset_path
+        else None,
         "scene_map_source": scene_asset.scene_map_source,
         "vertical_axis": scene_asset.vertical_axis,
     }
@@ -168,9 +168,13 @@ def ground_goal(
         floor_query = None
 
     explicit_room_query = room_query if isinstance(room_query, str) and room_query.strip() else None
-    explicit_object_query = object_query if isinstance(object_query, str) and object_query.strip() else None
+    explicit_object_query = (
+        object_query if isinstance(object_query, str) and object_query.strip() else None
+    )
     explicit_part_query = part_query if isinstance(part_query, str) and part_query.strip() else None
-    explicit_floor_query = floor_query if isinstance(floor_query, str) and floor_query.strip() else None
+    explicit_floor_query = (
+        floor_query if isinstance(floor_query, str) and floor_query.strip() else None
+    )
 
     object_search_text: str | None = None
     if explicit_object_query is not None:
@@ -194,9 +198,7 @@ def ground_goal(
         else []
     )
     effective_view = (
-        hovsg_effective_scene.effective_scene_view(adapter, scene)
-        if scene is not None
-        else None
+        hovsg_effective_scene.effective_scene_view(adapter, scene) if scene is not None else None
     )
     object_match = _match_effective_object(
         adapter=adapter,
@@ -207,9 +209,7 @@ def ground_goal(
     if object_match is not None:
         position = object_match.position
         position_source = (
-            "runtime_overlay"
-            if object_match.runtime_object_name is not None
-            else "static_asset"
+            "runtime_overlay" if object_match.runtime_object_name is not None else "static_asset"
         )
         room_id = object_match.room_id
         room = scene.rooms.get(room_id)
@@ -229,17 +229,14 @@ def ground_goal(
             "grounding_candidates": object_candidates,
             "relation_revision": object_match.relation_revision,
             "map_revision": effective_view.map_revision,
-            "scene_state_signature": (
-                runtime_state.signature if runtime_state is not None else ""
-            ),
+            "scene_state_signature": (runtime_state.signature if runtime_state is not None else ""),
             "relation_signature": effective_view.relation_signature,
         }
         if owner is not None and owner.object_id != object_match.object_id:
             grounded["approach_owner_id"] = owner.object_id
             grounded["approach_owner_name"] = owner.name
-            if (
-                owner.object_id in object_match.relation_targets("inside")
-                and any(item.relation == "closed" for item in owner.relations)
+            if owner.object_id in object_match.relation_targets("inside") and any(
+                item.relation == "closed" for item in owner.relations
             ):
                 grounded["interaction_prerequisites"] = ["open_container"]
         target_part_query = explicit_part_query or _infer_object_part_query(
@@ -289,7 +286,9 @@ def ground_goal(
     )
 
 
-def _infer_object_part_query(*, object_name: str | None, texts: tuple[str | None, ...]) -> str | None:
+def _infer_object_part_query(
+    *, object_name: str | None, texts: tuple[str | None, ...]
+) -> str | None:
     object_tokens = set(normalize_text(str(object_name or "")).split())
     if not (object_tokens & {"car", "automobile", "vehicle"}):
         return None
@@ -311,11 +310,17 @@ def _target_from_interpreted_goal(interpreted_goal: Any) -> dict[str, Any]:
     target: dict[str, Any] = dict(target_query) if isinstance(target_query, dict) else {}
     _apply_interaction_followup_target(target, interpreted_goal)
     landmark = str(target.get("landmark") or "").strip().lower()
-    threshold_like = any(token in landmark for token in ("threshold", "doorway", "entrance", "passage", "opening"))
+    threshold_like = any(
+        token in landmark for token in ("threshold", "doorway", "entrance", "passage", "opening")
+    )
     if goal_kind == "doorway" and not any(target.get(key) for key in ("object", "target", "item")):
         target["object"] = "door"
-    elif goal_kind == "landmark" and threshold_like and not any(
-        target.get(key) for key in ("object", "target", "item", "room", "region", "location")
+    elif (
+        goal_kind == "landmark"
+        and threshold_like
+        and not any(
+            target.get(key) for key in ("object", "target", "item", "room", "region", "location")
+        )
     ):
         target["object"] = "door"
     return {key: value for key, value in target.items() if isinstance(value, str) and value.strip()}
@@ -435,7 +440,9 @@ def _start_pose_from_context(context: dict[str, Any] | None) -> dict[str, Any] |
     return None
 
 
-def _candidate_distance_to_pose(centroid: dict[str, float] | None, pose: dict[str, Any] | None) -> float:
+def _candidate_distance_to_pose(
+    centroid: dict[str, float] | None, pose: dict[str, Any] | None
+) -> float:
     if not isinstance(centroid, dict) or not isinstance(pose, dict):
         return float("inf")
     try:
@@ -452,7 +459,9 @@ def _candidate_distance_to_pose(centroid: dict[str, float] | None, pose: dict[st
     return abs(cx - px)
 
 
-def _apply_interaction_followup_target(target: dict[str, Any], interpreted_goal: dict[str, Any]) -> None:
+def _apply_interaction_followup_target(
+    target: dict[str, Any], interpreted_goal: dict[str, Any]
+) -> None:
     existing_object = next(
         (
             str(target.get(key)).strip()
@@ -468,7 +477,9 @@ def _apply_interaction_followup_target(target: dict[str, Any], interpreted_goal:
     if isinstance(stop_condition, str):
         stop_conditions = {stop_condition.strip().lower()}
     elif isinstance(stop_condition, list):
-        stop_conditions = {str(item).strip().lower() for item in stop_condition if str(item).strip()}
+        stop_conditions = {
+            str(item).strip().lower() for item in stop_condition if str(item).strip()
+        }
     else:
         stop_conditions = set()
     interaction_conditions = {
@@ -509,7 +520,9 @@ def _is_passage_like_text(value: str) -> bool:
     )
 
 
-def _interaction_target_from_natural_language_context(interpreted_goal: dict[str, Any]) -> str | None:
+def _interaction_target_from_natural_language_context(
+    interpreted_goal: dict[str, Any],
+) -> str | None:
     for text in _interaction_context_texts(interpreted_goal):
         candidate = _extract_interaction_object_phrase(text)
         if candidate:
@@ -603,14 +616,18 @@ def _clean_interaction_object_phrase(value: str) -> str | None:
         "",
         normalized,
     )
-    normalized = re.sub(r"\b(?:to|so that|for|before|after|while|when|once|and then)\b.*$", "", normalized).strip()
+    normalized = re.sub(
+        r"\b(?:to|so that|for|before|after|while|when|once|and then)\b.*$", "", normalized
+    ).strip()
     normalized = re.sub(r"\s+", " ", normalized).strip()
     if not normalized or normalized in _INTERACTION_ONLY_TERMS:
         return None
     return normalized
 
 
-def _attach_interpreted_spatial_intent(goal: dict[str, Any], interpreted_goal: Any) -> dict[str, Any]:
+def _attach_interpreted_spatial_intent(
+    goal: dict[str, Any], interpreted_goal: Any
+) -> dict[str, Any]:
     if not isinstance(interpreted_goal, dict):
         return goal
 
@@ -624,9 +641,7 @@ def _attach_interpreted_spatial_intent(goal: dict[str, Any], interpreted_goal: A
         enriched["stop_condition"] = [stop_condition.strip().lower()]
     elif isinstance(stop_condition, list):
         enriched["stop_condition"] = [
-            str(item).strip().lower()
-            for item in stop_condition
-            if str(item).strip()
+            str(item).strip().lower() for item in stop_condition if str(item).strip()
         ]
 
     followup_context = interpreted_goal.get("followup_context")
@@ -672,7 +687,9 @@ def _position_goal_from_interpreted_goal(
     if pose is None:
         return None
 
-    vertical_axis = scene.vertical_axis if scene is not None else str(context.get("vertical_axis") or "z")
+    vertical_axis = (
+        scene.vertical_axis if scene is not None else str(context.get("vertical_axis") or "z")
+    )
     axes = _horizontal_axes(vertical_axis)
     yaw = _to_float((orientation or {}).get("yaw")) or 0.0
     forward = {
@@ -707,7 +724,9 @@ def _position_goal_from_interpreted_goal(
     }
 
 
-def _pose_and_orientation_from_context(context: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+def _pose_and_orientation_from_context(
+    context: dict[str, Any],
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     for container_key in ("start", "backend_state", "map_state"):
         container = context.get(container_key)
         if not isinstance(container, dict):

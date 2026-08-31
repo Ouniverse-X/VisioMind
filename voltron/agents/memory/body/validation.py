@@ -1,5 +1,3 @@
-"""Validation and deduplication for MemoryAgent extraction results."""
-
 from __future__ import annotations
 
 import json
@@ -20,18 +18,10 @@ def validate_extraction_result(
     *,
     backend: Any | None = None,
 ) -> ExperienceExtractionResult:
-    """Return an evidence-checked extraction result ready for writeback."""
-
     warnings = list(extraction.validation_warnings)
     episode_id = str(episode_context.get("episode_id") or "")
-    if (
-        episode_id
-        and extraction.source_episode_id
-        and extraction.source_episode_id != episode_id
-    ):
-        warnings.append(
-            f"source_episode_id_mismatch:{extraction.source_episode_id}->{episode_id}"
-        )
+    if episode_id and extraction.source_episode_id and extraction.source_episode_id != episode_id:
+        warnings.append(f"source_episode_id_mismatch:{extraction.source_episode_id}->{episode_id}")
         extraction.source_episode_id = episode_id
     elif episode_id and not extraction.source_episode_id:
         extraction.source_episode_id = episode_id
@@ -267,9 +257,7 @@ def _validate_semantic_updates(
             continue
         if _is_transient_semantic_update(update):
             content = (
-                dict(update.get("content", {}))
-                if isinstance(update.get("content"), dict)
-                else {}
+                dict(update.get("content", {})) if isinstance(update.get("content"), dict) else {}
             )
             content.setdefault("memory_scope", "episode_state")
             update["content"] = content
@@ -324,9 +312,7 @@ def _validate_object_approach_priors(
     return validated
 
 
-def _validate_skill_steps(
-    candidate: dict[str, Any], *, index: int, warnings: list[str]
-) -> bool:
+def _validate_skill_steps(candidate: dict[str, Any], *, index: int, warnings: list[str]) -> bool:
     steps = candidate.get("steps")
     if not isinstance(steps, list) or not steps:
         warnings.append(f"invalid_skill_steps:procedural_skills[{index}]")
@@ -337,9 +323,7 @@ def _validate_skill_steps(
             return False
         agent = str(step.get("agent", "")).strip().upper()
         if agent not in _VALID_AGENT_NAMES:
-            warnings.append(
-                f"invalid_step_agent:procedural_skills[{index}]:{agent or '<missing>'}"
-            )
+            warnings.append(f"invalid_step_agent:procedural_skills[{index}]:{agent or '<missing>'}")
             return False
     return True
 
@@ -373,12 +357,8 @@ def _filter_source_action_ids(
     return True
 
 
-def _causal_claim_has_support(
-    hypothesis: dict[str, Any], evidence: dict[str, Any]
-) -> bool:
-    source_ids = {
-        str(action_id) for action_id in hypothesis.get("source_action_ids", [])
-    }
+def _causal_claim_has_support(hypothesis: dict[str, Any], evidence: dict[str, Any]) -> bool:
+    source_ids = {str(action_id) for action_id in hypothesis.get("source_action_ids", [])}
     expected_effect = _normalize_text(hypothesis.get("expected_effect"))
     if expected_effect and expected_effect in evidence["transition_attributes"]:
         return True
@@ -399,9 +379,7 @@ def _build_evidence_index(episode_context: dict[str, Any]) -> dict[str, Any]:
             actions.extend(item for item in value if isinstance(item, dict))
     episode = episode_context.get("episode")
     if isinstance(episode, dict) and isinstance(episode.get("action_sequence"), list):
-        actions.extend(
-            item for item in episode["action_sequence"] if isinstance(item, dict)
-        )
+        actions.extend(item for item in episode["action_sequence"] if isinstance(item, dict))
 
     action_ids = set()
     action_types = set()
@@ -465,17 +443,11 @@ def _transition_items(episode_context: dict[str, Any]) -> list[dict[str, Any]]:
         if isinstance(value, list):
             transitions.extend(item for item in value if isinstance(item, dict))
     reflection = episode_context.get("reflection_evidence")
-    if isinstance(reflection, dict) and isinstance(
-        reflection.get("state_deltas"), list
-    ):
-        transitions.extend(
-            item for item in reflection["state_deltas"] if isinstance(item, dict)
-        )
+    if isinstance(reflection, dict) and isinstance(reflection.get("state_deltas"), list):
+        transitions.extend(item for item in reflection["state_deltas"] if isinstance(item, dict))
     episode = episode_context.get("episode")
     if isinstance(episode, dict) and isinstance(episode.get("state_transitions"), list):
-        transitions.extend(
-            item for item in episode["state_transitions"] if isinstance(item, dict)
-        )
+        transitions.extend(item for item in episode["state_transitions"] if isinstance(item, dict))
     return transitions
 
 
@@ -485,9 +457,7 @@ def _causal_observation_items(episode_context: dict[str, Any]) -> list[dict[str,
     if isinstance(value, list):
         observations.extend(item for item in value if isinstance(item, dict))
     reflection = episode_context.get("reflection_evidence")
-    if isinstance(reflection, dict) and isinstance(
-        reflection.get("causal_observations"), list
-    ):
+    if isinstance(reflection, dict) and isinstance(reflection.get("causal_observations"), list):
         observations.extend(
             item for item in reflection["causal_observations"] if isinstance(item, dict)
         )
@@ -496,16 +466,12 @@ def _causal_observation_items(episode_context: dict[str, Any]) -> list[dict[str,
 
 def _is_failed_only_skill(candidate: dict[str, Any], evidence: dict[str, Any]) -> bool:
     source_ids = [
-        str(action_id)
-        for action_id in candidate.get("source_action_ids", [])
-        if str(action_id)
+        str(action_id) for action_id in candidate.get("source_action_ids", []) if str(action_id)
     ]
     action_success = evidence["action_success"]
     if source_ids:
         statuses = [
-            action_success.get(action_id)
-            for action_id in source_ids
-            if action_id in action_success
+            action_success.get(action_id) for action_id in source_ids if action_id in action_success
         ]
         if statuses and all(status is False for status in statuses):
             return True
@@ -584,9 +550,7 @@ def _semantic_update_conflicts(update: dict[str, Any], backend: Any | None) -> b
 
 def _existing_semantic_value(item: dict[str, Any], relation: str) -> Any:
     relations = item.get("relations")
-    if isinstance(relations, dict) and relation in {
-        _normalize_text(key) for key in relations
-    }:
+    if isinstance(relations, dict) and relation in {_normalize_text(key) for key in relations}:
         for key, value in relations.items():
             if _normalize_text(key) == relation:
                 return value
@@ -664,9 +628,7 @@ def _episode_succeeded(episode_context: dict[str, Any]) -> bool:
 def _has_failed_source_action(item: dict[str, Any], evidence: dict[str, Any]) -> bool:
     action_success = evidence.get("action_success", {})
     source_ids = [
-        str(action_id)
-        for action_id in item.get("source_action_ids", [])
-        if str(action_id)
+        str(action_id) for action_id in item.get("source_action_ids", []) if str(action_id)
     ]
     return any(action_success.get(action_id) is False for action_id in source_ids)
 
@@ -686,9 +648,7 @@ def _is_transient_semantic_update(update: dict[str, Any]) -> bool:
     }
     if relation in transient_relations:
         return True
-    return update_type in {"attribute", "state", "state_update"} and relation.endswith(
-        "_state"
-    )
+    return update_type in {"attribute", "state", "state_update"} and relation.endswith("_state")
 
 
 def _dedup_key(*parts: Any) -> str:

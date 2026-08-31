@@ -1,5 +1,3 @@
-"""Runtime input assembly helpers for the BEHAVIOR simulator integration."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -110,8 +108,6 @@ def build_vln_runtime_inputs(
     if isinstance(scene_vertical_axis, str) and scene_vertical_axis in {"x", "y", "z"}:
         observation["vertical_axis"] = scene_vertical_axis
     if isinstance(scene_state, dict) and scene_state:
-        # The navigator only sees the inner observation (navigator.update), while
-        # grounding context metadata is copied from the outer payload — feed both.
         observation = {**observation, "scene_state": scene_state}
     payload: dict[str, Any] = {"observation": observation}
     if isinstance(scene_state, dict) and scene_state:

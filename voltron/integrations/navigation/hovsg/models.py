@@ -1,5 +1,3 @@
-"""Shared HOV-SG asset models for navigation integrations."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

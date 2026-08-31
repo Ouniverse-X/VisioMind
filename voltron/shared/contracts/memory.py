@@ -1,5 +1,3 @@
-"""Memory adapter interface used by all agents."""
-
 from __future__ import annotations
 
 from typing import Any, Protocol
@@ -9,28 +7,28 @@ from voltron.shared.models import PerceptionReport
 
 
 class MemoryAdapter(Protocol):
-    """Stable memory API exposed to all agents via the adapter boundary."""
-
     def start_task(self, task_description: str, task_type: TaskType) -> str:
-        """Start a new task and return an episode/task id."""
+        pass
 
     def end_task(self, outcome: str, failure_reason: str | None = None) -> dict[str, Any]:
-        """Finalize the active task and persist the episode."""
+        pass
 
     def reflect(self, similar_top_k: int = 5) -> dict[str, Any]:
-        """Run task-level reflection on the latest episode."""
+        pass
 
-    def find_object(self, name: str, attributes: dict[str, Any] | None = None, top_k: int = 5) -> Any:
-        """Query semantic memory for matching objects."""
+    def find_object(
+        self, name: str, attributes: dict[str, Any] | None = None, top_k: int = 5
+    ) -> Any:
+        pass
 
     def find_objects_near(self, position: tuple[float, float, float], radius: float = 2.0) -> Any:
-        """Query semantic memory by spatial neighborhood."""
+        pass
 
     def find_similar_episodes(self, description: str, top_k: int = 5) -> Any:
-        """Query episodic memory for similar history."""
+        pass
 
     def find_applicable_skills(self, current_state: dict[str, Any], top_k: int = 5) -> Any:
-        """Query procedural memory for reusable skills."""
+        pass
 
     def predict_action_effects(
         self,
@@ -40,13 +38,13 @@ class MemoryAdapter(Protocol):
         parameters: dict[str, Any] | None = None,
         match_mode: str = "strict",
     ) -> Any:
-        """Query the causal graph for forward effect prediction."""
+        pass
 
     def diagnose_effect_cause(self, effect: str, value: Any = None) -> Any:
-        """Query the causal graph for backward diagnosis."""
+        pass
 
     def load_map(self, scene_id: str) -> dict[str, Any]:
-        """Load a persisted scene map asset."""
+        pass
 
     def save_map(
         self,
@@ -54,7 +52,7 @@ class MemoryAdapter(Protocol):
         map_payload: dict[str, Any],
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Persist a scene map asset."""
+        pass
 
     def update_map(
         self,
@@ -62,7 +60,7 @@ class MemoryAdapter(Protocol):
         delta: dict[str, Any],
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Merge incremental updates into a scene map asset."""
+        pass
 
     def query_semantic_region(
         self,
@@ -70,34 +68,34 @@ class MemoryAdapter(Protocol):
         attributes: dict[str, Any] | None = None,
         top_k: int = 5,
     ) -> Any:
-        """Query region-level semantic memory."""
+        pass
 
     def query_topology(self, start: dict[str, Any], goal: dict[str, Any]) -> dict[str, Any]:
-        """Query connectivity/path hints between two anchors."""
+        pass
 
     def mark_explored(self, scene_id: str, evidence: dict[str, Any]) -> dict[str, Any]:
-        """Record exploration evidence into scene-map memory."""
+        pass
 
     def get_exploration_frontiers(self, scene_id: str) -> list[dict[str, Any]]:
-        """Return currently known frontiers for exploration."""
+        pass
 
     def get_working_state(self) -> dict[str, Any]:
-        """Return the current working-memory snapshot."""
+        pass
 
     def get_active_regions(self) -> list[str]:
-        """Return region ids currently held in working memory."""
+        pass
 
     def get_recent_observations(self, n: int = 10) -> list[dict[str, Any]]:
-        """Return the most recent working-memory observations."""
+        pass
 
     def get_task_context(self) -> dict[str, Any]:
-        """Return the current task context from working memory."""
+        pass
 
     def update_task_context(self, updates: dict[str, Any]) -> dict[str, Any]:
-        """Merge structured runtime/task updates into working-memory task context."""
+        pass
 
     def record_working_observation(self, observation: dict[str, Any]) -> dict[str, Any]:
-        """Write a compact runtime observation into task-local working memory."""
+        pass
 
     def get_completed_episode_context(
         self,
@@ -105,22 +103,24 @@ class MemoryAdapter(Protocol):
         *,
         recent_observation_limit: int = 20,
     ) -> dict[str, Any]:
-        """Return RPC-serializable context for a completed episode."""
+        pass
 
-    def annotate_completed_episode(self, episode_id: str, annotation: dict[str, Any]) -> dict[str, Any]:
-        """Attach MemoryAgent consolidation output to a completed episode."""
+    def annotate_completed_episode(
+        self, episode_id: str, annotation: dict[str, Any]
+    ) -> dict[str, Any]:
+        pass
 
     def store_experience_hint(self, hint: dict[str, Any]) -> dict[str, Any]:
-        """Persist a lightweight experience hint for later retrieval."""
+        pass
 
     def get_experience_hint(self, hint_id: str) -> dict[str, Any] | None:
-        """Return one experience hint by exact id."""
+        pass
 
     def store_failure_pattern_candidate(self, pattern: dict[str, Any]) -> dict[str, Any]:
-        """Persist a failure pattern candidate for later retrieval."""
+        pass
 
     def get_failure_pattern_candidate(self, pattern_id: str) -> dict[str, Any] | None:
-        """Return one failure pattern candidate by exact id."""
+        pass
 
     def find_failure_patterns(
         self,
@@ -128,32 +128,32 @@ class MemoryAdapter(Protocol):
         task_type: str | None = None,
         top_k: int = 5,
     ) -> dict[str, Any]:
-        """Retrieve failure pattern candidates for planning."""
+        pass
 
     def store_semantic_update_candidate(self, update: dict[str, Any]) -> dict[str, Any]:
-        """Persist a semantic update candidate without applying it immediately."""
+        pass
 
     def get_semantic_update_candidate(self, update_id: str) -> dict[str, Any] | None:
-        """Return one semantic update candidate by exact id."""
+        pass
 
     def find_semantic_update_candidates(
         self,
         query: str,
         top_k: int = 5,
     ) -> dict[str, Any]:
-        """Retrieve semantic update candidates for inspection or validation."""
+        pass
 
     def store_skill_candidate(self, candidate: dict[str, Any]) -> dict[str, Any]:
-        """Persist a procedural skill candidate without promoting it to a Skill."""
+        pass
 
     def get_skill_candidate(self, candidate_id: str) -> dict[str, Any] | None:
-        """Return one procedural skill candidate by exact id."""
+        pass
 
     def store_causal_hypothesis(self, hypothesis: dict[str, Any]) -> dict[str, Any]:
-        """Persist a causal hypothesis without promoting it to a CausalEdge."""
+        pass
 
     def get_causal_hypothesis(self, hypothesis_id: str) -> dict[str, Any] | None:
-        """Return one causal hypothesis by exact id."""
+        pass
 
     def promote_skill_candidate(
         self,
@@ -163,7 +163,7 @@ class MemoryAdapter(Protocol):
         max_contradictions: int = 0,
         allow_conflicts: bool = False,
     ) -> dict[str, Any]:
-        """Promote a procedural candidate to a formal Skill if policy gates pass."""
+        pass
 
     def promote_causal_hypothesis(
         self,
@@ -173,7 +173,7 @@ class MemoryAdapter(Protocol):
         max_contradictions: int = 0,
         allow_conflicts: bool = False,
     ) -> dict[str, Any]:
-        """Promote a causal hypothesis to a formal CausalEdge if policy gates pass."""
+        pass
 
     def find_experience_hints(
         self,
@@ -181,7 +181,7 @@ class MemoryAdapter(Protocol):
         task_type: str | None = None,
         top_k: int = 5,
     ) -> dict[str, Any]:
-        """Retrieve prior experience hints for a task."""
+        pass
 
     def get_memory_evidence_summary(
         self,
@@ -191,7 +191,7 @@ class MemoryAdapter(Protocol):
         target: dict[str, Any] | None = None,
         top_k: int = 5,
     ) -> dict[str, Any]:
-        """Return bounded task evidence for planning and replanning."""
+        pass
 
     def counterfactual_query(
         self,
@@ -202,7 +202,7 @@ class MemoryAdapter(Protocol):
         current_state: dict[str, Any] | None = None,
         top_k: int = 5,
     ) -> dict[str, Any]:
-        """Return structured counterfactual alternatives for replanning."""
+        pass
 
     def get_object_approach_history(
         self,
@@ -210,7 +210,7 @@ class MemoryAdapter(Protocol):
         target: dict[str, Any],
         top_k: int = 10,
     ) -> dict[str, Any]:
-        """Return historical approach outcomes for one object-target navigation goal."""
+        pass
 
     def record_object_approach_outcome(
         self,
@@ -221,19 +221,19 @@ class MemoryAdapter(Protocol):
         reason: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Persist one object-approach anchor outcome for later retrieval."""
+        pass
 
     def record_perception(self, report: PerceptionReport) -> dict[str, Any]:
-        """Write a VLM perception report to semantic/working memory."""
+        pass
 
     def record_navigation_update(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """Write VLN navigation evidence to semantic/working memory."""
+        pass
 
     def record_navigation_event(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """Record a navigation lineage event as an episode action."""
+        pass
 
     def record_action(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """Write VLA action execution and causal update."""
+        pass
 
     def record_monitor_summary(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """Write a coarse Vision monitor summary for the active episode."""
+        pass

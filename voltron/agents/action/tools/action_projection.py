@@ -1,5 +1,3 @@
-"""Action projection for splitting mixed GR00T actions into VLN/VLA channels."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,8 +8,6 @@ import numpy as np
 
 @dataclass(frozen=True)
 class EmbodimentActionSpec:
-    """Action key split for one embodiment."""
-
     navigation_keys: tuple[str, ...]
     manipulation_keys: tuple[str, ...]
 
@@ -35,12 +31,6 @@ _DEFAULT_SPECS: dict[str, EmbodimentActionSpec] = {
 
 
 class ActionProjection:
-    """Project full policy actions into navigation or manipulation sub-actions.
-
-    The projector also keeps a last-known-safe action dictionary. Non-owned keys are
-    frozen to the previous safe value to avoid accidental cross-channel updates.
-    """
-
     def __init__(self, spec: EmbodimentActionSpec):
         self.spec = spec
         self._last_safe_action: dict[str, Any] = {}
@@ -56,16 +46,17 @@ class ActionProjection:
         return cls(spec)
 
     def update_last_safe_action(self, action: dict[str, Any]) -> None:
-        """Update internal frozen-action cache from a projected safe action."""
         self._last_safe_action = {k: self._clone_value(v) for k, v in action.items()}
 
     def project_navigation(self, action: dict[str, Any]) -> dict[str, Any]:
-        """Keep only navigation keys as live outputs; freeze others."""
-        return self._project(action, allowed_keys=set(self.spec.navigation_keys), freeze_non_owned=True)
+        return self._project(
+            action, allowed_keys=set(self.spec.navigation_keys), freeze_non_owned=True
+        )
 
     def project_manipulation(self, action: dict[str, Any]) -> dict[str, Any]:
-        """Keep only manipulation keys as live outputs; zero others."""
-        return self._project(action, allowed_keys=set(self.spec.manipulation_keys), freeze_non_owned=False)
+        return self._project(
+            action, allowed_keys=set(self.spec.manipulation_keys), freeze_non_owned=False
+        )
 
     def _project(
         self,
@@ -101,7 +92,7 @@ class ActionProjection:
     def _clone_value(value: Any) -> Any:
         if hasattr(value, "clone"):
             return value.clone()
-        # numpy arrays and torch tensors both provide copy() in most runtime paths.
+
         if hasattr(value, "copy"):
             return value.copy()
         return value

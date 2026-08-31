@@ -1,5 +1,3 @@
-"""Plan-state helpers used by runtime control flows."""
-
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -20,9 +18,7 @@ def configure_runtime_subtasks(
 ) -> dict[str, Any]:
     runtime_subtasks = [build_runtime_subtask(subtask) for subtask in plan.subtasks]
     runtime_subtasks_by_id = {
-        _runtime_subtask_key(item): item
-        for item in runtime_subtasks
-        if _runtime_subtask_key(item)
+        _runtime_subtask_key(item): item for item in runtime_subtasks if _runtime_subtask_key(item)
     }
 
     if runtime_subtasks:
@@ -49,9 +45,7 @@ def merge_plan_runtime_subtasks(
     if replace_active_plan:
         updated_runtime_subtasks = list(additions)
         updated_runtime_subtasks_by_id = {
-            _runtime_subtask_key(item): item
-            for item in additions
-            if _runtime_subtask_key(item)
+            _runtime_subtask_key(item): item for item in additions if _runtime_subtask_key(item)
         }
         return {
             "runtime_subtasks": updated_runtime_subtasks,

@@ -1,5 +1,3 @@
-"""Validated local / HTTP adapter for the licensed AnyGrasp SDK."""
-
 from __future__ import annotations
 
 import base64
@@ -19,8 +17,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class GraspCandidate:
-    """A single 6-DoF parallel-jaw grasp in OpenCV camera coordinates."""
-
     score: float
     translation: np.ndarray
     rotation_matrix: np.ndarray
@@ -63,7 +59,6 @@ def candidate_distribution_summary(
     *,
     max_depth_unique: int = 16,
 ) -> dict[str, Any]:
-    """Return a bounded, JSON-safe summary without changing candidate order or values."""
     if hasattr(candidates, "scores"):
         scores = np.asarray(candidates.scores, dtype=np.float64).reshape(-1)
         widths = np.asarray(candidates.widths, dtype=np.float64).reshape(-1)
@@ -102,16 +97,12 @@ def candidate_distribution_summary(
             norms = np.linalg.norm(approaches, axis=1) if len(approaches) else np.empty(0)
             valid = np.isfinite(approaches).all(axis=1) & (norms > 1e-12)
             if preferred_norm > 1e-12 and valid.any():
-                dots = (approaches[valid] / norms[valid, None]) @ (
-                    preferred / preferred_norm
-                )
+                dots = (approaches[valid] / norms[valid, None]) @ (preferred / preferred_norm)
                 angles = np.rad2deg(np.arccos(np.clip(dots, -1.0, 1.0)))
                 quantiles = np.quantile(angles, [0.0, 0.25, 0.5, 0.75, 1.0])
                 summary["preferred_approach_angle_deg_quantiles"] = {
                     name: float(value)
-                    for name, value in zip(
-                        ("min", "p25", "p50", "p75", "max"), quantiles
-                    )
+                    for name, value in zip(("min", "p25", "p50", "p75", "max"), quantiles)
                 }
             else:
                 summary["preferred_approach_angle_deg_quantiles"] = None
@@ -144,13 +135,14 @@ def validate_detection_inputs(
     colors: Any,
     region_mask: Any | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
-    """Validate and normalize the arrays shared by local and remote modes."""
     points_arr = np.ascontiguousarray(points, dtype=np.float32)
     colors_arr = np.ascontiguousarray(colors, dtype=np.float32)
     if points_arr.ndim != 2 or points_arr.shape[1] != 3:
         raise ValueError(f"points must have shape (N, 3), got {points_arr.shape}")
     if colors_arr.shape != points_arr.shape:
-        raise ValueError(f"colors must match points shape {points_arr.shape}, got {colors_arr.shape}")
+        raise ValueError(
+            f"colors must match points shape {points_arr.shape}, got {colors_arr.shape}"
+        )
     if len(points_arr) == 0:
         raise ValueError("point cloud is empty")
     if not np.isfinite(points_arr).all() or not np.isfinite(colors_arr).all():
@@ -162,7 +154,9 @@ def validate_detection_inputs(
     if region_mask is not None:
         mask_arr = np.ascontiguousarray(region_mask, dtype=np.bool_).reshape(-1)
         if mask_arr.shape != (len(points_arr),):
-            raise ValueError(f"region_mask must have shape ({len(points_arr)},), got {mask_arr.shape}")
+            raise ValueError(
+                f"region_mask must have shape ({len(points_arr)},), got {mask_arr.shape}"
+            )
         if not mask_arr.any():
             raise ValueError("region_mask contains no target points")
     return points_arr, colors_arr, mask_arr
@@ -173,16 +167,18 @@ def workspace_limits(
     region_mask: np.ndarray | None,
     margin: float,
 ) -> list[float] | None:
-    """Build an SDK workspace around target points while retaining scene geometry."""
     if region_mask is None:
         return None
     target = points[region_mask]
     lower = target.min(axis=0) - max(0.0, float(margin))
     upper = target.max(axis=0) + max(0.0, float(margin))
     return [
-        float(lower[0]), float(upper[0]),
-        float(lower[1]), float(upper[1]),
-        float(lower[2]), float(upper[2]),
+        float(lower[0]),
+        float(upper[0]),
+        float(lower[1]),
+        float(upper[1]),
+        float(lower[2]),
+        float(upper[2]),
     ]
 
 
@@ -211,7 +207,6 @@ def filter_candidates_by_approach(
     approach_direction: Any | None,
     approach_thresh: float,
 ) -> list[GraspCandidate]:
-    """Filter grasps by angle to a preferred camera-frame approach vector."""
     if approach_direction is None or float(approach_thresh) >= np.pi:
         return candidates
     preferred = np.asarray(approach_direction, dtype=np.float64).reshape(-1)
@@ -243,8 +238,6 @@ def _working_directory(path: Path) -> Iterator[None]:
 
 
 class AnyGraspDetector:
-    """Lazy AnyGrasp detector with identical local and remote semantics."""
-
     def __init__(self, config: AnyGraspConfig | dict[str, Any]) -> None:
         self._config = AnyGraspConfig.from_dict(config) if isinstance(config, dict) else config
         self._detector: Any | None = None
@@ -261,7 +254,11 @@ class AnyGraspDetector:
         detection_dir = sdk_root / "grasp_detection"
         if not detection_dir.is_dir():
             raise RuntimeError(f"AnyGrasp detection directory not found: {detection_dir}")
-        checkpoint = Path(self._config.checkpoint_path).expanduser() if self._config.checkpoint_path else detection_dir / "log" / "checkpoint_detection.tar"
+        checkpoint = (
+            Path(self._config.checkpoint_path).expanduser()
+            if self._config.checkpoint_path
+            else detection_dir / "log" / "checkpoint_detection.tar"
+        )
         if not checkpoint.is_absolute():
             checkpoint = (detection_dir / checkpoint).resolve()
         if not checkpoint.is_file():
@@ -270,9 +267,11 @@ class AnyGraspDetector:
             sys.path.insert(0, str(detection_dir))
 
         from argparse import Namespace
+
         try:
             with _working_directory(detection_dir):
-                from gsnet import AnyGrasp  # type: ignore[import-not-found]
+                from gsnet import AnyGrasp
+
                 cfg = Namespace(
                     checkpoint_path=str(checkpoint),
                     max_gripper_width=min(0.1, max(0.0, self._config.max_gripper_width)),
@@ -286,7 +285,6 @@ class AnyGraspDetector:
             raise RuntimeError(f"failed to load AnyGrasp SDK from {detection_dir}: {exc}") from exc
         self._detector = detector
         logger.info("AnyGrasp local detector loaded (checkpoint=%s)", checkpoint)
-
 
     def _detect_remote(
         self,
@@ -378,7 +376,11 @@ class AnyGraspDetector:
         self.last_detection_audit = None
         points_arr, colors_arr, mask_arr = validate_detection_inputs(points, colors, region_mask)
         dense = self._config.dense_grasp if dense_grasp is None else bool(dense_grasp)
-        collision = self._config.collision_detection if collision_detection is None else bool(collision_detection)
+        collision = (
+            self._config.collision_detection
+            if collision_detection is None
+            else bool(collision_detection)
+        )
         limit = self._config.top_k if top_k is None else int(top_k)
         if not 1 <= limit <= 100:
             raise ValueError(f"top_k must be in [1, 100], got {limit}")
@@ -414,9 +416,7 @@ class AnyGraspDetector:
                 "raw network proposals are internal to compiled gsnet.so"
             ),
             "input_point_count": int(len(points_arr)),
-            "target_point_count": (
-                None if mask_arr is None else int(np.count_nonzero(mask_arr))
-            ),
+            "target_point_count": (None if mask_arr is None else int(np.count_nonzero(mask_arr))),
             "workspace": limits,
             "dense_grasp": dense,
             "collision_detection": collision,
@@ -451,18 +451,14 @@ class AnyGraspDetector:
         if self._config.apply_nms and not dense:
             group = group.nms()
         audit["post_nms_count"] = int(len(group))
-        audit["post_nms_distribution"] = candidate_distribution_summary(
-            group, approach_direction
-        )
+        audit["post_nms_distribution"] = candidate_distribution_summary(group, approach_direction)
         group = group.sort_by_score()
         candidates = grasp_group_to_candidates(group)
         audit["post_conversion_count"] = int(len(candidates))
         audit["post_conversion_distribution"] = candidate_distribution_summary(
             candidates, approach_direction
         )
-        candidates = filter_candidates_by_approach(
-            candidates, approach_direction, approach_thresh
-        )
+        candidates = filter_candidates_by_approach(candidates, approach_direction, approach_thresh)
         audit["post_approach_count"] = int(len(candidates))
         audit["post_approach_distribution"] = candidate_distribution_summary(
             candidates, approach_direction
@@ -475,7 +471,6 @@ class AnyGraspDetector:
         self.last_detection_audit = audit
         logger.info("%s", json.dumps(audit, sort_keys=True, separators=(",", ":")))
         return candidates
-
 
     def detect_from_depth(
         self,
@@ -508,6 +503,7 @@ class AnyGraspDetector:
         if self._remote:
             try:
                 import requests
+
                 response = requests.get(
                     self._remote_url("/health"),
                     timeout=min(5.0, float(self._config.request_timeout_s)),

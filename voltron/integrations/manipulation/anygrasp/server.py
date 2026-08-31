@@ -1,5 +1,3 @@
-"""Standalone HTTP service that isolates the licensed AnyGrasp environment."""
-
 from __future__ import annotations
 
 import argparse
@@ -26,8 +24,8 @@ try:
         validate_detection_inputs,
         workspace_limits,
     )
-except ImportError:  # Direct ``python server.py`` execution.
-    from detector import (  # type: ignore[no-redef]
+except ImportError:
+    from detector import (
         candidate_distribution_summary,
         filter_candidates_by_approach,
         grasp_group_to_candidates,
@@ -108,7 +106,6 @@ def _decode_mask(encoded: str, shape: list[int]) -> np.ndarray:
 
 
 def _release_cuda_cache() -> None:
-    """Release inference workspaces while keeping the detector weights resident."""
     try:
         import torch
 
@@ -160,9 +157,7 @@ def detect(request: DetectRequest) -> DetectResponse:
             "raw network proposals are internal to compiled gsnet.so"
         ),
         "input_point_count": int(len(points)),
-        "target_point_count": (
-            None if region_mask is None else int(np.count_nonzero(region_mask))
-        ),
+        "target_point_count": (None if region_mask is None else int(np.count_nonzero(region_mask))),
         "workspace": limits,
         "dense_grasp": bool(request.dense_grasp),
         "collision_detection": bool(request.collision_detection),
@@ -217,9 +212,7 @@ def detect(request: DetectRequest) -> DetectResponse:
             )
             candidates = candidates[: request.top_k]
         else:
-            empty_distribution = candidate_distribution_summary(
-                [], request.approach_direction
-            )
+            empty_distribution = candidate_distribution_summary([], request.approach_direction)
             audit["post_nms_count"] = 0
             audit["post_nms_distribution"] = empty_distribution
             audit["post_conversion_count"] = 0
@@ -265,7 +258,11 @@ def _build_detector(
 ) -> None:
     global _detector, _detector_config
     detection_dir = Path(sdk_root).expanduser().resolve() / "grasp_detection"
-    checkpoint_path = Path(checkpoint).expanduser() if checkpoint else detection_dir / "log" / "checkpoint_detection.tar"
+    checkpoint_path = (
+        Path(checkpoint).expanduser()
+        if checkpoint
+        else detection_dir / "log" / "checkpoint_detection.tar"
+    )
     if not checkpoint_path.is_absolute():
         checkpoint_path = (detection_dir / checkpoint_path).resolve()
     if not detection_dir.is_dir():
@@ -276,10 +273,12 @@ def _build_detector(
         sys.path.insert(0, str(detection_dir))
 
     from argparse import Namespace
+
     previous_cwd = Path.cwd()
     try:
         os.chdir(detection_dir)
-        from gsnet import AnyGrasp  # type: ignore[import-not-found]
+        from gsnet import AnyGrasp
+
         config = Namespace(
             checkpoint_path=str(checkpoint_path),
             max_gripper_width=min(0.1, max(0.0, max_gripper_width)),

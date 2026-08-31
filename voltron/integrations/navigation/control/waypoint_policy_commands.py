@@ -1,5 +1,3 @@
-"""Command-generation helpers for the waypoint policy adapter."""
-
 from __future__ import annotations
 
 import math
@@ -66,7 +64,11 @@ def tracking_command(
     if not adapter.holonomic:
         heading_scale = max(0.0, math.cos(heading_error))
         linear_velocity = float(
-            np.clip(adapter.linear_gain * control_distance * heading_scale, 0.0, adapter.max_linear_velocity)
+            np.clip(
+                adapter.linear_gain * control_distance * heading_scale,
+                0.0,
+                adapter.max_linear_velocity,
+            )
         )
         return (linear_velocity, 0.0, angular_velocity), "track_waypoint"
     if adapter.prefer_forward_facing_motion:
@@ -238,7 +240,9 @@ def holonomic_tracking_speed(
     is_final_waypoint: bool,
 ) -> float:
     if not adapter._uses_local_path_tracking():
-        return float(np.clip(adapter.linear_gain * tracking_distance, 0.0, adapter.max_linear_velocity))
+        return float(
+            np.clip(adapter.linear_gain * tracking_distance, 0.0, adapter.max_linear_velocity)
+        )
     if is_final_waypoint:
         return float(
             np.clip(
@@ -247,7 +251,9 @@ def holonomic_tracking_speed(
                 adapter.local_path_max_linear_velocity,
             )
         )
-    cruise_speed = adapter.local_path_min_cruise_velocity + (adapter.local_path_linear_gain * tracking_distance)
+    cruise_speed = adapter.local_path_min_cruise_velocity + (
+        adapter.local_path_linear_gain * tracking_distance
+    )
     return float(np.clip(cruise_speed, 0.0, adapter.local_path_max_linear_velocity))
 
 
@@ -318,7 +324,9 @@ def portal_alignment_command(
     if not aligned:
         return (0.0, 0.0, angular_velocity), "align_portal"
     if centered and aligned:
-        linear_velocity = float(np.clip(adapter.linear_gain * distance, 0.0, adapter.max_linear_velocity))
+        linear_velocity = float(
+            np.clip(adapter.linear_gain * distance, 0.0, adapter.max_linear_velocity)
+        )
         return (linear_velocity, lateral_velocity, angular_velocity), "track_waypoint"
 
     if adapter.holonomic and adapter.prefer_forward_facing_motion and not centered:

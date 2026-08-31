@@ -1,5 +1,3 @@
-"""Structured runtime control signals for stop/resume interaction."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -8,8 +6,6 @@ from typing import Any
 
 @dataclass(frozen=True)
 class ExecutionControlSignal:
-    """Serializable operator control command."""
-
     action: str
     reason: str | None = None
     requested_by: str | None = None

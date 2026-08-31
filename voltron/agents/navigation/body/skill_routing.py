@@ -1,5 +1,3 @@
-"""High-level skill-routing helpers owned by the Navigation agent body."""
-
 from __future__ import annotations
 
 import json
@@ -45,8 +43,6 @@ _RETRIABLE_STATUS_CODES = {
 
 
 class HeuristicNavigationSkillSelector:
-    """Route object-level approach tasks into the object-approach skill."""
-
     def select_skill(
         self,
         subtask: Subtask,
@@ -54,10 +50,9 @@ class HeuristicNavigationSkillSelector:
         available_skill_ids: list[str],
     ) -> LocalSkillSelection:
         del context
-        wants_object_approach = (
-            bool(str(subtask.target.get("object") or subtask.target.get("object_id") or "").strip())
-            and subtask.action.strip().lower() not in {"room_navigation", "floor_navigation"}
-        )
+        wants_object_approach = bool(
+            str(subtask.target.get("object") or subtask.target.get("object_id") or "").strip()
+        ) and subtask.action.strip().lower() not in {"room_navigation", "floor_navigation"}
         selected_skill_id = "direct_navigation_skill"
         reason = "default navigation path"
         fallback_candidates: list[str] = []
@@ -92,8 +87,6 @@ class OpenAINavigationSkillSelectorConfig:
 
 
 class OpenAICompatibleNavigationSkillSelector:
-    """OpenAI-compatible high-level skill router used by the Navigation body."""
-
     def __init__(self, config: OpenAINavigationSkillSelectorConfig) -> None:
         self.config = config
         self.session = requests.Session()
@@ -106,9 +99,13 @@ class OpenAICompatibleNavigationSkillSelector:
         available_skill_ids: list[str],
     ) -> LocalSkillSelection:
         try:
-            prompt = self._build_prompt(subtask=subtask, context=context, available_skill_ids=available_skill_ids)
+            prompt = self._build_prompt(
+                subtask=subtask, context=context, available_skill_ids=available_skill_ids
+            )
             content = self._request_chat_completion(prompt)
-            return self._parse_selection_response(content=content, available_skill_ids=available_skill_ids)
+            return self._parse_selection_response(
+                content=content, available_skill_ids=available_skill_ids
+            )
         except Exception as exc:
             fallback = self.fallback_selector.select_skill(
                 subtask=subtask,
@@ -130,7 +127,9 @@ class OpenAICompatibleNavigationSkillSelector:
 
     def _request_chat_completion(self, user_prompt: str) -> str:
         url = self._completion_url(self.config.base_url)
-        api_key = self.config.api_key or os.getenv(self.config.api_key_env) or os.getenv("OPENAI_API_KEY")
+        api_key = (
+            self.config.api_key or os.getenv(self.config.api_key_env) or os.getenv("OPENAI_API_KEY")
+        )
         headers = {"Content-Type": "application/json"}
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
@@ -146,7 +145,9 @@ class OpenAICompatibleNavigationSkillSelector:
         response = None
         for attempt in range(1, attempts + 1):
             try:
-                response = self.session.post(url, headers=headers, json=payload, timeout=self.config.timeout_s)
+                response = self.session.post(
+                    url, headers=headers, json=payload, timeout=self.config.timeout_s
+                )
                 if response.status_code in _RETRIABLE_STATUS_CODES and attempt < attempts:
                     time.sleep(max(0.0, float(self.config.retry_backoff_s)))
                     continue
@@ -165,7 +166,9 @@ class OpenAICompatibleNavigationSkillSelector:
             raise ValueError("Navigation skill selector response did not include choices")
         content = choices[0].get("message", {}).get("content")
         if isinstance(content, list):
-            content = "".join(item.get("text", "") if isinstance(item, dict) else str(item) for item in content)
+            content = "".join(
+                item.get("text", "") if isinstance(item, dict) else str(item) for item in content
+            )
         if not isinstance(content, str) or not content.strip():
             raise ValueError("Navigation skill selector response content is empty")
         return content
@@ -202,7 +205,9 @@ class OpenAICompatibleNavigationSkillSelector:
         )
 
     @staticmethod
-    def _parse_selection_response(content: str, available_skill_ids: list[str]) -> LocalSkillSelection:
+    def _parse_selection_response(
+        content: str, available_skill_ids: list[str]
+    ) -> LocalSkillSelection:
         payload = extract_json_object(content, label="Navigation skill selector")
         skill_id = str(payload.get("skill_id", "")).strip()
         if skill_id not in available_skill_ids:

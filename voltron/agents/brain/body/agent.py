@@ -1,9 +1,3 @@
-"""Brain coordinator agent.
-
-This module only handles planning lifecycle and memory orchestration.
-The planner itself is injected via `TaskPlanner` to keep model/runtime pluggable.
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -13,7 +7,12 @@ from . import planning_context as brain_planning_context
 from .interactive_planning import BrainInteractivePlanningController
 from .planning_loop import BrainPlanningLoop
 from .runtime_interaction_control import RuntimeInteractionControlPolicy
-from voltron.agents.brain.contracts import BrainPlanningSession, PlanConfirmation, TaskPlanner, UserAnswer
+from voltron.agents.brain.contracts import (
+    BrainPlanningSession,
+    PlanConfirmation,
+    TaskPlanner,
+    UserAnswer,
+)
 from voltron.agents.brain.skills.planning.interactive_alignment import (
     action_contract_steps,
     align_refined_plan,
@@ -22,14 +21,17 @@ from voltron.agents.brain.tools.cron import CronTool
 from voltron.agents.brain.tools import interaction_targeting, navigation_runtime
 from voltron.agents.brain.tools.web_search import WebSearchTool
 from voltron.shared.context import ExecutionContext, Plan, Subtask, TaskRequest
-from voltron.shared.contracts import AgentCapability, MemoryAdapter, ToolInvocation, serialize_agent_capabilities
+from voltron.shared.contracts import (
+    AgentCapability,
+    MemoryAdapter,
+    ToolInvocation,
+    serialize_agent_capabilities,
+)
 from voltron.shared.registries import ToolCatalog
 from voltron.shared.results import ToolResult
 
 
 class BrainAgent:
-    """Top-level coordinator for plan/replan/finalize flow."""
-
     def __init__(
         self,
         memory: MemoryAdapter,
@@ -49,8 +51,6 @@ class BrainAgent:
         self.agent_capabilities = list(capabilities)
 
     def invoke_tool(self, invocation: ToolInvocation) -> ToolResult:
-        """Execute a Brain-owned runtime tool through the shared invocation contract."""
-
         try:
             tool = self.tools.get(invocation.tool_name)
         except KeyError:
@@ -82,7 +82,9 @@ class BrainAgent:
             catalog.register(tool_name, web_search_tool)
         return catalog
 
-    def prepare(self, request: TaskRequest, plan_override: Plan | None = None) -> tuple[ExecutionContext, Plan]:
+    def prepare(
+        self, request: TaskRequest, plan_override: Plan | None = None
+    ) -> tuple[ExecutionContext, Plan]:
         trace_id = request.metadata.get("trace_id", request.task_id)
         context = ExecutionContext(trace_id=trace_id, task_request=request)
 
@@ -92,16 +94,20 @@ class BrainAgent:
         planning_context = self._build_planning_context(request)
         context.runtime_state["planning_context"] = planning_context
 
-        raw_plan = plan_override or self._plan_initial(request=request, planning_context=planning_context)
+        raw_plan = plan_override or self._plan_initial(
+            request=request, planning_context=planning_context
+        )
         if plan_override is not None and "dynamic_execution" not in raw_plan.metadata:
             raw_plan = Plan(
                 subtasks=raw_plan.subtasks,
                 metadata={**raw_plan.metadata, "dynamic_execution": False},
             )
         context.runtime_state["planner_plan"] = raw_plan
-        planning_context["interaction_target_hints"] = interaction_targeting.interaction_target_hints(
-            request=request,
-            subtasks=raw_plan.subtasks,
+        planning_context["interaction_target_hints"] = (
+            interaction_targeting.interaction_target_hints(
+                request=request,
+                subtasks=raw_plan.subtasks,
+            )
         )
 
         plan = raw_plan
@@ -113,8 +119,6 @@ class BrainAgent:
         return context, plan
 
     def begin_interactive_prepare(self, request: TaskRequest) -> BrainPlanningSession:
-        """Begin an opt-in interactive planning session without executing a plan."""
-
         trace_id = request.metadata.get("trace_id", request.task_id)
         context = ExecutionContext(trace_id=trace_id, task_request=request)
 
@@ -129,7 +133,9 @@ class BrainAgent:
                 "phase": "draft",
                 "require_complete_plan": True,
             }
-            provisional_plan = self._plan_initial(request=request, planning_context=planning_context)
+            provisional_plan = self._plan_initial(
+                request=request, planning_context=planning_context
+            )
             if not provisional_plan.subtasks:
                 raise ValueError("Interactive planning produced no provisional subtasks")
             context.runtime_state["provisional_plan"] = provisional_plan
@@ -154,8 +160,6 @@ class BrainAgent:
         session: BrainPlanningSession,
         answer: UserAnswer,
     ) -> BrainPlanningSession:
-        """Record a user clarification for an opt-in interactive planning session."""
-
         updated = self.interactive_planning.answer(session, answer)
         context = self._interactive_contexts.get(updated.session_id)
         if context is not None:
@@ -167,8 +171,6 @@ class BrainAgent:
         session: BrainPlanningSession,
         confirmation: PlanConfirmation,
     ) -> Plan:
-        """Compile an executable plan only after the user confirms the text draft."""
-
         _, plan = self.confirm_interactive_plan_with_context(session, confirmation)
         return plan
 
@@ -177,12 +179,12 @@ class BrainAgent:
         session: BrainPlanningSession,
         confirmation: PlanConfirmation,
     ) -> tuple[ExecutionContext, Plan]:
-        """Compile an executable plan and expose the session's original context."""
-
         if confirmation.confirmed:
             unanswered = session.unanswered_required_questions()
             if unanswered:
-                raise ValueError("Cannot confirm interactive plan with unanswered required clarification")
+                raise ValueError(
+                    "Cannot confirm interactive plan with unanswered required clarification"
+                )
 
         updated = self.interactive_planning.confirm(session, confirmation)
         context = self._interactive_contexts.get(updated.session_id)
@@ -293,7 +295,9 @@ class BrainAgent:
         if guarded is None:
             return initial_plan
 
-        plan = Plan(subtasks=guarded, metadata={"planner": "runtime_room_gate", "dynamic_execution": True})
+        plan = Plan(
+            subtasks=guarded, metadata={"planner": "runtime_room_gate", "dynamic_execution": True}
+        )
         plan = self._version_plan(context=context, plan=plan, reason="runtime_bootstrap")
         self._record_plan(context=context, plan=plan, reason="runtime_bootstrap")
         self._sync_working_memory_after_plan(context=context, plan=plan, reason="runtime_bootstrap")
@@ -323,11 +327,16 @@ class BrainAgent:
             guarded = RuntimeInteractionControlPolicy.deterministic_interaction_plan(
                 request=request,
                 context=context,
-                next_index=RuntimeInteractionControlPolicy.coerce_next_index(execution_state.get("next_subtask_index")),
+                next_index=RuntimeInteractionControlPolicy.coerce_next_index(
+                    execution_state.get("next_subtask_index")
+                ),
                 execution_state=execution_state,
             )
             if guarded is not None:
-                plan = Plan(subtasks=guarded, metadata={"planner": "runtime_room_gate", "dynamic_execution": True})
+                plan = Plan(
+                    subtasks=guarded,
+                    metadata={"planner": "runtime_room_gate", "dynamic_execution": True},
+                )
                 plan = self._version_plan(context=context, plan=plan, reason="next_step")
                 self._record_plan(context=context, plan=plan, reason="next_step")
                 self._sync_working_memory_after_plan(
@@ -431,7 +440,9 @@ class BrainAgent:
             request=request,
             planner_mode_from_request=RuntimeInteractionControlPolicy.planner_mode_from_request,
         )
-        planning_context["agent_capabilities"] = serialize_agent_capabilities(self.agent_capabilities)
+        planning_context["agent_capabilities"] = serialize_agent_capabilities(
+            self.agent_capabilities
+        )
         return planning_context
 
     def _plan_initial(self, *, request: TaskRequest, planning_context: dict[str, Any]) -> Plan:
@@ -451,14 +462,6 @@ class BrainAgent:
         confirmed_steps: list[Any],
         fallback_plan: Plan | None = None,
     ) -> Plan:
-        """Plan and align a confirmed draft, retrying only failed refinements.
-
-        The provisional plan is the executable source from which the user-facing
-        draft was produced. If nondeterministic refinement attempts all violate
-        that confirmed contract, retain the aligned provisional plan instead of
-        deleting a user-confirmed world-changing milestone.
-        """
-
         config = getattr(self.planner, "config", None)
         retries = getattr(config, "semantic_validation_retries", 0)
         attempts = max(1, int(retries) + 1)
@@ -604,7 +607,9 @@ class BrainAgent:
         text_plan = interactive.get("text_plan")
         if not isinstance(text_plan, dict):
             return plan
-        raw_criteria = [item for item in text_plan.get("success_criteria") or [] if isinstance(item, dict)]
+        raw_criteria = [
+            item for item in text_plan.get("success_criteria") or [] if isinstance(item, dict)
+        ]
         if not raw_criteria:
             return plan
 
@@ -640,8 +645,14 @@ class BrainAgent:
                 updated_subtasks.append(subtask)
                 continue
             parameters = dict(subtask.parameters)
-            existing = [dict(item) for item in parameters.get("completion_criteria") or [] if isinstance(item, dict)]
-            seen = {str(item.get("criterion_id") or item.get("description") or "") for item in existing}
+            existing = [
+                dict(item)
+                for item in parameters.get("completion_criteria") or []
+                if isinstance(item, dict)
+            ]
+            seen = {
+                str(item.get("criterion_id") or item.get("description") or "") for item in existing
+            }
             for criterion in criteria:
                 key = str(criterion.get("criterion_id") or criterion.get("description") or "")
                 if key and key in seen:
@@ -709,7 +720,10 @@ class BrainAgent:
         desired_step_id = str(criterion.get("collaborative_step_id") or "").strip()
         if desired_step_id:
             for subtask in plan.subtasks:
-                if str(subtask.parameters.get("collaborative_step_id") or "").strip() == desired_step_id:
+                if (
+                    str(subtask.parameters.get("collaborative_step_id") or "").strip()
+                    == desired_step_id
+                ):
                     return subtask
         return None
 
@@ -753,11 +767,15 @@ class BrainAgent:
     def _build_runtime_namespace(context: ExecutionContext) -> dict[str, Any]:
         return brain_plan_flow.build_runtime_namespace(context)
 
-    def _build_execution_state(self, context: ExecutionContext, latest_result: Any) -> dict[str, Any]:
+    def _build_execution_state(
+        self, context: ExecutionContext, latest_result: Any
+    ) -> dict[str, Any]:
         return brain_plan_flow.build_execution_state(
             context=context,
             latest_result=latest_result,
-            planner_mode=RuntimeInteractionControlPolicy.planner_mode_from_request(context.task_request),
+            planner_mode=RuntimeInteractionControlPolicy.planner_mode_from_request(
+                context.task_request
+            ),
         )
 
     @classmethod

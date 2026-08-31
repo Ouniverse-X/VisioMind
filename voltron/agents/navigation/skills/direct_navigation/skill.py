@@ -1,5 +1,3 @@
-"""Default direct-navigation skill used for ordinary Navigation execution."""
-
 from __future__ import annotations
 
 from voltron.shared.context import ExecutionContext, Subtask

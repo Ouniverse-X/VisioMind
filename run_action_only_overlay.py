@@ -1,11 +1,3 @@
-"""Run the copied competition implementation without editing the source repo.
-
-The wrapper installs only the copied modules into ``sys.modules`` and leaves
-all other Voltron dependencies resolved from the original checkout.  This is
-the bridge between the isolated ``xh/competition_code`` tree and a GPU/Isaac
-runtime host.
-"""
-
 from __future__ import annotations
 
 import importlib
@@ -17,10 +9,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent / "voltron"
 PROJECT_ROOT = ROOT.parent
-# Always resolve the vendored runtime under this competition repository.  The
-# deployment conda hook may point VOLTRON_HOME/PYTHONPATH at a separate research
-# checkout; allowing that path to win would make the public artifact neither
-# isolated nor reproducible.
 os.environ["VOLTRON_HOME"] = str(ROOT)
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -50,8 +38,6 @@ def main() -> None:
         "voltron.integrations.simulator.behavior.execution.action_stepper",
         "integrations/simulator/behavior/execution/action_stepper.py",
     )
-    # Preload the unmodified frame adapter so the copied executor can resolve
-    # its relative dependency while being loaded under an overlay alias.
     importlib.import_module("voltron.integrations.manipulation.anygrasp.frame_adapter")
     _install(
         "voltron.integrations.manipulation.anygrasp.grasp_executor",
@@ -64,7 +50,9 @@ def main() -> None:
     )
     _install("voltron.agents.action.skills.registry", "agents/action/skills/registry.py")
     action_only_path = ROOT / "entrypoints/examples/closed_loop/action_only.py"
-    spec = importlib.util.spec_from_file_location("xh_competition_action_only_runtime", action_only_path)
+    spec = importlib.util.spec_from_file_location(
+        "xh_competition_action_only_runtime", action_only_path
+    )
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load competition entrypoint: {action_only_path}")
     action_only = importlib.util.module_from_spec(spec)

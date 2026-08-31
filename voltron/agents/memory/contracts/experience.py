@@ -1,5 +1,3 @@
-"""Structured contracts for MemoryAgent experience extraction."""
-
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field, is_dataclass
@@ -8,8 +6,6 @@ from typing import Any
 
 @dataclass
 class RetrievalHint:
-    """A lightweight hint that can be written to retrievable memory."""
-
     hint_type: str = "retrieval"
     summary: str = ""
     confidence: float = 0.0
@@ -22,8 +18,6 @@ class RetrievalHint:
 
 @dataclass
 class ExperienceExtractionResult:
-    """Extractor output after schema parsing and field-level validation."""
-
     episode_summary: str = ""
     task_outcome: str = ""
     procedural_skills: list[dict[str, Any]] = field(default_factory=list)
@@ -42,7 +36,9 @@ class ExperienceExtractionResult:
         return payload
 
 
-def normalize_extraction_result(value: ExperienceExtractionResult | dict[str, Any]) -> ExperienceExtractionResult:
+def normalize_extraction_result(
+    value: ExperienceExtractionResult | dict[str, Any],
+) -> ExperienceExtractionResult:
     if isinstance(value, ExperienceExtractionResult):
         return value
     if not isinstance(value, dict):

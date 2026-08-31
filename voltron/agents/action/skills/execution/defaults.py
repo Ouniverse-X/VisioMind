@@ -1,5 +1,3 @@
-"""Default semantic VLA skills."""
-
 from __future__ import annotations
 
 from .core import PolicyBackedVLASkill

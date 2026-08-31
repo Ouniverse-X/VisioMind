@@ -1,5 +1,3 @@
-"""Industrial perception, visual detection, and 3D segmentation package."""
-
 from __future__ import annotations
 
 from visiomind.perception.industrial_detector import (

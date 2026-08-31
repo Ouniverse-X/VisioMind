@@ -1,5 +1,3 @@
-"""Runtime lifecycle bindings for the BEHAVIOR runtime facade."""
-
 from __future__ import annotations
 
 import atexit
@@ -13,13 +11,25 @@ from pathlib import Path
 from typing import Any
 
 from voltron.integrations.simulator.behavior.artifacts import recorder as behavior_recorder
-from voltron.integrations.simulator.behavior.tools import bridge_recording as behavior_bridge_recording
-from voltron.integrations.simulator.behavior.tools import bridge_subtasks as behavior_bridge_subtasks
-from voltron.integrations.simulator.behavior.tools import memory_diagnostics as behavior_memory_diagnostics
-from voltron.integrations.simulator.behavior.tools import runtime_feedback as behavior_runtime_feedback
-from voltron.integrations.simulator.behavior.tools import runtime_shutdown as behavior_runtime_shutdown
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_recording as behavior_bridge_recording,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    bridge_subtasks as behavior_bridge_subtasks,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    memory_diagnostics as behavior_memory_diagnostics,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    runtime_feedback as behavior_runtime_feedback,
+)
+from voltron.integrations.simulator.behavior.tools import (
+    runtime_shutdown as behavior_runtime_shutdown,
+)
 from voltron.integrations.simulator.behavior.tools import transcode as behavior_transcode
-from voltron.integrations.simulator.behavior.observation import frames as behavior_observation_frames
+from voltron.integrations.simulator.behavior.observation import (
+    frames as behavior_observation_frames,
+)
 from voltron.runtime.session import episode_session as runtime_episode_session
 from voltron.runtime.telemetry import artifact_writer as runtime_artifact_writer
 from voltron.runtime.telemetry import process_trace as runtime_process_trace
@@ -233,7 +243,9 @@ def install_recording_exit_guard(runtime: Any) -> None:
         signal_numbers=[getattr(signal, "SIGINT", None), getattr(signal, "SIGTERM", None)],
         install_recording_exit_guard_impl=behavior_recorder.install_recording_exit_guard,
         close_from_exit_guard=lambda: close_from_exit_guard(runtime),
-        handle_termination_signal=lambda signum, frame: handle_termination_signal(runtime, signum, frame),
+        handle_termination_signal=lambda signum, frame: handle_termination_signal(
+            runtime, signum, frame
+        ),
     )
 
 
@@ -359,7 +371,8 @@ def close(runtime: Any) -> None:
         remove_recording_exit_guard=lambda: remove_recording_exit_guard(runtime),
         finalize_recording=lambda: finalize_recording(runtime),
         record_event=lambda event, payload: record_event(runtime, event, payload),
-        record_memory_diagnostic=lambda stage, extra=None: behavior_memory_diagnostics.record_memory_diagnostic(
+        record_memory_diagnostic=lambda stage,
+        extra=None: behavior_memory_diagnostics.record_memory_diagnostic(
             lambda event, payload: record_event(runtime, event, payload),
             stage=stage,
             extra=extra,

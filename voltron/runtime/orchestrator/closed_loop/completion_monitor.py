@@ -1,5 +1,3 @@
-"""Unified completion gate for closed-loop subtask progression."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -21,8 +19,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class CompletionDecision:
-    """Normalized decision consumed by step runners."""
-
     done: bool
     success: bool | None
     verdict: CompletionVerdict
@@ -39,14 +35,6 @@ class CompletionDecision:
 
 
 class CompletionMonitor:
-    """Evaluates whether a subtask may advance.
-
-    Environment signals remain authoritative by default for benchmark
-    compatibility. When disabled, positive environment completion is preserved
-    as evidence for Brain/Vision decisions but cannot advance the runtime by
-    itself.
-    """
-
     def __init__(
         self,
         *,
@@ -142,9 +130,7 @@ class CompletionMonitor:
                 verdict=verdict,
             )
 
-        is_anygrasp_result = (
-            result_payload.get("skill_id") == "anygrasp_manipulation_skill"
-        )
+        is_anygrasp_result = result_payload.get("skill_id") == "anygrasp_manipulation_skill"
         anygrasp_execution_completed = bool(
             is_anygrasp_result and result_payload.get("grasp_plan_completed")
         )
@@ -162,8 +148,7 @@ class CompletionMonitor:
             and physical_evidence.get("attachment_passed") is True
             and physical_evidence.get("sample_count")
             == physical_evidence.get("required_sample_count")
-            and result_payload.get("object_in_hand")
-            == result_payload.get("target_object")
+            and result_payload.get("object_in_hand") == result_payload.get("target_object")
             and str(result_payload.get("skill_source", "")).endswith("curobo")
         )
         if verified_grasp and env_done and env_success is True:
@@ -222,9 +207,7 @@ class CompletionMonitor:
                     "skill_source": result_payload.get("skill_source"),
                     "object_in_hand": result_payload.get("object_in_hand"),
                     "target_object": result_payload.get("target_object"),
-                    "physical_grasp_verified": result_payload.get(
-                        "physical_grasp_verified"
-                    ),
+                    "physical_grasp_verified": result_payload.get("physical_grasp_verified"),
                     "physical_evidence": physical_evidence,
                 }
             )
@@ -246,7 +229,11 @@ class CompletionMonitor:
                 verdict=verdict,
             )
 
-        if env_done and env_success is True and self._runtime_subtask_success_allowed(subtask, feedback):
+        if (
+            env_done
+            and env_success is True
+            and self._runtime_subtask_success_allowed(subtask, feedback)
+        ):
             verdict = CompletionVerdict(
                 scope="subtask",
                 scope_id=subtask.runtime_id,
@@ -284,7 +271,7 @@ class CompletionMonitor:
                     success=True,
                     feedback=feedback,
                     verdict=gated_verdict,
-            )
+                )
             if env_success_evidence_only:
                 gated_verdict = self._with_terminal_environment_evidence(
                     gated_verdict,
@@ -292,7 +279,9 @@ class CompletionMonitor:
                     control_step=control_step,
                     should_continue=True,
                 )
-            return CompletionDecision(done=False, success=None, feedback=feedback, verdict=gated_verdict)
+            return CompletionDecision(
+                done=False, success=None, feedback=feedback, verdict=gated_verdict
+            )
         if evaluator_verdict is not None and self._should_reset_positive_streak(evaluator_verdict):
             scope_state["positive_streak"] = 0
 
@@ -307,7 +296,9 @@ class CompletionMonitor:
                 should_continue=False,
                 source="environment",
             )
-            return CompletionDecision(done=True, success=env_success, feedback=feedback, verdict=verdict)
+            return CompletionDecision(
+                done=True, success=env_success, feedback=feedback, verdict=verdict
+            )
 
         if env_success_evidence_only:
             verdict = evaluator_verdict or CompletionVerdict(
@@ -504,10 +495,16 @@ class CompletionMonitor:
 
     @staticmethod
     def _pose_delta(previous: dict[str, float], current: dict[str, float]) -> float:
-        return max(abs(float(current.get(key, 0.0)) - float(previous.get(key, 0.0))) for key in ("x", "y", "z"))
+        return max(
+            abs(float(current.get(key, 0.0)) - float(previous.get(key, 0.0)))
+            for key in ("x", "y", "z")
+        )
 
     def _environment_success_allowed(self) -> bool:
-        return self.use_environment_success_signal and self.environment_signal_policy != "evidence_only"
+        return (
+            self.use_environment_success_signal
+            and self.environment_signal_policy != "evidence_only"
+        )
 
     def _environment_success_evidence_only(self, outcome: SubtaskStepOutcome) -> bool:
         if self._environment_success_allowed():
@@ -598,7 +595,9 @@ class CompletionMonitor:
                 source="completion_monitor_evaluator_error",
             )
 
-    def _should_run_brain_vision_check(self, outcome: SubtaskStepOutcome, control_step: int) -> bool:
+    def _should_run_brain_vision_check(
+        self, outcome: SubtaskStepOutcome, control_step: int
+    ) -> bool:
         if bool(outcome.done):
             return True
         return int(control_step) % self.check_interval_steps == 0
@@ -635,7 +634,9 @@ class CompletionMonitor:
             scope="subtask",
             scope_id=subtask.runtime_id,
             completion_criteria=self._completion_criteria(task_context, subtask),
-            confirmed_text_plan=dict((task_context.get("interactive_planning") or {}).get("text_plan") or {}),
+            confirmed_text_plan=dict(
+                (task_context.get("interactive_planning") or {}).get("text_plan") or {}
+            ),
             current_subtask={
                 "subtask_id": subtask.subtask_id,
                 "agent": subtask.agent.value,
@@ -658,7 +659,9 @@ class CompletionMonitor:
         return dict(memory_context) if isinstance(memory_context, dict) else {}
 
     @staticmethod
-    def _completion_criteria(task_context: dict[str, Any], subtask: Subtask) -> list[CompletionCriterion]:
+    def _completion_criteria(
+        task_context: dict[str, Any], subtask: Subtask
+    ) -> list[CompletionCriterion]:
         raw_items: list[Any] = []
         raw_items.extend(task_context.get("completion_criteria") or [])
         raw_items.extend(subtask.parameters.get("completion_criteria") or [])
@@ -693,7 +696,9 @@ class CompletionMonitor:
         return criterion.subtask_id in (None, "", subtask.subtask_id)
 
     @classmethod
-    def _environment_evidence(cls, outcome: SubtaskStepOutcome, control_step: int) -> dict[str, Any]:
+    def _environment_evidence(
+        cls, outcome: SubtaskStepOutcome, control_step: int
+    ) -> dict[str, Any]:
         feedback = cls._serialize_feedback(outcome.feedback)
         evidence = {
             "environment_done": bool(outcome.done),

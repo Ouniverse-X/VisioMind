@@ -1,11 +1,3 @@
-"""Lightweight bilingual industrial-instruction model and task decomposer.
-
-The learned component predicts an instruction intent. Deterministic slot
-grounding then resolves object, destination, grid index, and spatial qualifier
-against a scene ontology. This split keeps arbitrary scene instance names out
-of a closed classifier while retaining auditable task plans.
-"""
-
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -111,8 +103,6 @@ def _extract_cell_index(text: str) -> int | None:
 
 
 class IndustrialInstructionModel:
-    """Load a trained classifier and emit an auditable execution plan."""
-
     def __init__(self, model_path: str | Path) -> None:
         self.model_path = Path(model_path)
         payload = joblib.load(self.model_path)
@@ -183,15 +173,11 @@ class IndustrialInstructionModel:
             },
         ]
         if intent == "pick_up":
-            return grasp_steps, [
-                {"action": "pick_up", "target": {"object": target}}
-            ]
+            return grasp_steps, [{"action": "pick_up", "target": {"object": target}}]
         if intent in {"transfer_inside", "transfer_on_top", "recover_placement"}:
             if destination is None:
                 raise ValueError("placement instruction does not identify a destination")
-            relation = (
-                "place_on_top" if intent == "transfer_on_top" else "place_inside"
-            )
+            relation = "place_on_top" if intent == "transfer_on_top" else "place_inside"
             recovery_requested = intent == "recover_placement"
             recovery_prefix = []
             if recovery_requested:
@@ -213,39 +199,43 @@ class IndustrialInstructionModel:
                         "success_check": "typed geometric failure evidence is present",
                     },
                 ]
-            task_sequence = recovery_prefix + grasp_steps + [
-                {
-                    "step": "localize_destination",
-                    "module": "perception",
-                    "inputs": {
-                        "container": destination,
-                        "cell_index": slots.get("cell_index"),
+            task_sequence = (
+                recovery_prefix
+                + grasp_steps
+                + [
+                    {
+                        "step": "localize_destination",
+                        "module": "perception",
+                        "inputs": {
+                            "container": destination,
+                            "cell_index": slots.get("cell_index"),
+                        },
+                        "success_check": "destination opening and bounds localized",
                     },
-                    "success_check": "destination opening and bounds localized",
-                },
-                {
-                    "step": "navigate_with_object",
-                    "module": "execution",
-                    "inputs": {"destination": destination},
-                    "success_check": "clearance-constrained approach reached",
-                },
-                {
-                    "step": relation,
-                    "module": "execution",
-                    "inputs": {
-                        "object": target,
-                        "container": destination,
-                        "cell_index": slots.get("cell_index"),
+                    {
+                        "step": "navigate_with_object",
+                        "module": "execution",
+                        "inputs": {"destination": destination},
+                        "success_check": "clearance-constrained approach reached",
                     },
-                    "success_check": "released, stable, and geometrically contained",
-                },
-                {
-                    "step": "recover_if_needed",
-                    "module": "decision",
-                    "inputs": {"max_retries": 2},
-                    "success_check": "verified success or typed terminal failure",
-                },
-            ]
+                    {
+                        "step": relation,
+                        "module": "execution",
+                        "inputs": {
+                            "object": target,
+                            "container": destination,
+                            "cell_index": slots.get("cell_index"),
+                        },
+                        "success_check": "released, stable, and geometrically contained",
+                    },
+                    {
+                        "step": "recover_if_needed",
+                        "module": "decision",
+                        "inputs": {"max_retries": 2},
+                        "success_check": "verified success or typed terminal failure",
+                    },
+                ]
+            )
             pick_target = {"object": target}
             if recovery_requested:
                 pick_target["recovery"] = True
@@ -273,17 +263,22 @@ class IndustrialInstructionModel:
                 }
             ], [{"action": "inspect", "target": {"object": target}}]
         if intent == "move_near":
-            return [select_target, {
-                "step": "navigate_near",
-                "module": "execution",
-                "inputs": {"object": target},
-                "success_check": "safe standoff reached",
-            }], [{"action": "navigate_near", "target": {"object": target}}]
+            return [
+                select_target,
+                {
+                    "step": "navigate_near",
+                    "module": "execution",
+                    "inputs": {"object": target},
+                    "success_check": "safe standoff reached",
+                },
+            ], [{"action": "navigate_near", "target": {"object": target}}]
         if intent == "stop":
-            return [{
-                "step": "stop",
-                "module": "execution",
-                "inputs": {},
-                "success_check": "all commanded velocities are zero",
-            }], [{"action": "stop", "target": {}}]
+            return [
+                {
+                    "step": "stop",
+                    "module": "execution",
+                    "inputs": {},
+                    "success_check": "all commanded velocities are zero",
+                }
+            ], [{"action": "stop", "target": {}}]
         raise ValueError(f"unsupported predicted intent: {intent}")

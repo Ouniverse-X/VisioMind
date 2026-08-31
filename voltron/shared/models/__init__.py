@@ -1,5 +1,3 @@
-"""Canonical shared models used across runtime, integrations, and agents."""
-
 from .perception import PerceptionObject, PerceptionRelation, PerceptionReport
 from .runtime import NavigationRuntimeState, RuntimeFeedback, SubtaskStepOutcome
 from .completion import (

@@ -1,5 +1,3 @@
-"""PolicyAdapter for the official BEHAVIOR OpenPI Comet websocket server."""
-
 from __future__ import annotations
 
 import logging
@@ -66,7 +64,9 @@ class OpenPICometPolicyAdapter:
         self._log_request(request)
         response = self.client.request(request)
         if "action" not in response:
-            raise AdapterError(f"OpenPI Comet response missing 'action'. Keys: {sorted(response.keys())}")
+            raise AdapterError(
+                f"OpenPI Comet response missing 'action'. Keys: {sorted(response.keys())}"
+            )
 
         converted = OpenPICometActionAdapter.convert(response["action"], mode=self.action_mode)
         return converted, self._extract_info(response=response, converted_action=converted)
@@ -116,13 +116,10 @@ class OpenPICometPolicyAdapter:
         if "task_id" in request:
             task_id_value = np.asarray(request["task_id"]).reshape(-1)
             task_id_status = str(int(task_id_value[0])) if task_id_value.size else "present"
-        should_log_diagnostics = (
-            self.request_diagnostics_enabled
-            and (
-                self._call_count == 1
-                or OPENPI_COMET_REQUEST_DIAGNOSTICS_LOG_EVERY > 0
-                and self._call_count % OPENPI_COMET_REQUEST_DIAGNOSTICS_LOG_EVERY == 0
-            )
+        should_log_diagnostics = self.request_diagnostics_enabled and (
+            self._call_count == 1
+            or OPENPI_COMET_REQUEST_DIAGNOSTICS_LOG_EVERY > 0
+            and self._call_count % OPENPI_COMET_REQUEST_DIAGNOSTICS_LOG_EVERY == 0
         )
         if should_log_diagnostics:
             logger.warning(
@@ -153,13 +150,17 @@ class OpenPICometPolicyAdapter:
             )
             self._last_logged_prompt = prompt
 
-    def _extract_info(self, *, response: dict[str, Any], converted_action: dict[str, Any]) -> dict[str, Any]:
+    def _extract_info(
+        self, *, response: dict[str, Any], converted_action: dict[str, Any]
+    ) -> dict[str, Any]:
         info: dict[str, Any] = {
             "backend": "openpi_comet",
             "task_name": self.task_name,
             "action_mode": self.action_mode,
             "server_metadata": self.client.server_metadata,
-            "action_summary": {key: array_summary(value) for key, value in converted_action.items()},
+            "action_summary": {
+                key: array_summary(value) for key, value in converted_action.items()
+            },
         }
         if "server_timing" in response:
             info["server_timing"] = response["server_timing"]

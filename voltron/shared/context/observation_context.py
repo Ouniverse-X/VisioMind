@@ -1,5 +1,3 @@
-"""Shared observation-context helpers."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -8,8 +6,6 @@ from typing import Any
 
 @dataclass
 class ObservationContext:
-    """Normalized runtime observation envelope shared across agent/runtime helpers."""
-
     observation: dict[str, Any] = field(default_factory=dict)
     raw_observation: dict[str, Any] = field(default_factory=dict)
     scene_report: dict[str, Any] = field(default_factory=dict)

@@ -1,5 +1,3 @@
-"""OpenPI Comet action conversion helpers."""
-
 from __future__ import annotations
 
 from typing import Any, Literal

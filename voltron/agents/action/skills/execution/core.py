@@ -1,5 +1,3 @@
-"""Shared helpers for policy-backed VLA skills."""
-
 from __future__ import annotations
 
 import time
@@ -13,8 +11,6 @@ from voltron.shared.contracts import MemoryAdapter, PolicyAdapter
 
 
 def resolve_control_mode(subtask: Subtask) -> str:
-    """Resolve local control mode from subtask parameters and context."""
-
     for source in (subtask.parameters, subtask.context):
         value = source.get("control_mode") or source.get("execution_mode")
         if isinstance(value, str) and value.strip():
@@ -39,8 +35,6 @@ def allow_local_base_motion(subtask: Subtask) -> bool:
 
 
 class PolicyBackedVLASkill:
-    """Base VLA skill that reuses the existing policy execution path."""
-
     skill_id = "default_manipulation_skill"
     supported_actions: tuple[str, ...] = ()
 
@@ -111,7 +105,9 @@ class PolicyBackedVLASkill:
             )
             control_mode = resolve_control_mode(subtask)
             local_base_motion_allowed = allow_local_base_motion(subtask)
-            if "robot_r1" in action or (control_mode == "whole_body_local" and local_base_motion_allowed):
+            if "robot_r1" in action or (
+                control_mode == "whole_body_local" and local_base_motion_allowed
+            ):
                 executed_action = action
             else:
                 executed_action = self.projector.project_manipulation(action)
@@ -182,7 +178,12 @@ class PolicyBackedVLASkill:
 
 
 class PolicyBackedActionSkill(PolicyBackedVLASkill):
-    """Canonical base type for Action execution skills."""
+    pass
 
 
-__all__ = ["PolicyBackedActionSkill", "PolicyBackedVLASkill", "allow_local_base_motion", "resolve_control_mode"]
+__all__ = [
+    "PolicyBackedActionSkill",
+    "PolicyBackedVLASkill",
+    "allow_local_base_motion",
+    "resolve_control_mode",
+]

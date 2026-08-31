@@ -1,5 +1,3 @@
-"""Helpers for removing bulky image payloads from prompts and logs."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -18,7 +16,6 @@ IMAGE_PAYLOAD_KEYS = {
 
 
 def strip_image_payloads(value: Any) -> Any:
-    """Recursively remove image bytes while preserving compact diagnostics."""
     if isinstance(value, Mapping):
         sanitized: dict[str, Any] = {}
         for key, item in value.items():

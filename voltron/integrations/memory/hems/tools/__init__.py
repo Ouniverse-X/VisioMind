@@ -1,5 +1,3 @@
-"""Helper surfaces for the HEMS integration."""
-
 from . import bootstrap_runtime
 from . import episode_context
 from . import episode_summary

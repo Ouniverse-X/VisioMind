@@ -1,5 +1,3 @@
-"""HEMS adapter that exposes a stable memory interface for Voltron agents."""
-
 from __future__ import annotations
 
 import logging
@@ -87,7 +85,16 @@ def _compact_navigation_event_for_episode(event: dict[str, Any]) -> dict[str, An
 
 def _compact_navigation_target(target: dict[str, Any]) -> dict[str, Any]:
     compact: dict[str, Any] = {}
-    for key in ("object", "object_id", "object_name", "room", "room_id", "room_name", "floor_id", "region"):
+    for key in (
+        "object",
+        "object_id",
+        "object_name",
+        "room",
+        "room_id",
+        "room_name",
+        "floor_id",
+        "region",
+    ):
         value = target.get(key)
         if value not in (None, ""):
             compact[key] = value
@@ -181,7 +188,15 @@ def _navigation_route_summary(path_plan: dict[str, Any]) -> dict[str, Any]:
 
 def _compact_navigation_backend_state(backend_state: dict[str, Any]) -> dict[str, Any]:
     compact = {}
-    for key in ("scene_id", "current_room", "current_region", "room_id", "floor_id", "nav_backend", "nav2_profile"):
+    for key in (
+        "scene_id",
+        "current_room",
+        "current_region",
+        "room_id",
+        "floor_id",
+        "nav_backend",
+        "nav2_profile",
+    ):
         value = backend_state.get(key)
         if value not in (None, ""):
             compact[key] = value
@@ -207,12 +222,6 @@ def _list_length(value: Any) -> int | None:
 
 
 class HEMSAdapter:
-    """Adapter over `UnifiedMemorySystem` + `RetrievalAPI`.
-
-    All agents should depend on this adapter instead of direct HEMS internals.
-    This keeps the memory backend replaceable.
-    """
-
     def __init__(
         self,
         memory_system: Any | None = None,
@@ -250,8 +259,6 @@ class HEMSAdapter:
         self._maps: dict[str, dict[str, Any]] = {}
         self._load_persistent_state()
 
-    # ------------------------ Task lifecycle ------------------------
-
     def start_task(self, task_description: str, task_type: TaskType) -> str:
         hems_task_type = self._map_task_type(task_type)
         episode = self.memory.start_task(task_description, hems_task_type)
@@ -272,9 +279,9 @@ class HEMSAdapter:
             "similar_top_k": similar_top_k,
         }
 
-    # ------------------------ Retrieval ------------------------
-
-    def find_object(self, name: str, attributes: dict[str, Any] | None = None, top_k: int = 5) -> Any:
+    def find_object(
+        self, name: str, attributes: dict[str, Any] | None = None, top_k: int = 5
+    ) -> Any:
         return retrieval.find_object(
             retrieval_api=self.retrieval,
             name=name,
@@ -473,7 +480,9 @@ class HEMSAdapter:
         context = {
             **episode_payload,
             "episode": episode_payload,
-            "episode_id": str(episode_payload.get("episode_id") or getattr(episode, "episode_id", "")),
+            "episode_id": str(
+                episode_payload.get("episode_id") or getattr(episode, "episode_id", "")
+            ),
             "recent_observations": self.get_recent_observations(n=recent_observation_limit),
             "scene_maps": self._summarize_scene_maps(),
             "scene_memory_context": episode_context.build_scene_memory_context(
@@ -492,7 +501,9 @@ class HEMSAdapter:
         context.setdefault("outcome", getattr(outcome, "value", outcome))
         return context
 
-    def annotate_completed_episode(self, episode_id: str, annotation: dict[str, Any]) -> dict[str, Any]:
+    def annotate_completed_episode(
+        self, episode_id: str, annotation: dict[str, Any]
+    ) -> dict[str, Any]:
         annotate_episode = getattr(self.memory, "annotate_episode", None)
         if callable(annotate_episode):
             result = annotate_episode(episode_id, dict(annotation))
@@ -553,7 +564,9 @@ class HEMSAdapter:
             "query_type": "experience_hints",
             "query": {"task_description": task_description, "task_type": task_type},
             "results": results,
-            "scores": [float(item.get("confidence", 0.0)) for item in results if isinstance(item, dict)],
+            "scores": [
+                float(item.get("confidence", 0.0)) for item in results if isinstance(item, dict)
+            ],
             "metadata": {"top_k": top_k, "score_components": score_components},
         }
 
@@ -596,7 +609,9 @@ class HEMSAdapter:
             "query_type": "failure_patterns",
             "query": {"query": query, "task_type": task_type},
             "results": results,
-            "scores": [float(item.get("confidence", 0.0)) for item in results if isinstance(item, dict)],
+            "scores": [
+                float(item.get("confidence", 0.0)) for item in results if isinstance(item, dict)
+            ],
             "metadata": {"top_k": top_k},
         }
 
@@ -608,7 +623,6 @@ class HEMSAdapter:
         target: dict[str, Any] | None = None,
         top_k: int = 5,
     ) -> dict[str, Any]:
-        """Aggregate bounded memory evidence for planner consumption."""
         normalized_target = dict(target or {})
         hints = self.find_experience_hints(task_description, task_type=task_type, top_k=top_k)
         failures = self.find_failure_patterns(task_description, task_type=task_type, top_k=top_k)
@@ -710,11 +724,7 @@ class HEMSAdapter:
         )
         if not isinstance(result, list):
             return []
-        return [
-            self._serialize_obj(item)
-            for item in result
-            if isinstance(item, dict)
-        ]
+        return [self._serialize_obj(item) for item in result if isinstance(item, dict)]
 
     def counterfactual_query(
         self,
@@ -789,7 +799,9 @@ class HEMSAdapter:
             "query_type": "semantic_update_candidates",
             "query": {"query": query},
             "results": results,
-            "scores": [float(item.get("confidence", 0.0)) for item in results if isinstance(item, dict)],
+            "scores": [
+                float(item.get("confidence", 0.0)) for item in results if isinstance(item, dict)
+            ],
             "metadata": {"top_k": top_k},
         }
 
@@ -937,8 +949,6 @@ class HEMSAdapter:
             candidate_signature_builder=spatial_memory.object_approach_candidate_signature,
         )
 
-    # ------------------------ Updates ------------------------
-
     def record_perception(self, report: PerceptionReport) -> dict[str, Any]:
         return recording.record_perception(
             report=report,
@@ -955,7 +965,6 @@ class HEMSAdapter:
         )
 
     def record_navigation_update(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """Update spatial memory evidence from VLN execution."""
         return recording.record_navigation_update(
             payload=payload,
             deps=self._deps,
@@ -971,7 +980,6 @@ class HEMSAdapter:
         )
 
     def record_navigation_event(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """Record an important navigation event as an episode action."""
         event = dict(payload)
         event_type = str(event.get("event_type") or "event").strip() or "event"
         episode_event = _compact_navigation_event_for_episode(event)
@@ -993,7 +1001,6 @@ class HEMSAdapter:
         return {"recorded": False, "event_type": event_type}
 
     def record_action(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """Record VLA execution into current episode and causal memory."""
         return recording.record_action(
             payload=payload,
             action_record_cls=self._deps["ActionRecord"],
@@ -1003,14 +1010,11 @@ class HEMSAdapter:
         )
 
     def record_monitor_summary(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """Record a coarse Vision monitor summary into the current episode."""
         return recording.record_monitor_summary(
             payload=payload,
             get_current_episode=self.memory.working.get_current_episode,
             add_observation=self.memory.working.add_observation,
         )
-
-    # ------------------------ Internal helpers ------------------------
 
     def _map_task_type(self, task_type: TaskType) -> Any:
         hems_task_type = self._deps["TaskType"]
@@ -1101,8 +1105,7 @@ class HEMSAdapter:
             if task_type is not None and hint.get("task_type") not in (None, task_type):
                 continue
             haystack = " ".join(
-                str(hint.get(key, ""))
-                for key in ("task_description", "summary", "hint_type")
+                str(hint.get(key, "")) for key in ("task_description", "summary", "hint_type")
             ).lower()
             if not terms or all(term in haystack for term in terms):
                 matches.append(dict(hint))
@@ -1161,7 +1164,9 @@ class HEMSAdapter:
                 continue
             signature = entry.get("candidate_signature")
             if not isinstance(signature, dict) or not signature:
-                signature = spatial_memory.object_approach_candidate_signature(dict(entry.get("candidate") or {}))
+                signature = spatial_memory.object_approach_candidate_signature(
+                    dict(entry.get("candidate") or {})
+                )
             if not signature:
                 continue
             key = tuple(sorted((str(name), repr(value)) for name, value in signature.items()))

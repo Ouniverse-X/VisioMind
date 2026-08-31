@@ -1,5 +1,3 @@
-"""Configuration and runtime state helpers for the waypoint policy adapter."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -78,7 +76,9 @@ def configure_adapter(
     adapter.angular_gain = float(angular_gain)
     adapter.waypoint_tolerance = float(waypoint_tolerance)
     adapter.final_waypoint_tolerance = float(final_waypoint_tolerance)
-    adapter.object_approach_final_waypoint_tolerance_m = float(abs(object_approach_final_waypoint_tolerance_m))
+    adapter.object_approach_final_waypoint_tolerance_m = float(
+        abs(object_approach_final_waypoint_tolerance_m)
+    )
     adapter.rotate_in_place_threshold_rad = float(rotate_in_place_threshold_rad)
     adapter.waypoint_progress_margin = float(waypoint_progress_margin)
     adapter.holonomic = bool(holonomic)
@@ -100,27 +100,41 @@ def configure_adapter(
     adapter.local_path_cross_track_deadband = float(abs(local_path_cross_track_deadband))
     adapter.local_path_cross_track_gain = float(abs(local_path_cross_track_gain))
     adapter.local_path_max_correction_ratio = float(abs(local_path_max_correction_ratio))
-    adapter.local_path_min_progress_scale = float(np.clip(abs(local_path_min_progress_scale), 0.05, 1.0))
+    adapter.local_path_min_progress_scale = float(
+        np.clip(abs(local_path_min_progress_scale), 0.05, 1.0)
+    )
     adapter.local_path_transition_min_progress_scale = float(
         np.clip(abs(local_path_transition_min_progress_scale), 0.05, 1.0)
     )
-    adapter.local_path_angular_gain_scale = float(np.clip(abs(local_path_angular_gain_scale), 0.0, 1.0))
+    adapter.local_path_angular_gain_scale = float(
+        np.clip(abs(local_path_angular_gain_scale), 0.0, 1.0)
+    )
     adapter.recovery_enabled = bool(recovery_enabled)
     adapter.recovery_steps = max(1, int(recovery_steps))
     adapter.recovery_linear_velocity = float(recovery_linear_velocity)
     adapter.recovery_lateral_velocity = float(recovery_lateral_velocity)
     adapter.recovery_angular_velocity = float(recovery_angular_velocity)
     adapter.portal_alignment_distance_threshold = float(abs(portal_alignment_distance_threshold))
-    adapter.portal_alignment_heading_threshold_rad = float(abs(portal_alignment_heading_threshold_rad))
+    adapter.portal_alignment_heading_threshold_rad = float(
+        abs(portal_alignment_heading_threshold_rad)
+    )
     adapter.final_waypoint_heading_tolerance_rad = float(abs(final_waypoint_heading_tolerance_rad))
     adapter.portal_alignment_lateral_deadband = float(abs(portal_alignment_lateral_deadband))
     adapter.portal_alignment_footprint_width_m = float(abs(portal_alignment_footprint_width_m))
-    adapter.portal_alignment_min_lateral_deadband_m = float(abs(portal_alignment_min_lateral_deadband_m))
-    adapter.portal_alignment_wide_clearance_margin_m = float(abs(portal_alignment_wide_clearance_margin_m))
+    adapter.portal_alignment_min_lateral_deadband_m = float(
+        abs(portal_alignment_min_lateral_deadband_m)
+    )
+    adapter.portal_alignment_wide_clearance_margin_m = float(
+        abs(portal_alignment_wide_clearance_margin_m)
+    )
     adapter.portal_alignment_max_linear_velocity = float(abs(portal_alignment_max_linear_velocity))
-    adapter.portal_alignment_max_lateral_velocity = float(abs(portal_alignment_max_lateral_velocity))
+    adapter.portal_alignment_max_lateral_velocity = float(
+        abs(portal_alignment_max_lateral_velocity)
+    )
     adapter.portal_prealign_distance_threshold_m = float(abs(portal_prealign_distance_threshold_m))
-    adapter.transition_recovery_distance_threshold = float(abs(transition_recovery_distance_threshold))
+    adapter.transition_recovery_distance_threshold = float(
+        abs(transition_recovery_distance_threshold)
+    )
     adapter.transition_recovery_linear_velocity = float(abs(transition_recovery_linear_velocity))
     adapter.transition_recovery_lateral_velocity = float(abs(transition_recovery_lateral_velocity))
     adapter.transition_recovery_angular_velocity = float(abs(transition_recovery_angular_velocity))

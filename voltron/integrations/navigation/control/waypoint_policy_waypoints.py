@@ -1,5 +1,3 @@
-"""Waypoint progression helpers for the waypoint policy adapter."""
-
 from __future__ import annotations
 
 import math
@@ -97,8 +95,9 @@ def advance_stale_local_path_index_from_projection(
     if projection_lead <= min_projection_lead:
         short_path = len(waypoints) <= min_projection_lead + 1
         skippable_local_points = all(
-            str(waypoint.get("waypoint_type", "")).strip().lower() in {"local_path", "local_dense_path"}
-            for waypoint in waypoints[index: projected_index + 1]
+            str(waypoint.get("waypoint_type", "")).strip().lower()
+            in {"local_path", "local_dense_path"}
+            for waypoint in waypoints[index : projected_index + 1]
         )
         rejoin_threshold = max(
             float(getattr(adapter, "local_path_rejoin_distance_threshold", 0.0) or 0.0),
@@ -178,18 +177,17 @@ def waypoint_reached(
             is_final=is_final,
         ):
             return True
-        if waypoint_type == "portal_midpoint" and str(
-            target.get("portal_alignment_stage", "")
-        ).strip().lower() == "midpoint":
+        if (
+            waypoint_type == "portal_midpoint"
+            and str(target.get("portal_alignment_stage", "")).strip().lower() == "midpoint"
+        ):
             return False
         if waypoint_type == "portal":
-            if (
-                portal_target_anchor_position_reached(
-                    pose=pose,
-                    target=target,
-                    planar_gap=planar_gap,
-                    tolerance=tolerance,
-                )
+            if portal_target_anchor_position_reached(
+                pose=pose,
+                target=target,
+                planar_gap=planar_gap,
+                tolerance=tolerance,
             ):
                 return True
             if portal_source_exit_reached(
@@ -213,13 +211,11 @@ def waypoint_reached(
         return planar_gap <= tolerance and heading_aligned
 
     if waypoint_type == "portal":
-        if (
-            portal_target_anchor_position_reached(
-                pose=pose,
-                target=target,
-                planar_gap=planar_gap,
-                tolerance=tolerance,
-            )
+        if portal_target_anchor_position_reached(
+            pose=pose,
+            target=target,
+            planar_gap=planar_gap,
+            tolerance=tolerance,
         ):
             return True
         if portal_source_exit_reached(
@@ -234,7 +230,10 @@ def waypoint_reached(
             return True
         if waypoint_region:
             return bool(
-                current_region and current_region == waypoint_region and planar_gap <= tolerance and heading_aligned
+                current_region
+                and current_region == waypoint_region
+                and planar_gap <= tolerance
+                and heading_aligned
             )
         return planar_gap <= tolerance and heading_aligned
 
@@ -319,10 +318,9 @@ def portal_midpoint_near_aperture_reached(
             return False
         if span_value > max(span_min, span_max) + effective_deadband:
             return False
-        return (
-            planar_gap <= max(float(tolerance), effective_deadband)
-            and abs(span_value - target_span_value) <= max(effective_deadband, float(tolerance))
-        )
+        return planar_gap <= max(float(tolerance), effective_deadband) and abs(
+            span_value - target_span_value
+        ) <= max(effective_deadband, float(tolerance))
 
     if planar_gap <= tolerance:
         return True
@@ -398,7 +396,9 @@ def portal_source_exit_reached(
     if not heading_aligned:
         return False
 
-    source_region = adapter._normalize_label(target.get("source_room_name") or target.get("source_room_id"))
+    source_region = adapter._normalize_label(
+        target.get("source_room_name") or target.get("source_room_id")
+    )
     if not source_region or not current_region or current_region == source_region:
         return False
 
@@ -442,14 +442,12 @@ def portal_target_anchor_position_reached(
     target_side_depth = (normal_value - boundary_value) * normal_sign
     required_depth = min(0.22, max(0.16, target_offset * 0.55))
     span_margin = max(tolerance, 0.0)
-    span_in_range = min(span_min, span_max) - span_margin <= span_value <= max(span_min, span_max) + span_margin
+    span_in_range = (
+        min(span_min, span_max) - span_margin <= span_value <= max(span_min, span_max) + span_margin
+    )
     target_span_value = float(target[span_axis])
     span_centered = abs(span_value - target_span_value) <= max(float(tolerance), 0.18)
-    if (
-        target_side_depth >= required_depth
-        and span_in_range
-        and span_centered
-    ):
+    if target_side_depth >= required_depth and span_in_range and span_centered:
         return True
     if planar_gap > tolerance:
         return False

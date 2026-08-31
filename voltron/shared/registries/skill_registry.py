@@ -1,5 +1,3 @@
-"""Shared fallback-aware skill registry helpers."""
-
 from __future__ import annotations
 
 from typing import Generic, Iterable, Protocol, TypeVar
@@ -8,20 +6,16 @@ from voltron.shared.context import ExecutionContext, LocalSkillSelection, Subtas
 
 
 class ResolvableSkill(Protocol):
-    """Minimal protocol required by shared skill registries."""
-
     skill_id: str
 
     def can_handle(self, subtask: Subtask, context: ExecutionContext) -> bool:
-        """Return whether the skill can handle the current subtask."""
+        pass
 
 
 TSkill = TypeVar("TSkill", bound=ResolvableSkill)
 
 
 class SkillRegistryBase(Generic[TSkill]):
-    """Common fallback resolution logic shared by agent-local skill registries."""
-
     def __init__(self, skills: Iterable[TSkill], *, default_skill_id: str | None = None) -> None:
         self._skills = {skill.skill_id: skill for skill in skills}
         self._default_skill_id = default_skill_id

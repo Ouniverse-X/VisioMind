@@ -1,5 +1,3 @@
-"""Runtime observation helpers for the Navigation agent."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -17,7 +15,13 @@ def extract_pose(subtask: Subtask, observation: dict[str, Any]) -> dict[str, Any
     ):
         if isinstance(candidate, dict):
             return dict(candidate)
-    for key in ("state.robot.base_pose", "state.base_pose", "state.robot.pose", "state.pose", "state.robot_pos"):
+    for key in (
+        "state.robot.base_pose",
+        "state.base_pose",
+        "state.robot.pose",
+        "state.pose",
+        "state.robot_pos",
+    ):
         pose = array_to_pose(observation.get(key))
         if pose is not None:
             return pose
@@ -157,7 +161,9 @@ def extract_nav_feedback(subtask: Subtask, observation: dict[str, Any]) -> dict[
     return None
 
 
-def resolve_scene_id(subtask: Subtask, context: ExecutionContext, observation: dict[str, Any]) -> str | None:
+def resolve_scene_id(
+    subtask: Subtask, context: ExecutionContext, observation: dict[str, Any]
+) -> str | None:
     for candidate in (
         subtask.parameters.get("scene_id"),
         subtask.context.get("scene_id"),

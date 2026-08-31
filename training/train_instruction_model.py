@@ -1,5 +1,3 @@
-"""Train and evaluate the lightweight industrial instruction classifier."""
-
 from __future__ import annotations
 
 import argparse
@@ -44,7 +42,9 @@ def _baseline(text: str) -> str:
         return "stop"
     if any(token in lowered for token in ("识别", "检查", "inspect", "locate", "find")):
         return "inspect"
-    if any(token in lowered for token in ("附近", "靠近", "旁边", "move near", "navigate", "approach")):
+    if any(
+        token in lowered for token in ("附近", "靠近", "旁边", "move near", "navigate", "approach")
+    ):
         return "move_near"
     if any(token in lowered for token in ("放进", "装入", "归位", "inside", "into", "store")):
         return "transfer_inside"
@@ -109,13 +109,9 @@ def main() -> None:
         "accuracy": float(accuracy_score(test_labels, predictions)),
         "macro_f1": float(f1_score(test_labels, predictions, average="macro")),
         "baseline_accuracy": float(accuracy_score(test_labels, baseline_predictions)),
-        "baseline_macro_f1": float(
-            f1_score(test_labels, baseline_predictions, average="macro")
-        ),
+        "baseline_macro_f1": float(f1_score(test_labels, baseline_predictions, average="macro")),
         "labels": labels,
-        "confusion_matrix": confusion_matrix(
-            test_labels, predictions, labels=labels
-        ).tolist(),
+        "confusion_matrix": confusion_matrix(test_labels, predictions, labels=labels).tolist(),
         "classification_report": classification_report(
             test_labels, predictions, labels=labels, output_dict=True, zero_division=0
         ),

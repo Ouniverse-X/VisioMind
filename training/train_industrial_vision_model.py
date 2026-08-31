@@ -1,14 +1,6 @@
-"""Train / Fine-tune the Industrial Parts Vision Detection & Segmentation Model.
-
-Trains on industrial workbench synthetic & benchmark datasets, evaluates mAP@0.5,
-mAP@0.5:0.95 and 3D localization accuracy, saves model weights, updates manifest.json,
-and generates reports/industrial_vision_metrics.json.
-"""
-
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import logging
 from pathlib import Path
@@ -19,7 +11,6 @@ from typing import Any
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,13 +19,8 @@ if str(ROOT) not in sys.path:
 
 from visiomind.perception.evaluator import DetectionMetricsEvaluator
 from visiomind.perception.industrial_detector import (
-    CLASS_TO_ID,
-    ID_TO_CLASS,
     INDUSTRIAL_CLASSES,
-    IndustrialDetection,
-    IndustrialDetectorNetwork,
     IndustrialPartDetector,
-    nms_boxes,
 )
 from training.generate_industrial_vision_dataset import generate_dataset
 
@@ -48,7 +34,6 @@ def build_targets(
     img_size: tuple[int, int] = (256, 256),
     num_classes: int = len(INDUSTRIAL_CLASSES),
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Convert ground truth boxes and classes to grid target tensors."""
     h_feat, w_feat = feat_size
     h_img, w_img = img_size
 
@@ -64,14 +49,12 @@ def build_targets(
         cls_id = int(obj["class_id"])
         x1, y1, x2, y2 = obj["bbox_xyxy"]
 
-        # 2D Segmentation target
         ix1 = int(max(0, min(w_img - 1, x1)))
         iy1 = int(max(0, min(h_img - 1, y1)))
         ix2 = int(max(ix1 + 1, min(w_img, x2)))
         iy2 = int(max(iy1 + 1, min(h_img, y2)))
         seg_target[cls_id, iy1:iy2, ix1:ix2] = 1.0
 
-        # Grid cell target
         cx = (x1 + x2) / 2.0
         cy = (y1 + y2) / 2.0
         bw = max(2.0, x2 - x1)
@@ -109,7 +92,7 @@ def train_epoch(
     for sample in samples:
         npz_file = data_dir / sample["file"]
         data = np.load(npz_file)
-        rgb = data["rgb"]  # (256, 256, 3)
+        rgb = data["rgb"]
 
         img_tensor = torch.from_numpy(rgb).permute(2, 0, 1).unsqueeze(0).float().to(device) / 255.0
 
@@ -124,10 +107,8 @@ def train_epoch(
         optimizer.zero_grad()
         cls_logits, box_preds, mask_logits = model(img_tensor)
 
-        # Classification loss
         l_cls = cls_criterion(cls_logits, cls_target)
 
-        # Box regression loss (only on active cells)
         if box_mask.sum() > 0:
             active_preds = box_preds.permute(0, 2, 3, 1)[box_mask]
             active_targets = box_target.permute(0, 2, 3, 1)[box_mask]
@@ -135,7 +116,6 @@ def train_epoch(
         else:
             l_box = torch.tensor(0.0, device=device)
 
-        # Mask segmentation loss
         l_seg = seg_criterion(mask_logits, seg_target)
 
         loss = l_cls + 2.0 * l_box + 1.5 * l_seg
@@ -183,7 +163,6 @@ def run_training(
     epochs: int = 15,
     lr: float = 1e-3,
 ) -> dict[str, Any]:
-    """Train industrial part detection model and return evaluation metrics."""
     data_dir = Path(data_dir)
     train_anno = data_dir / "train_annotations.json"
     val_anno = data_dir / "val_annotations.json"
@@ -195,7 +174,9 @@ def run_training(
 
     train_samples = json.loads(train_anno.read_text(encoding="utf-8"))
     val_samples = json.loads(val_anno.read_text(encoding="utf-8"))
-    test_samples = json.loads(test_anno.read_text(encoding="utf-8")) if test_anno.exists() else val_samples
+    test_samples = (
+        json.loads(test_anno.read_text(encoding="utf-8")) if test_anno.exists() else val_samples
+    )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info("Using device: %s for industrial vision training", device)
@@ -214,13 +195,15 @@ def run_training(
         if ep % 3 == 0 or ep == epochs:
             logger.info("Epoch %d/%d | Loss: %.4f | Time: %.2fs", ep, epochs, loss, duration)
 
-    # Evaluate on test split
     logger.info("Evaluating fine-tuned detector on test dataset (%d scenes)...", len(test_samples))
     metrics = evaluate_dataset(detector, test_samples, data_dir)
-    logger.info("Test Evaluation Metrics: mAP@0.5 = %.4f, mAP@0.5:0.95 = %.4f, 3D P50 Error = %.2f cm",
-                metrics["mAP_0.5"], metrics["mAP_0.5_0.95"], metrics["localization_3d_error_cm"]["p50_median"])
+    logger.info(
+        "Test Evaluation Metrics: mAP@0.5 = %.4f, mAP@0.5:0.95 = %.4f, 3D P50 Error = %.2f cm",
+        metrics["mAP_0.5"],
+        metrics["mAP_0.5_0.95"],
+        metrics["localization_3d_error_cm"]["p50_median"],
+    )
 
-    # Save weights
     sha256 = detector.save_weights(
         output_model_path,
         extra_metadata={

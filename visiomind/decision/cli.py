@@ -1,5 +1,3 @@
-"""Command-line interface for industrial instruction planning."""
-
 from __future__ import annotations
 
 import argparse

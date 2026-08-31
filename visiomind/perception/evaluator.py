@@ -1,16 +1,6 @@
-"""Evaluation metrics for industrial parts detection, segmentation, and 3D localization.
-
-Computes:
-  - mAP@0.5, mAP@0.5:0.95, Precision, Recall, F1 per class
-  - Mean mask IoU (mIoU)
-  - 3D Euclidean localization error (Median / P50, P95, Max)
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-import json
-from pathlib import Path
 from typing import Any, Sequence
 
 import numpy as np
@@ -23,7 +13,6 @@ from visiomind.perception.industrial_detector import (
 
 
 def compute_iou(box1: Sequence[float], box2: Sequence[float]) -> float:
-    """Compute IoU between two [x1, y1, x2, y2] bounding boxes."""
     x1 = max(box1[0], box2[0])
     y1 = max(box1[1], box2[1])
     x2 = min(box1[2], box2[2])
@@ -43,7 +32,6 @@ def compute_iou(box1: Sequence[float], box2: Sequence[float]) -> float:
 
 
 def compute_mask_iou(mask1: np.ndarray, mask2: np.ndarray) -> float:
-    """Compute Intersection over Union (IoU) between two boolean masks."""
     m1 = np.asarray(mask1, dtype=bool)
     m2 = np.asarray(mask2, dtype=bool)
     if m1.shape != m2.shape:
@@ -57,8 +45,6 @@ def compute_mask_iou(mask1: np.ndarray, mask2: np.ndarray) -> float:
 
 @dataclass
 class DetectionMetricsEvaluator:
-    """Evaluates 2D detection mAP and 3D localization accuracy."""
-
     classes: tuple[str, ...] = INDUSTRIAL_CLASSES
     iou_thresholds: tuple[float, ...] = tuple(np.arange(0.5, 1.0, 0.05).round(2).tolist())
     records: list[dict[str, Any]] = field(default_factory=list)
@@ -69,8 +55,9 @@ class DetectionMetricsEvaluator:
         ground_truth: list[dict[str, Any]],
         image_id: str | int = 0,
     ) -> dict[str, Any]:
-        """Add prediction and ground truth pair for one frame."""
-        preds = predicted.detections if isinstance(predicted, IndustrialPerceptionResult) else predicted
+        preds = (
+            predicted.detections if isinstance(predicted, IndustrialPerceptionResult) else predicted
+        )
 
         frame_record: dict[str, Any] = {
             "image_id": image_id,
@@ -81,7 +68,6 @@ class DetectionMetricsEvaluator:
         return frame_record
 
     def compute_metrics(self) -> dict[str, Any]:
-        """Compute dataset-level mAP@0.5, mAP@0.5:0.95, per-class metrics, and 3D errors."""
         per_class_stats: dict[str, dict[str, Any]] = {}
         localization_errors_3d_cm: list[float] = []
 
@@ -101,7 +87,7 @@ class DetectionMetricsEvaluator:
                 total_gt += len(gt_boxes)
 
                 matched_gt = set()
-                # Sort predictions by confidence descending
+
                 pr_sorted = sorted(pr_boxes, key=lambda x: x.get("confidence", 0.0), reverse=True)
 
                 for pr in pr_sorted:
@@ -115,7 +101,6 @@ class DetectionMetricsEvaluator:
 
                     ious_list.append(best_iou)
 
-                    # Compute 3D error if available
                     if best_gt_idx >= 0 and best_gt_idx not in matched_gt and best_iou >= 0.5:
                         matched_gt.add(best_gt_idx)
                         gt_match = gt_boxes[best_gt_idx]
@@ -139,9 +124,10 @@ class DetectionMetricsEvaluator:
             recall = tp_at_iou50 / max(1, total_gt)
             f1 = 2 * precision * recall / max(1e-6, (precision + recall))
 
-            # AP approximation across thresholds
             ap_50 = precision if total_gt > 0 else 0.0
-            ap_list = [np.mean(map_ious[t]) if len(map_ious[t]) > 0 else 0.0 for t in self.iou_thresholds]
+            ap_list = [
+                np.mean(map_ious[t]) if len(map_ious[t]) > 0 else 0.0 for t in self.iou_thresholds
+            ]
             map_50_95 = float(np.mean(ap_list)) if ap_list else 0.0
 
             per_class_stats[cls] = {
@@ -155,11 +141,27 @@ class DetectionMetricsEvaluator:
             }
 
         valid_classes = [c for c, stats in per_class_stats.items() if stats["total_gt"] > 0]
-        mean_ap_50 = float(np.mean([per_class_stats[c]["ap_50"] for c in valid_classes])) if valid_classes else 0.0
-        mean_map_50_95 = float(np.mean([per_class_stats[c]["map_50_95"] for c in valid_classes])) if valid_classes else 0.0
+        mean_ap_50 = (
+            float(np.mean([per_class_stats[c]["ap_50"] for c in valid_classes]))
+            if valid_classes
+            else 0.0
+        )
+        mean_map_50_95 = (
+            float(np.mean([per_class_stats[c]["map_50_95"] for c in valid_classes]))
+            if valid_classes
+            else 0.0
+        )
 
-        loc_p50 = float(np.percentile(localization_errors_3d_cm, 50)) if localization_errors_3d_cm else 0.0
-        loc_p95 = float(np.percentile(localization_errors_3d_cm, 95)) if localization_errors_3d_cm else 0.0
+        loc_p50 = (
+            float(np.percentile(localization_errors_3d_cm, 50))
+            if localization_errors_3d_cm
+            else 0.0
+        )
+        loc_p95 = (
+            float(np.percentile(localization_errors_3d_cm, 95))
+            if localization_errors_3d_cm
+            else 0.0
+        )
         loc_max = float(np.max(localization_errors_3d_cm)) if localization_errors_3d_cm else 0.0
 
         summary = {

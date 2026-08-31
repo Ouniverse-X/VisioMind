@@ -1,5 +1,3 @@
-"""Shared registry primitives."""
-
 from .policy_registry import PolicyRegistry
 from .skill_registry import SkillRegistryBase
 from .tool_catalog import ToolCatalog

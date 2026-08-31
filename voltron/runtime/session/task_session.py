@@ -1,5 +1,3 @@
-"""Task-session metadata and payload helpers for the runtime control plane."""
-
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -19,8 +17,10 @@ def resolve_request_runtime_metadata(
     metadata = dict(metadata or {})
     return {
         "scene_id": normalize_runtime_str(metadata.get("scene_id")) or scene_id,
-        "hovsg_graph_root": normalize_runtime_str(metadata.get("hovsg_graph_root")) or hovsg_graph_root,
-        "hovsg_graph_path": normalize_runtime_str(metadata.get("hovsg_graph_path")) or hovsg_graph_path,
+        "hovsg_graph_root": normalize_runtime_str(metadata.get("hovsg_graph_root"))
+        or hovsg_graph_root,
+        "hovsg_graph_path": normalize_runtime_str(metadata.get("hovsg_graph_path"))
+        or hovsg_graph_path,
         "hovsg_nav_graph_type": normalize_runtime_str(metadata.get("hovsg_nav_graph_type"))
         or hovsg_nav_graph_type,
     }

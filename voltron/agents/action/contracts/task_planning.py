@@ -1,5 +1,3 @@
-"""Task-planning contract used inside the Action agent."""
-
 from __future__ import annotations
 
 from typing import Protocol
@@ -9,10 +7,8 @@ from voltron.shared.context import ExecutionContext, Subtask
 
 
 class ActionTaskPlanningSkill(Protocol):
-    """Contract for Action planning skills that define planning workflow and parsing."""
-
     def build_plan_prompt(self, subtask: Subtask, context: ExecutionContext) -> str:
-        """Return the user prompt used by the Action agent's planning model."""
+        pass
 
     def parse_plan_response(
         self,
@@ -20,7 +16,7 @@ class ActionTaskPlanningSkill(Protocol):
         subtask: Subtask,
         context: ExecutionContext,
     ) -> ActionExecutionPlan:
-        """Parse model output into an internal Action execution plan."""
+        pass
 
     def build_fallback_plan(
         self,
@@ -29,7 +25,7 @@ class ActionTaskPlanningSkill(Protocol):
         *,
         reason: str,
     ) -> ActionExecutionPlan:
-        """Return a safe fallback plan when model planning is unavailable."""
+        pass
 
     def replan(
         self,
@@ -39,7 +35,7 @@ class ActionTaskPlanningSkill(Protocol):
         active_step_id: str,
         reason: str,
     ) -> ActionReplanDecision:
-        """Decide whether to replan the active steps in a subtask."""
+        pass
 
 
 VLATaskPlanningSkill = ActionTaskPlanningSkill

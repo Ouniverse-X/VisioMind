@@ -1,5 +1,3 @@
-"""Shared memory-context snapshots used across agents and runtime."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -8,8 +6,6 @@ from typing import Any
 
 @dataclass
 class MemorySnapshot:
-    """Normalized snapshot of memory-backed planning/runtime context."""
-
     working_state: dict[str, Any] = field(default_factory=dict)
     active_regions: list[str] = field(default_factory=list)
     task_context: dict[str, Any] = field(default_factory=dict)

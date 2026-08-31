@@ -1,10 +1,10 @@
-"""Pre-step runtime-state setup helpers for the BEHAVIOR runtime bridge."""
-
 from __future__ import annotations
 
 from typing import Any
 
-from voltron.integrations.simulator.behavior.artifacts import process_logger as behavior_process_logger
+from voltron.integrations.simulator.behavior.artifacts import (
+    process_logger as behavior_process_logger,
+)
 from voltron.integrations.simulator.behavior.tools import runtime_inputs as behavior_runtime_inputs
 from voltron.integrations.simulator.behavior.tools import runtime_vla as behavior_runtime_vla
 from voltron.integrations.simulator.behavior.tools import subtasks as behavior_subtasks

@@ -1,5 +1,3 @@
-"""Explicit portal resolution for HOV-SG room transitions."""
-
 from __future__ import annotations
 
 import json
@@ -26,7 +24,9 @@ def explicit_transition_portal(
 ) -> dict[str, Any] | None:
     if source_room is None or target_room is None:
         return None
-    portal = _portal_from_annotations(source_room=source_room, target_room=target_room, context=context)
+    portal = _portal_from_annotations(
+        source_room=source_room, target_room=target_room, context=context
+    )
     if portal is None:
         portal = _portal_from_runtime_state(
             adapter,
@@ -35,7 +35,9 @@ def explicit_transition_portal(
             target_room=target_room,
         )
     if portal is None:
-        portal = _portal_from_behavior_scene(source_room=source_room, target_room=target_room, context=context)
+        portal = _portal_from_behavior_scene(
+            source_room=source_room, target_room=target_room, context=context
+        )
     if portal is None:
         return None
     portal = _with_runtime_door_passability(
@@ -45,7 +47,9 @@ def explicit_transition_portal(
         target_room=target_room,
         portal=portal,
     )
-    waypoint = _portal_waypoint(adapter, scene=scene, source_room=source_room, target_room=target_room, portal=portal)
+    waypoint = _portal_waypoint(
+        adapter, scene=scene, source_room=source_room, target_room=target_room, portal=portal
+    )
     if waypoint is not None and isinstance(portal.get("door_is_open"), bool):
         waypoint["portal_door_open"] = portal["door_is_open"]
     return waypoint
@@ -59,8 +63,6 @@ def _with_runtime_door_passability(
     target_room: HOVSGRoomAsset,
     portal: dict[str, Any],
 ) -> dict[str, Any]:
-    """Attach live passability even when a static annotation owns geometry."""
-
     from . import runtime_state as hovsg_runtime_state
 
     candidates = [
@@ -93,8 +95,6 @@ def _portal_from_runtime_state(
     source_room: HOVSGRoomAsset,
     target_room: HOVSGRoomAsset,
 ) -> dict[str, Any] | None:
-    """Portal candidates from live simulator door states — fresher than the
-    scene init file, which only knows export-time door poses."""
     from . import runtime_state as hovsg_runtime_state
 
     candidates: list[dict[str, Any]] = []
@@ -118,7 +118,9 @@ def _portal_from_runtime_state(
         candidates.append(candidate)
     if not candidates:
         return None
-    return min(candidates, key=lambda item: _room_midpoint_distance_sq(item, source_room, target_room))
+    return min(
+        candidates, key=lambda item: _room_midpoint_distance_sq(item, source_room, target_room)
+    )
 
 
 def _door_span_from_aabb(aabb: Any) -> float | None:
@@ -143,8 +145,16 @@ def _portal_from_annotations(
     context: dict[str, Any],
 ) -> dict[str, Any] | None:
     annotations = _context_portal_annotations(context)
-    entries = annotations if isinstance(annotations, list) else [annotations] if isinstance(annotations, dict) else []
-    if isinstance(annotations, dict) and all(isinstance(value, dict) for value in annotations.values()):
+    entries = (
+        annotations
+        if isinstance(annotations, list)
+        else [annotations]
+        if isinstance(annotations, dict)
+        else []
+    )
+    if isinstance(annotations, dict) and all(
+        isinstance(value, dict) for value in annotations.values()
+    ):
         entries = list(annotations.values())
     for entry in entries:
         if not isinstance(entry, dict):
@@ -153,8 +163,12 @@ def _portal_from_annotations(
         if match_direction is None:
             continue
         center = _point_from_keys(entry, ("center", "position", "midpoint", "portal_center"))
-        source_point = _point_from_keys(entry, ("source_point", "source_anchor", "portal_source_point"))
-        target_point = _point_from_keys(entry, ("target_point", "target_anchor", "portal_target_point"))
+        source_point = _point_from_keys(
+            entry, ("source_point", "source_anchor", "portal_source_point")
+        )
+        target_point = _point_from_keys(
+            entry, ("target_point", "target_anchor", "portal_target_point")
+        )
         if match_direction == "reverse":
             source_point, target_point = target_point, source_point
         if center is None and source_point is not None and target_point is not None:
@@ -167,7 +181,9 @@ def _portal_from_annotations(
             return {
                 "center": center,
                 "source": "annotation",
-                "object_name": entry.get("name") or entry.get("object_name") or entry.get("portal_object_name"),
+                "object_name": entry.get("name")
+                or entry.get("object_name")
+                or entry.get("portal_object_name"),
                 "span": entry.get("span") or entry.get("width") or entry.get("portal_span"),
                 "source_point": source_point,
                 "target_point": target_point,
@@ -199,7 +215,9 @@ def _portal_from_behavior_scene(
         args = object_info.get("args") if isinstance(object_info.get("args"), dict) else {}
         if not _is_door_category(args.get("category") or object_info.get("category")):
             continue
-        if not _room_pair_matches(args.get("in_rooms") or object_info.get("in_rooms"), source_room, target_room):
+        if not _room_pair_matches(
+            args.get("in_rooms") or object_info.get("in_rooms"), source_room, target_room
+        ):
             continue
         object_name = args.get("name") if isinstance(args.get("name"), str) else str(object_key)
         state = object_registry.get(object_name)
@@ -207,10 +225,14 @@ def _portal_from_behavior_scene(
             state = object_registry.get(str(object_key))
         center = _runtime_position(state) or _point_from_keys(args, ("position", "center", "pos"))
         if center is not None:
-            candidates.append({"center": center, "source": "explicit_door", "object_name": object_name})
+            candidates.append(
+                {"center": center, "source": "explicit_door", "object_name": object_name}
+            )
     if not candidates:
         return None
-    return min(candidates, key=lambda item: _room_midpoint_distance_sq(item, source_room, target_room))
+    return min(
+        candidates, key=lambda item: _room_midpoint_distance_sq(item, source_room, target_room)
+    )
 
 
 def _context_scene_file(context: dict[str, Any]) -> str | None:
@@ -283,7 +305,9 @@ def _portal_waypoint(
     )
     if source_point is None or target_point is None:
         return None
-    normal_axis, span_axis, normal_sign = _portal_axes_from_points(adapter, scene, source_point, target_point) or (
+    normal_axis, span_axis, normal_sign = _portal_axes_from_points(
+        adapter, scene, source_point, target_point
+    ) or (
         default_normal_axis,
         default_span_axis,
         default_normal_sign,
@@ -312,7 +336,9 @@ def _portal_waypoint(
         "portal_normal_axis": normal_axis,
         "portal_boundary_value": float(center_2d[normal_index]),
         "portal_normal_sign": normal_sign,
-        "portal_desired_heading": _heading(axes=axes, normal_axis=normal_axis, normal_sign=normal_sign),
+        "portal_desired_heading": _heading(
+            axes=axes, normal_axis=normal_axis, normal_sign=normal_sign
+        ),
         "portal_alignment_stage": "target_anchor",
     }
     if isinstance(portal.get("object_name"), str) and portal["object_name"]:
@@ -357,14 +383,6 @@ def _portal_axes_from_room_boundaries(
     target_room: HOVSGRoomAsset,
     center_2d: tuple[float, float],
 ) -> tuple[int, int, int] | None:
-    """Infer the portal normal from the nearest parallel room boundaries.
-
-    Room centroids are unreliable for long or L-shaped corridors: their
-    connecting vector can run parallel to the doorway wall. The local boundary
-    pair around the door center is the geometric authority for a center-only
-    portal, while explicit source / target points remain authoritative above.
-    """
-
     source_polygon = room_polygon_2d(adapter, scene, source_room)
     target_polygon = room_polygon_2d(adapter, scene, target_room)
     best: tuple[tuple[float, float, float, float], int, int, float, float] | None = None
@@ -419,7 +437,9 @@ def _portal_axes_from_room_boundaries(
         if source_centroid is None or target_centroid is None:
             normal_sign = 1
         else:
-            normal_sign = 1 if target_centroid[normal_index] >= source_centroid[normal_index] else -1
+            normal_sign = (
+                1 if target_centroid[normal_index] >= source_centroid[normal_index] else -1
+            )
     else:
         normal_sign = 1 if delta >= 0.0 else -1
     return normal_index, span_index, normal_sign
@@ -443,7 +463,9 @@ def _portal_axes_from_points(
     return axes[normal_index], axes[1 - normal_index], 1 if delta[normal_index] >= 0.0 else -1
 
 
-def _entry_matches_rooms(entry: dict[str, Any], source_room: HOVSGRoomAsset, target_room: HOVSGRoomAsset) -> bool:
+def _entry_matches_rooms(
+    entry: dict[str, Any], source_room: HOVSGRoomAsset, target_room: HOVSGRoomAsset
+) -> bool:
     return _entry_room_match_direction(entry, source_room, target_room) is not None
 
 
@@ -452,18 +474,36 @@ def _entry_room_match_direction(
     source_room: HOVSGRoomAsset,
     target_room: HOVSGRoomAsset,
 ) -> str | None:
-    source_values = (entry.get("source_room"), entry.get("source_room_id"), entry.get("source_room_name"))
-    target_values = (entry.get("target_room"), entry.get("target_room_id"), entry.get("target_room_name"))
-    if _room_value_matches(source_values, source_room) and _room_value_matches(target_values, target_room):
+    source_values = (
+        entry.get("source_room"),
+        entry.get("source_room_id"),
+        entry.get("source_room_name"),
+    )
+    target_values = (
+        entry.get("target_room"),
+        entry.get("target_room_id"),
+        entry.get("target_room_name"),
+    )
+    if _room_value_matches(source_values, source_room) and _room_value_matches(
+        target_values, target_room
+    ):
         return "forward"
-    if _room_value_matches(source_values, target_room) and _room_value_matches(target_values, source_room):
+    if _room_value_matches(source_values, target_room) and _room_value_matches(
+        target_values, source_room
+    ):
         return "reverse"
-    if _room_pair_matches(entry.get("in_rooms") or entry.get("rooms") or entry.get("room_names"), source_room, target_room):
+    if _room_pair_matches(
+        entry.get("in_rooms") or entry.get("rooms") or entry.get("room_names"),
+        source_room,
+        target_room,
+    ):
         return "forward"
     return None
 
 
-def _room_pair_matches(in_rooms: Any, source_room: HOVSGRoomAsset, target_room: HOVSGRoomAsset) -> bool:
+def _room_pair_matches(
+    in_rooms: Any, source_room: HOVSGRoomAsset, target_room: HOVSGRoomAsset
+) -> bool:
     if not isinstance(in_rooms, list):
         return False
     tokens = {_normalize(item) for item in in_rooms} - {""}
@@ -490,7 +530,11 @@ def _objects_init_info(payload: dict[str, Any]) -> dict[str, Any]:
     init_info = payload.get("init_info")
     if not isinstance(init_info, dict):
         return {}
-    return {key: value for key, value in init_info.items() if isinstance(value, dict) and isinstance(value.get("args"), dict)}
+    return {
+        key: value
+        for key, value in init_info.items()
+        if isinstance(value, dict) and isinstance(value.get("args"), dict)
+    }
 
 
 def _object_registry(payload: dict[str, Any]) -> dict[str, Any]:
@@ -545,14 +589,19 @@ def _snap_vertical_to_rooms(
 ) -> None:
     values = [
         value
-        for value in (_to_float((room.centroid or {}).get(scene.vertical_axis)) for room in (source_room, target_room))
+        for value in (
+            _to_float((room.centroid or {}).get(scene.vertical_axis))
+            for room in (source_room, target_room)
+        )
         if value is not None
     ]
     if values:
         point[scene.vertical_axis] = sum(values) / float(len(values))
 
 
-def _offset_point(scene: HOVSGSceneAsset, center: dict[str, float], axis: str, delta: float) -> dict[str, float]:
+def _offset_point(
+    scene: HOVSGSceneAsset, center: dict[str, float], axis: str, delta: float
+) -> dict[str, float]:
     point = dict(center)
     point[axis] = float(point[axis]) + float(delta)
     point[scene.vertical_axis] = float(center[scene.vertical_axis])
@@ -565,7 +614,9 @@ def _heading(*, axes: tuple[str, str], normal_axis: str, normal_sign: int) -> fl
     return math.pi * 0.5 if normal_sign >= 0 else -math.pi * 0.5
 
 
-def _room_midpoint_distance_sq(portal: dict[str, Any], source_room: HOVSGRoomAsset, target_room: HOVSGRoomAsset) -> float:
+def _room_midpoint_distance_sq(
+    portal: dict[str, Any], source_room: HOVSGRoomAsset, target_room: HOVSGRoomAsset
+) -> float:
     center = portal.get("center")
     if not isinstance(center, dict) or source_room.centroid is None or target_room.centroid is None:
         return 0.0

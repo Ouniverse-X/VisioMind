@@ -1,5 +1,3 @@
-"""CLI parser builder for the BEHAVIOR closed-loop example."""
-
 from __future__ import annotations
 
 import argparse
@@ -309,7 +307,9 @@ def _add_service_args(parser: argparse.ArgumentParser) -> None:
         default="agent",
         help="agent: MemoryAgentClient; local: local MemoryAgent over HEMSAdapter",
     )
-    parser.add_argument("--memory-agent-enabled", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument(
+        "--memory-agent-enabled", action=argparse.BooleanOptionalAction, default=True
+    )
     parser.add_argument("--memory-llm-backend", type=str, default=None)
     parser.add_argument("--memory-llm-base-url", type=str, default=None)
     parser.add_argument("--memory-llm-model", type=str, default=None)
@@ -324,8 +324,12 @@ def _add_service_args(parser: argparse.ArgumentParser) -> None:
         action=argparse.BooleanOptionalAction,
         default=False,
     )
-    parser.add_argument("--memory-experience-extraction-min-confidence-to-write", type=float, default=0.4)
-    parser.add_argument("--memory-experience-extraction-min-confidence-to-promote", type=float, default=0.7)
+    parser.add_argument(
+        "--memory-experience-extraction-min-confidence-to-write", type=float, default=0.4
+    )
+    parser.add_argument(
+        "--memory-experience-extraction-min-confidence-to-promote", type=float, default=0.7
+    )
     parser.add_argument(
         "--memory-experience-extraction-extract-completion-criteria",
         action=argparse.BooleanOptionalAction,

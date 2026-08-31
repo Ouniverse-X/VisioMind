@@ -1,5 +1,3 @@
-"""BEHAVIOR observation shaping and robot-state helpers."""
-
 from .frames import (
     encode_image_b64,
     extract_images_b64,

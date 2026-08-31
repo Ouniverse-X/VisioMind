@@ -1,5 +1,3 @@
-"""Video transcode command helpers for the BEHAVIOR runtime bridge."""
-
 from __future__ import annotations
 
 from pathlib import Path

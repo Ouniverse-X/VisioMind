@@ -1,5 +1,3 @@
-"""Recovery helpers for the waypoint policy adapter."""
-
 from __future__ import annotations
 
 import math
@@ -113,7 +111,9 @@ def should_delay_forward_facing_local_path_recovery(
         return False
     if abs(float(heading_error)) > max(adapter.forward_facing_heading_threshold_rad, 0.45):
         return True
-    return adapter._steps_since_waypoint_progress < forward_facing_local_path_recovery_patience(adapter)
+    return adapter._steps_since_waypoint_progress < forward_facing_local_path_recovery_patience(
+        adapter
+    )
 
 
 def forward_facing_local_path_recovery_patience(adapter: Any) -> int:
@@ -190,14 +190,14 @@ def recovery_command(adapter: Any) -> tuple[float, float, float]:
         return adapter._recovery_command_override
     return (
         adapter.recovery_linear_velocity,
-        adapter._recovery_direction * adapter.recovery_lateral_velocity if adapter.holonomic else 0.0,
+        adapter._recovery_direction * adapter.recovery_lateral_velocity
+        if adapter.holonomic
+        else 0.0,
         adapter._recovery_direction * adapter.recovery_angular_velocity,
     )
 
 
 def should_request_local_path_replan(adapter: Any) -> bool:
-    """Stop repeating recovery against one stale local path segment."""
-
     if not adapter._uses_local_path_tracking():
         return False
     if adapter._recovery_steps_remaining > 0:
@@ -237,7 +237,11 @@ def transition_recovery_command(
         heading_scale = min(heading_scale, 0.6)
     linear_velocity = adapter.transition_recovery_linear_velocity * heading_scale
     lateral_velocity = 0.0
-    if adapter.holonomic and not adapter.prefer_forward_facing_motion and abs(local_lateral) >= 0.05:
+    if (
+        adapter.holonomic
+        and not adapter.prefer_forward_facing_motion
+        and abs(local_lateral) >= 0.05
+    ):
         lateral_scale = max(0.5, min(1.0, abs(local_lateral)))
         lateral_velocity = math.copysign(
             adapter.transition_recovery_lateral_velocity * lateral_scale,
@@ -341,7 +345,9 @@ def should_skip_stuck_waypoint(
         return False
     if adapter._recovery_cycles_on_waypoint < adapter.max_recovery_attempts_per_waypoint:
         return False
-    if not (pose_stalled(adapter) or waypoint_progress_stalled(adapter) or oscillation_detected(adapter)):
+    if not (
+        pose_stalled(adapter) or waypoint_progress_stalled(adapter) or oscillation_detected(adapter)
+    ):
         return False
     if distance <= max(adapter.final_waypoint_tolerance, adapter.waypoint_tolerance):
         return False
@@ -365,9 +371,15 @@ def should_skip_stuck_local_path_waypoint(
         return False
     if adapter._recovery_cycles_on_waypoint < adapter.max_recovery_attempts_per_waypoint:
         return False
-    if not (pose_stalled(adapter) or waypoint_progress_stalled(adapter) or oscillation_detected(adapter)):
+    if not (
+        pose_stalled(adapter) or waypoint_progress_stalled(adapter) or oscillation_detected(adapter)
+    ):
         return False
-    follow_state = adapter._local_path_follow_state if isinstance(adapter._local_path_follow_state, dict) else {}
+    follow_state = (
+        adapter._local_path_follow_state
+        if isinstance(adapter._local_path_follow_state, dict)
+        else {}
+    )
     try:
         cross_track_error = abs(float(follow_state.get("cross_track_error", 0.0)))
     except (TypeError, ValueError):

@@ -1,5 +1,3 @@
-"""Recording/writeback helpers for the HEMS-backed memory integration."""
-
 from __future__ import annotations
 
 from copy import deepcopy
@@ -108,7 +106,9 @@ def mark_explored(
     }
 
 
-def get_exploration_frontiers(*, maps: dict[str, dict[str, Any]], scene_id: str) -> list[dict[str, Any]]:
+def get_exploration_frontiers(
+    *, maps: dict[str, dict[str, Any]], scene_id: str
+) -> list[dict[str, Any]]:
     entry = maps.get(scene_id)
     if entry is None:
         return []

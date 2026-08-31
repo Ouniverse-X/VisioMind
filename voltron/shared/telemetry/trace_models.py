@@ -1,5 +1,3 @@
-"""Shared trace telemetry models."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -10,8 +8,6 @@ from .event_models import EventRecord
 
 @dataclass
 class TraceRecord:
-    """Structured trace/span record for runtime execution flows."""
-
     trace_id: str
     span_id: str
     name: str

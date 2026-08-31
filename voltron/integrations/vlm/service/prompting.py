@@ -1,5 +1,3 @@
-"""Prompt builders for the Voltron VLM service integration."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -10,10 +8,10 @@ _SYSTEM_PROMPT = (
     "You are the visual verification module for Voltron, a mobile humanoid robot with a wheeled "
     "base, two arms with grippers, and a head camera. Given multi-view image sequences and a "
     "subtask instruction, return JSON only with this schema: "
-    "{\"task_complete\": bool, \"summary\": str, \"scene_report\": {\"target_visible\": bool, "
-    "\"target_part_visible\": bool, \"target_part_name\": str}, \"objects\": [{\"name\": str, "
-    "\"confidence\": float, \"attributes\": dict}], \"relations\": [{\"source\": str, "
-    "\"target\": str, \"relation\": str, \"confidence\": float}]}. The summary must be short. "
+    '{"task_complete": bool, "summary": str, "scene_report": {"target_visible": bool, '
+    '"target_part_visible": bool, "target_part_name": str}, "objects": [{"name": str, '
+    '"confidence": float, "attributes": dict}], "relations": [{"source": str, '
+    '"target": str, "relation": str, "confidence": float}]}. The summary must be short. '
     "If the subtask is complete, start summary "
     "with 'SUCCESS:'. Do not include markdown fences or extra commentary."
 )

@@ -1,5 +1,3 @@
-"""Memory agent facade over the HEMS backend integration."""
-
 from __future__ import annotations
 
 import copy
@@ -16,8 +14,6 @@ from . import consolidation, executor, reflection as native_reflection
 
 
 class MemoryAgent:
-    """Thin facade that presents the Memory-agent surface over a backend implementation."""
-
     def __init__(
         self,
         backend: Any | None = None,
@@ -55,7 +51,9 @@ class MemoryAgent:
         return self._last_completed_episode_id
 
     def start_task(self, task_description: str, task_type: TaskType) -> str:
-        return executor.call_backend_method(self._backend, "start_task", task_description, task_type)
+        return executor.call_backend_method(
+            self._backend, "start_task", task_description, task_type
+        )
 
     def end_task(self, outcome: str, failure_reason: str | None = None) -> dict[str, Any]:
         result = executor.call_backend_method(
@@ -75,7 +73,9 @@ class MemoryAgent:
             "get_completed_episode_context",
             episode_id=self._last_completed_episode_id,
         )
-        similar_episodes = self._find_similar_for_reflection(episode_context, similar_top_k=similar_top_k)
+        similar_episodes = self._find_similar_for_reflection(
+            episode_context, similar_top_k=similar_top_k
+        )
         reflection = native_reflection.build_reflection_evidence(
             episode_context,
             similar_episodes=similar_episodes,
@@ -97,7 +97,9 @@ class MemoryAgent:
             return {**reflection, "memory_consolidation": consolidation_result}
         return {"reflection": reflection, "memory_consolidation": consolidation_result}
 
-    def get_consolidation_job(self, job_id: str | None = None) -> dict[str, Any] | list[dict[str, Any]]:
+    def get_consolidation_job(
+        self, job_id: str | None = None
+    ) -> dict[str, Any] | list[dict[str, Any]]:
         with self._consolidation_lock:
             if job_id is None:
                 return [dict(job) for job in self._consolidation_jobs.values()]
@@ -139,7 +141,9 @@ class MemoryAgent:
         episode_context: dict[str, Any],
         reflection_evidence: dict[str, Any],
     ) -> dict[str, Any]:
-        episode_id = str(episode_context.get("episode_id") or self._last_completed_episode_id or "unknown")
+        episode_id = str(
+            episode_context.get("episode_id") or self._last_completed_episode_id or "unknown"
+        )
         job_id = f"consolidation_{episode_id}_{next(self._consolidation_counter)}"
         job = {
             "ok": None,
@@ -184,13 +188,17 @@ class MemoryAgent:
             self._consolidation_jobs[job_id].update(
                 {
                     "ok": bool(result.get("ok")) if isinstance(result, dict) else False,
-                    "status": "completed" if isinstance(result, dict) and result.get("ok") else "failed",
+                    "status": "completed"
+                    if isinstance(result, dict) and result.get("ok")
+                    else "failed",
                     "result": result,
                 }
             )
             return dict(self._consolidation_jobs[job_id])
 
-    def _find_similar_for_reflection(self, episode_context: dict[str, Any], *, similar_top_k: int) -> Any:
+    def _find_similar_for_reflection(
+        self, episode_context: dict[str, Any], *, similar_top_k: int
+    ) -> Any:
         task_description = str(episode_context.get("task_description") or "").strip()
         find_similar = getattr(self._backend, "find_similar_episodes", None)
         if not task_description or not callable(find_similar) or similar_top_k <= 0:
@@ -212,7 +220,9 @@ class MemoryAgent:
         except Exception:
             reflection["annotation_error"] = "reflection_evidence_write_failed"
 
-    def find_object(self, name: str, attributes: dict[str, Any] | None = None, top_k: int = 5) -> Any:
+    def find_object(
+        self, name: str, attributes: dict[str, Any] | None = None, top_k: int = 5
+    ) -> Any:
         return executor.call_backend_method(
             self._backend,
             "find_object",
@@ -222,13 +232,19 @@ class MemoryAgent:
         )
 
     def find_objects_near(self, position: tuple[float, float, float], radius: float = 2.0) -> Any:
-        return executor.call_backend_method(self._backend, "find_objects_near", position, radius=radius)
+        return executor.call_backend_method(
+            self._backend, "find_objects_near", position, radius=radius
+        )
 
     def find_similar_episodes(self, description: str, top_k: int = 5) -> Any:
-        return executor.call_backend_method(self._backend, "find_similar_episodes", description, top_k=top_k)
+        return executor.call_backend_method(
+            self._backend, "find_similar_episodes", description, top_k=top_k
+        )
 
     def find_applicable_skills(self, current_state: dict[str, Any], top_k: int = 5) -> Any:
-        return executor.call_backend_method(self._backend, "find_applicable_skills", current_state, top_k=top_k)
+        return executor.call_backend_method(
+            self._backend, "find_applicable_skills", current_state, top_k=top_k
+        )
 
     def predict_action_effects(
         self,
@@ -249,7 +265,9 @@ class MemoryAgent:
         )
 
     def diagnose_effect_cause(self, effect: str, value: Any = None) -> Any:
-        return executor.call_backend_method(self._backend, "diagnose_effect_cause", effect, value=value)
+        return executor.call_backend_method(
+            self._backend, "diagnose_effect_cause", effect, value=value
+        )
 
     def load_map(self, scene_id: str) -> dict[str, Any]:
         return executor.call_backend_method(self._backend, "load_map", scene_id)
@@ -340,8 +358,12 @@ class MemoryAgent:
             recent_observation_limit=recent_observation_limit,
         )
 
-    def annotate_completed_episode(self, episode_id: str, annotation: dict[str, Any]) -> dict[str, Any]:
-        return executor.call_backend_method(self._backend, "annotate_completed_episode", episode_id, annotation)
+    def annotate_completed_episode(
+        self, episode_id: str, annotation: dict[str, Any]
+    ) -> dict[str, Any]:
+        return executor.call_backend_method(
+            self._backend, "annotate_completed_episode", episode_id, annotation
+        )
 
     def store_experience_hint(self, hint: dict[str, Any]) -> dict[str, Any]:
         return executor.call_backend_method(self._backend, "store_experience_hint", hint)
@@ -350,10 +372,14 @@ class MemoryAgent:
         return executor.call_backend_method(self._backend, "get_experience_hint", hint_id)
 
     def store_failure_pattern_candidate(self, pattern: dict[str, Any]) -> dict[str, Any]:
-        return executor.call_backend_method(self._backend, "store_failure_pattern_candidate", pattern)
+        return executor.call_backend_method(
+            self._backend, "store_failure_pattern_candidate", pattern
+        )
 
     def get_failure_pattern_candidate(self, pattern_id: str) -> dict[str, Any] | None:
-        return executor.call_backend_method(self._backend, "get_failure_pattern_candidate", pattern_id)
+        return executor.call_backend_method(
+            self._backend, "get_failure_pattern_candidate", pattern_id
+        )
 
     def find_failure_patterns(
         self,
@@ -370,10 +396,14 @@ class MemoryAgent:
         )
 
     def store_semantic_update_candidate(self, update: dict[str, Any]) -> dict[str, Any]:
-        return executor.call_backend_method(self._backend, "store_semantic_update_candidate", update)
+        return executor.call_backend_method(
+            self._backend, "store_semantic_update_candidate", update
+        )
 
     def get_semantic_update_candidate(self, update_id: str) -> dict[str, Any] | None:
-        return executor.call_backend_method(self._backend, "get_semantic_update_candidate", update_id)
+        return executor.call_backend_method(
+            self._backend, "get_semantic_update_candidate", update_id
+        )
 
     def find_semantic_update_candidates(
         self,

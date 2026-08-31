@@ -1,11 +1,3 @@
-"""Compose object-level runtime updates for traversability maps.
-
-Static HOV-SG vertices are cached as canonical polygons.  Objects that remain
-at their exported pose reuse those polygons, while moved or articulated
-objects temporarily retain the runtime AABB fallback until local collision
-footprints and link transforms are available.
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -58,7 +50,6 @@ def runtime_object_map_overlays(
     navigation_goal: dict[str, Any] | None = None,
     include_unchanged: bool = False,
 ) -> dict[str, Any]:
-    """Return canonical and runtime object overlays for the selected base map."""
     if not scene_id:
         return _empty_overlay()
     state = hovsg_runtime_state.current_scene_state(adapter, scene_id)
@@ -91,9 +82,6 @@ def runtime_object_map_overlays(
             )
             is not None
         ):
-            # Doors are owned exclusively by the articulated door layer.  In
-            # objectless mode, stamping their exported canonical polygon here
-            # would put a closed leaf back into an already opened doorway.
             continue
         runtime_object = (
             hovsg_runtime_state.match_runtime_object(
@@ -106,10 +94,7 @@ def runtime_object_map_overlays(
             else None
         )
         if runtime_object is None:
-            if (
-                effective_object is not None
-                and not effective_object.participates_in_navigation
-            ):
+            if effective_object is not None and not effective_object.participates_in_navigation:
                 continue
             if include_unchanged:
                 canonical_obstacle = _canonical_object_obstacle(
@@ -151,10 +136,7 @@ def runtime_object_map_overlays(
             )
             if static_region is not None:
                 clear_regions.append(static_region)
-        if (
-            effective_object is not None
-            and _prefer_effective_geometry(runtime_object)
-        ):
+        if effective_object is not None and _prefer_effective_geometry(runtime_object):
             if effective_object.navigation_footprints:
                 obstacles.append(_effective_object_obstacle(effective_object))
             continue
@@ -174,8 +156,6 @@ def runtime_object_map_overlays(
                 obstacles.extend(precise_obstacles)
                 continue
             if runtime_object.collision_parts and not runtime_obstacles:
-                # Runtime geometry exists but is entirely above / below the
-                # robot navigation band, so do not resurrect its static polygon.
                 continue
             canonical_obstacle = _canonical_object_obstacle(
                 adapter,
@@ -196,8 +176,6 @@ def runtime_object_map_overlays(
             )
         )
 
-    # Runtime tracked objects that are absent from the static export still
-    # need a current obstacle, but have no old static footprint to clear.
     for runtime_object in state.objects.values() if state is not None else []:
         if runtime_object.name in matched_names:
             continue
@@ -219,15 +197,9 @@ def runtime_object_map_overlays(
         )
         if runtime_obstacles:
             obstacles.extend(runtime_obstacles)
-        elif (
-            not runtime_object.collision_parts
-            and effective_object.navigation_footprints
-        ):
+        elif not runtime_object.collision_parts and effective_object.navigation_footprints:
             obstacles.append(_effective_object_obstacle(effective_object))
 
-    # A navigation target still occupies physical space.  Object-approach
-    # planning must select an external standoff instead of deleting the target
-    # from the map.
     del navigation_goal
     active = bool(obstacles or clear_regions)
     map_revision = _overlay_signature(obstacles, clear_regions) if active else ""
@@ -302,17 +274,13 @@ def _object_moved(
     static_object: HOVSGObjectAsset,
 ) -> bool:
     position_moved = False
-    if isinstance(runtime_object.position, dict) and isinstance(
-        static_object.centroid, dict
-    ):
+    if isinstance(runtime_object.position, dict) and isinstance(static_object.centroid, dict):
         projector = getattr(adapter, "_project_horizontal", None)
         if callable(projector):
             try:
                 runtime_xy = projector(scene, runtime_object.position)
                 static_xy = projector(scene, static_object.centroid)
-                if isinstance(runtime_xy, (list, tuple)) and isinstance(
-                    static_xy, (list, tuple)
-                ):
+                if isinstance(runtime_xy, (list, tuple)) and isinstance(static_xy, (list, tuple)):
                     distance = (
                         (float(runtime_xy[0]) - float(static_xy[0])) ** 2
                         + (float(runtime_xy[1]) - float(static_xy[1])) ** 2
@@ -342,14 +310,10 @@ def _initialize_collision_baselines(adapter: Any, scene_id: str, state: Any) -> 
         scene_baselines.setdefault(name, _collision_parts_signature(runtime_object))
 
 
-def _collision_baseline(
-    adapter: Any, scene_id: str, runtime_object: RuntimeObjectState
-) -> tuple:
+def _collision_baseline(adapter: Any, scene_id: str, runtime_object: RuntimeObjectState) -> tuple:
     baselines = getattr(adapter, "_runtime_object_collision_baselines", {})
     scene_baselines = baselines.get(scene_id, {}) if isinstance(baselines, dict) else {}
-    return scene_baselines.get(
-        runtime_object.name, _collision_parts_signature(runtime_object)
-    )
+    return scene_baselines.get(runtime_object.name, _collision_parts_signature(runtime_object))
 
 
 def _collision_parts_signature(runtime_object: RuntimeObjectState) -> tuple:
@@ -370,14 +334,8 @@ def _collision_parts_signature(runtime_object: RuntimeObjectState) -> tuple:
         return (
             (
                 "__aabb__",
-                tuple(
-                    round(float(value), 3)
-                    for value in runtime_object.aabb.get("min", [])[:3]
-                ),
-                tuple(
-                    round(float(value), 3)
-                    for value in runtime_object.aabb.get("max", [])[:3]
-                ),
+                tuple(round(float(value), 3) for value in runtime_object.aabb.get("min", [])[:3]),
+                tuple(round(float(value), 3) for value in runtime_object.aabb.get("max", [])[:3]),
             ),
         )
     return ()
@@ -459,9 +417,7 @@ def _canonical_object_footprint(
         if not isinstance(vertex, (list, tuple)) or len(vertex) < 3:
             continue
         try:
-            normalized_vertices.append(
-                [round(float(vertex[index]), 6) for index in range(3)]
-            )
+            normalized_vertices.append([round(float(vertex[index]), 6) for index in range(3)])
         except (TypeError, ValueError):
             continue
     if not normalized_vertices:
@@ -513,9 +469,9 @@ def _convex_hull(points: list[tuple[float, float]]) -> list[tuple[float, float]]
         first: tuple[float, float],
         second: tuple[float, float],
     ) -> float:
-        return (first[0] - origin[0]) * (second[1] - origin[1]) - (
-            first[1] - origin[1]
-        ) * (second[0] - origin[0])
+        return (first[0] - origin[0]) * (second[1] - origin[1]) - (first[1] - origin[1]) * (
+            second[0] - origin[0]
+        )
 
     lower: list[tuple[float, float]] = []
     for point in unique:
@@ -638,9 +594,7 @@ def _runtime_object_navigation_floor_height(
     if not floor_heights:
         return None
     try:
-        object_height = float(
-            (runtime_object.position or {}).get(vertical_axis, 0.0)
-        )
+        object_height = float((runtime_object.position or {}).get(vertical_axis, 0.0))
     except (TypeError, ValueError):
         object_height = floor_heights[0]
     return min(floor_heights, key=lambda height: abs(object_height - height))
@@ -669,14 +623,10 @@ def _part_overlaps_navigation_height(
         return True
     height_min = part.get("height_min")
     height_max = part.get("height_max")
-    if not isinstance(height_min, (int, float)) or not isinstance(
-        height_max, (int, float)
-    ):
+    if not isinstance(height_min, (int, float)) or not isinstance(height_max, (int, float)):
         corner_min = part.get("min")
         corner_max = part.get("max")
-        if isinstance(corner_min, (list, tuple)) and isinstance(
-            corner_max, (list, tuple)
-        ):
+        if isinstance(corner_min, (list, tuple)) and isinstance(corner_max, (list, tuple)):
             try:
                 height_index = vertical_axis_index(vertical_axis)
                 height_min = float(corner_min[height_index])
@@ -734,9 +684,7 @@ def _part_height_bounds(
         return float(height_min), float(height_max)
     corner_min = part.get("min")
     corner_max = part.get("max")
-    if not isinstance(corner_min, (list, tuple)) or not isinstance(
-        corner_max, (list, tuple)
-    ):
+    if not isinstance(corner_min, (list, tuple)) or not isinstance(corner_max, (list, tuple)):
         return None
     try:
         height_index = vertical_axis_index(vertical_axis)
@@ -756,9 +704,7 @@ def _part_horizontal_footprint_area(
     if not points:
         corner_min = part.get("min")
         corner_max = part.get("max")
-        if isinstance(corner_min, (list, tuple)) and isinstance(
-            corner_max, (list, tuple)
-        ):
+        if isinstance(corner_min, (list, tuple)) and isinstance(corner_max, (list, tuple)):
             try:
                 horizontal_indices = horizontal_axis_indices(vertical_axis)
                 return max(
@@ -773,9 +719,7 @@ def _part_horizontal_footprint_area(
             except (IndexError, TypeError, ValueError):
                 return None
         return None
-    return max(
-        0.0, max(point[0] for point in points) - min(point[0] for point in points)
-    ) * max(
+    return max(0.0, max(point[0] for point in points) - min(point[0] for point in points)) * max(
         0.0,
         max(point[1] for point in points) - min(point[1] for point in points),
     )
@@ -844,9 +788,7 @@ def _aabb_obstacle(
         return None
     corner_min = aabb.get("min")
     corner_max = aabb.get("max")
-    if not isinstance(corner_min, (list, tuple)) or not isinstance(
-        corner_max, (list, tuple)
-    ):
+    if not isinstance(corner_min, (list, tuple)) or not isinstance(corner_max, (list, tuple)):
         return None
     try:
         horizontal_indices = horizontal_axis_indices(vertical_axis)
@@ -921,9 +863,7 @@ def _dirty_bounds(items: list[dict[str, Any]]) -> dict[str, float] | None:
         position = item.get("position")
         if isinstance(position, dict):
             try:
-                half_extent = float(
-                    item.get("half_extent_m", DEFAULT_OBJECT_HALF_EXTENT_M)
-                )
+                half_extent = float(item.get("half_extent_m", DEFAULT_OBJECT_HALF_EXTENT_M))
                 x_coord = float(position["x"])
                 y_coord = float(position["y"])
                 points.extend(
@@ -970,9 +910,7 @@ def _geometry_revision(
     )
     if not parts:
         return ""
-    return hashlib.sha1(
-        json.dumps(parts, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()[:16]
+    return hashlib.sha1(json.dumps(parts, separators=(",", ":")).encode("utf-8")).hexdigest()[:16]
 
 
 def _geometry_source_counts(

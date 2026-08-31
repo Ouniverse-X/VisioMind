@@ -1,5 +1,3 @@
-"""Tool-aware planning loop for the Brain agent."""
-
 from __future__ import annotations
 
 from copy import deepcopy
@@ -7,7 +5,11 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from voltron.agents.brain.body.planner_backend import PlannerResponse
-from voltron.agents.brain.tools.base import ContextPatch, default_context_patch, default_tool_trace_entry
+from voltron.agents.brain.tools.base import (
+    ContextPatch,
+    default_context_patch,
+    default_tool_trace_entry,
+)
 from voltron.shared.context import Plan, Subtask
 from voltron.shared.contracts import MemoryAdapter, ToolInvocation
 from voltron.shared.registries import ToolCatalog
@@ -16,16 +18,12 @@ from voltron.shared.results import ToolResult
 
 @dataclass(frozen=True)
 class BrainPlanningEvent:
-    """Observable planning-loop event for CLI/debug surfaces."""
-
     event_type: str
     message: str
     payload: dict[str, Any] = field(default_factory=dict)
 
 
 class BrainPlanningLoop:
-    """Drive Brain planner iterations until a final Plan is produced."""
-
     def __init__(
         self,
         *,
@@ -206,7 +204,9 @@ class BrainPlanningLoop:
         result: ToolResult,
     ) -> None:
         patch = self._build_context_patch(invocation=invocation, result=result)
-        trace_entry = patch.tool_trace_entry or default_tool_trace_entry(invocation.tool_name, result)
+        trace_entry = patch.tool_trace_entry or default_tool_trace_entry(
+            invocation.tool_name, result
+        )
         planning_context.setdefault("tool_trace", []).append(trace_entry)
         planning_context_updates = dict(patch.planning_context_updates)
         if planning_context_updates:
@@ -218,7 +218,9 @@ class BrainPlanningLoop:
             "tool_outputs": deepcopy(planning_context.get("tool_outputs", {})),
             "tool_trace": deepcopy(planning_context.get("tool_trace", [])),
         }
-        task_context_updates = _merge_dicts(dict(patch.task_context_updates), {"brain_tool_state": brain_tool_state})
+        task_context_updates = _merge_dicts(
+            dict(patch.task_context_updates), {"brain_tool_state": brain_tool_state}
+        )
         task_context = planning_context.get("task_context")
         merged_task_context = _merge_dicts(
             task_context if isinstance(task_context, dict) else {},
@@ -236,7 +238,9 @@ class BrainPlanningLoop:
             },
         )
 
-    def _build_context_patch(self, *, invocation: ToolInvocation, result: ToolResult) -> ContextPatch:
+    def _build_context_patch(
+        self, *, invocation: ToolInvocation, result: ToolResult
+    ) -> ContextPatch:
         try:
             tool = self.tools.get(invocation.tool_name)
         except KeyError:
@@ -254,7 +258,9 @@ class BrainPlanningLoop:
     def _emit(self, event_type: str, message: str, payload: dict[str, Any] | None = None) -> None:
         if self.event_sink is None:
             return
-        self.event_sink(BrainPlanningEvent(event_type=event_type, message=message, payload=dict(payload or {})))
+        self.event_sink(
+            BrainPlanningEvent(event_type=event_type, message=message, payload=dict(payload or {}))
+        )
 
 
 def _merge_dicts(base: dict[str, Any], delta: dict[str, Any]) -> dict[str, Any]:

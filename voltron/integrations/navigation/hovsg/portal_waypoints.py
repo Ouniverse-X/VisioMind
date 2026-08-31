@@ -1,5 +1,3 @@
-"""Portal waypoint assembly for HOV-SG room transitions."""
-
 from __future__ import annotations
 
 import math
@@ -88,10 +86,16 @@ def transition_waypoint(
         "x": float(portal_center["x"]),
         "y": float(portal_center["y"]),
         "z": float(portal_center["z"]),
-        "floor_id": target_room.floor_id if target_room is not None else fallback_to.get("floor_id"),
+        "floor_id": target_room.floor_id
+        if target_room is not None
+        else fallback_to.get("floor_id"),
         "room_id": target_room.room_id if target_room is not None else fallback_to.get("room_id"),
-        "source_room_id": source_room.room_id if source_room is not None else fallback_from.get("room_id"),
-        "source_room_name": source_room.name if source_room is not None else fallback_from.get("room_name"),
+        "source_room_id": source_room.room_id
+        if source_room is not None
+        else fallback_from.get("room_id"),
+        "source_room_name": source_room.name
+        if source_room is not None
+        else fallback_from.get("room_name"),
         "room_name": target_room.name if target_room is not None else fallback_to.get("room_name"),
         "waypoint_type": "portal",
     }
@@ -253,7 +257,9 @@ def room_transition_points(
                 target_start,
                 target_end,
             )
-            distance = (source_point[0] - target_point[0]) ** 2 + (source_point[1] - target_point[1]) ** 2
+            distance = (source_point[0] - target_point[0]) ** 2 + (
+                source_point[1] - target_point[1]
+            ) ** 2
             if best_distance is None or distance < best_distance:
                 best_distance = distance
                 best_pair = (source_point, target_point)
@@ -286,8 +292,12 @@ def portal_waypoint_metadata(
     if not isinstance(source_point, tuple) or not isinstance(target_point, tuple):
         return {}
 
-    source_point_world = lift_horizontal_point(adapter, scene, source_point, source_room=source_room, target_room=target_room)
-    target_point_world = lift_horizontal_point(adapter, scene, target_point, source_room=source_room, target_room=target_room)
+    source_point_world = lift_horizontal_point(
+        adapter, scene, source_point, source_room=source_room, target_room=target_room
+    )
+    target_point_world = lift_horizontal_point(
+        adapter, scene, target_point, source_room=source_room, target_room=target_room
+    )
     if source_point_world is None or target_point_world is None:
         return {}
 

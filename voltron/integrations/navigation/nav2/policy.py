@@ -1,5 +1,3 @@
-"""Policy adapter that executes Nav2-planned local paths via the waypoint tracker."""
-
 from __future__ import annotations
 
 import re
@@ -11,8 +9,6 @@ from ..control.waypoint_policy import WaypointPolicyAdapter
 
 
 class Nav2PolicyAdapter:
-    """Use Nav2 only for local path generation and delegate execution to waypoint tracking."""
-
     def __init__(
         self,
         *,
@@ -66,17 +62,11 @@ class Nav2PolicyAdapter:
 
         action, info = self.fallback_policy.get_action(observation, options=tracker_options)
         wrapped_info = dict(info)
-        clipped_segment_complete = bool(
-            target is not None and target.get("replan_after_reaching")
-        )
+        clipped_segment_complete = bool(target is not None and target.get("replan_after_reaching"))
         local_segment_complete = bool(wrapped_info.get("goal_reached")) and (
             pre_transition or clipped_segment_complete
         )
         if local_segment_complete:
-            # A portal approach or clearance-clipped prefix is only one local
-            # segment of the global route. Keep the environment from accepting
-            # that endpoint as task completion and let the Navigation agent
-            # plan the next Nav2-validated segment from the latest pose.
             wrapped_info["goal_reached"] = False
             wrapped_info["controller_mode"] = "segment_complete"
             wrapped_info["local_segment_complete"] = True
@@ -95,11 +85,11 @@ class Nav2PolicyAdapter:
             original=original_path_points,
             prepared=path_points,
         )
-        wrapped_info["nav2_profile"] = str(options.get("nav2_profile") or self.default_version_profile)
-        wrapped_info["pre_transition_stage"] = pre_transition
-        wrapped_info["portal_egress_guard"] = bool(
-            target and target.get("portal_egress_guard")
+        wrapped_info["nav2_profile"] = str(
+            options.get("nav2_profile") or self.default_version_profile
         )
+        wrapped_info["pre_transition_stage"] = pre_transition
+        wrapped_info["portal_egress_guard"] = bool(target and target.get("portal_egress_guard"))
         return action, wrapped_info
 
     @staticmethod
@@ -111,7 +101,9 @@ class Nav2PolicyAdapter:
         return True
 
     @staticmethod
-    def _extract_pose(*, observation: dict[str, Any], options: dict[str, Any]) -> dict[str, float] | None:
+    def _extract_pose(
+        *, observation: dict[str, Any], options: dict[str, Any]
+    ) -> dict[str, float] | None:
         for candidate in (observation.get("pose"), options.get("pose")):
             if not isinstance(candidate, dict):
                 continue
@@ -187,7 +179,10 @@ class Nav2PolicyAdapter:
 
         target_waypoint_type = str(target.get("waypoint_type", "")).strip().lower()
         execution_waypoint_type = str(execution_goal.get("waypoint_type", "")).strip().lower()
-        if target_waypoint_type != "post_portal_goal" and execution_waypoint_type != "post_portal_goal":
+        if (
+            target_waypoint_type != "post_portal_goal"
+            and execution_waypoint_type != "post_portal_goal"
+        ):
             return path_points, target, False
 
         current_region = self._normalize_label(
@@ -196,10 +191,14 @@ class Nav2PolicyAdapter:
             or options.get("current_region")
             or options.get("current_room")
         )
-        target_region = self._normalize_label(target.get("room_name") or execution_goal.get("room_name"))
+        target_region = self._normalize_label(
+            target.get("room_name") or execution_goal.get("room_name")
+        )
 
         vertical_axis = self._resolve_vertical_axis(observation=observation, options=options)
-        anchor_xy = self._world_to_nav2_plane(waypoint=transition_anchor, vertical_axis=vertical_axis)
+        anchor_xy = self._world_to_nav2_plane(
+            waypoint=transition_anchor, vertical_axis=vertical_axis
+        )
         if anchor_xy is None:
             return path_points, target, False
         pose = self._extract_pose(observation=observation, options=options)
@@ -217,18 +216,24 @@ class Nav2PolicyAdapter:
                     pass
                 else:
                     return path_points, target, False
-            elif pose is not None and pose_xy is not None and not self._pose_reached_target_side_transition_anchor(
-                pose=pose,
-                pose_xy=pose_xy,
-                anchor=transition_anchor,
-                anchor_xy=anchor_xy,
+            elif (
+                pose is not None
+                and pose_xy is not None
+                and not self._pose_reached_target_side_transition_anchor(
+                    pose=pose,
+                    pose_xy=pose_xy,
+                    anchor=transition_anchor,
+                    anchor_xy=anchor_xy,
+                )
             ):
                 pass
             else:
                 return path_points, target, False
 
         if nav2_compute_goal_is_execution and midpoint_anchor is not None and pose_xy is not None:
-            midpoint_xy = self._world_to_nav2_plane(waypoint=midpoint_anchor, vertical_axis=vertical_axis)
+            midpoint_xy = self._world_to_nav2_plane(
+                waypoint=midpoint_anchor, vertical_axis=vertical_axis
+            )
             if midpoint_xy is not None and self._pose_reached_or_crossed_midpoint_anchor(
                 pose=pose,
                 pose_xy=pose_xy,
@@ -238,11 +243,15 @@ class Nav2PolicyAdapter:
                 return path_points, target, False
 
         if nav2_compute_goal_is_execution:
-            if pose is not None and pose_xy is not None and not self._pose_reached_target_side_transition_anchor(
-                pose=pose,
-                pose_xy=pose_xy,
-                anchor=transition_anchor,
-                anchor_xy=anchor_xy,
+            if (
+                pose is not None
+                and pose_xy is not None
+                and not self._pose_reached_target_side_transition_anchor(
+                    pose=pose,
+                    pose_xy=pose_xy,
+                    anchor=transition_anchor,
+                    anchor_xy=anchor_xy,
+                )
             ):
                 egress_waypoint = nav2_portal_safety.egress_waypoint(
                     anchor=transition_anchor,
@@ -257,28 +266,26 @@ class Nav2PolicyAdapter:
                         egress_xy is not None
                         and egress_waypoint.get("portal_egress_source") == "nav2_path"
                     ):
-                        # Preserve the complete Nav2-validated prefix. Joining
-                        # the current pose directly to a later egress point can
-                        # cut an inside corner even when both endpoints are
-                        # individually collision-free.
                         egress_path = self._truncate_path_points_at_anchor(
                             path_points=path_points,
                             anchor_xy=egress_xy,
                         )
                         if egress_path:
                             return egress_path, egress_waypoint, True
-                # The full path already came from Nav2. If it contains no
-                # path-derived egress point, keep that path rather than
-                # synthesizing an unvalidated portal-centerline shortcut.
+
                 return path_points, target, False
             return path_points, target, False
 
-        trimmed_path = self._truncate_path_points_at_anchor(path_points=path_points, anchor_xy=anchor_xy)
+        trimmed_path = self._truncate_path_points_at_anchor(
+            path_points=path_points, anchor_xy=anchor_xy
+        )
         if not trimmed_path:
             return path_points, target, False
         segment_target = transition_anchor
         if midpoint_transition:
-            exit_waypoint = self._midpoint_transition_exit_waypoint(options=options, midpoint_anchor=transition_anchor)
+            exit_waypoint = self._midpoint_transition_exit_waypoint(
+                options=options, midpoint_anchor=transition_anchor
+            )
             if exit_waypoint is not None:
                 segment_target = exit_waypoint
             else:
@@ -290,10 +297,6 @@ class Nav2PolicyAdapter:
                 second=anchor_xy,
                 tolerance=0.05,
             ):
-                # The navigator intentionally returned only a safe prefix.
-                # Do not append the rejected anchor again in the policy layer;
-                # reaching this endpoint will trigger the existing dynamic
-                # local-segment replanning flow.
                 segment_target = self._clipped_segment_target(
                     point=last_point,
                     reference=transition_anchor,
@@ -303,10 +306,7 @@ class Nav2PolicyAdapter:
     @staticmethod
     def _nav2_path_was_clipped(*, options: dict[str, Any]) -> bool:
         nav_plan = options.get("nav_plan")
-        return bool(
-            isinstance(nav_plan, dict)
-            and nav_plan.get("nav2_path_clipped_for_clearance")
-        )
+        return bool(isinstance(nav_plan, dict) and nav_plan.get("nav2_path_clipped_for_clearance"))
 
     @staticmethod
     def _same_planar_position(
@@ -375,7 +375,9 @@ class Nav2PolicyAdapter:
         suppress_corridor_metadata = bool(
             target is not None and target.get("_suppress_doorway_corridor_metadata")
         )
-        doorway_corridor = [] if suppress_corridor_metadata else self._doorway_corridor_waypoints(options=options)
+        doorway_corridor = (
+            [] if suppress_corridor_metadata else self._doorway_corridor_waypoints(options=options)
+        )
         waypoints: list[dict[str, Any]] = []
         for point in path_points:
             world = self._nav2_plane_to_world(
@@ -437,8 +439,12 @@ class Nav2PolicyAdapter:
         anchor = Nav2PolicyAdapter._normalize_waypoint_candidate(nav_plan.get("transition_anchor"))
         if anchor is None:
             return None
-        for candidate in Nav2PolicyAdapter._transition_anchor_metadata_candidates(nav_plan=nav_plan):
-            if not Nav2PolicyAdapter._same_waypoint_position(first=anchor, second=candidate, tolerance=1e-3):
+        for candidate in Nav2PolicyAdapter._transition_anchor_metadata_candidates(
+            nav_plan=nav_plan
+        ):
+            if not Nav2PolicyAdapter._same_waypoint_position(
+                first=anchor, second=candidate, tolerance=1e-3
+            ):
                 continue
             merged = dict(candidate)
             merged.update(anchor)
@@ -483,13 +489,17 @@ class Nav2PolicyAdapter:
         nav_plan = options.get("nav_plan")
         if not isinstance(nav_plan, dict):
             return None
-        nav2_compute_goal = Nav2PolicyAdapter._normalize_waypoint_candidate(nav_plan.get("nav2_compute_goal"))
+        nav2_compute_goal = Nav2PolicyAdapter._normalize_waypoint_candidate(
+            nav_plan.get("nav2_compute_goal")
+        )
         if nav2_compute_goal is not None:
             waypoint_type = str(nav2_compute_goal.get("waypoint_type", "")).strip().lower()
             if waypoint_type == "portal_midpoint":
                 return nav2_compute_goal
         doorway_corridor = nav_plan.get("doorway_corridor")
-        if not isinstance(doorway_corridor, dict) or not bool(doorway_corridor.get("midpoint_only")):
+        if not isinstance(doorway_corridor, dict) or not bool(
+            doorway_corridor.get("midpoint_only")
+        ):
             return None
         for candidate in (doorway_corridor.get("midpoint"),):
             waypoint = Nav2PolicyAdapter._normalize_waypoint_candidate(candidate)
@@ -513,9 +523,13 @@ class Nav2PolicyAdapter:
 
         target_anchor = None
         if isinstance(doorway_corridor, dict):
-            target_anchor = Nav2PolicyAdapter._normalize_waypoint_candidate(doorway_corridor.get("target_anchor"))
+            target_anchor = Nav2PolicyAdapter._normalize_waypoint_candidate(
+                doorway_corridor.get("target_anchor")
+            )
         if target_anchor is None:
-            target_anchor = Nav2PolicyAdapter._normalize_waypoint_candidate(nav_plan.get("transition_anchor"))
+            target_anchor = Nav2PolicyAdapter._normalize_waypoint_candidate(
+                nav_plan.get("transition_anchor")
+            )
 
         try:
             normal_axis = str(midpoint_anchor["portal_normal_axis"])
@@ -534,7 +548,9 @@ class Nav2PolicyAdapter:
         exit_offset = 0.90
         if target_anchor is not None:
             try:
-                target_offset = (float(target_anchor[normal_axis]) - boundary_value) * normal_direction
+                target_offset = (
+                    float(target_anchor[normal_axis]) - boundary_value
+                ) * normal_direction
             except (KeyError, TypeError, ValueError):
                 target_offset = 0.0
             if target_offset > 0.0:
@@ -547,7 +563,9 @@ class Nav2PolicyAdapter:
                     exit_waypoint[key] = target_anchor[key]
         exit_waypoint[normal_axis] = boundary_value + normal_direction * exit_offset
         exit_waypoint[span_axis] = midpoint_span
-        return Nav2PolicyAdapter._clean_local_path_waypoint(exit_waypoint, suppress_corridor_metadata=True)
+        return Nav2PolicyAdapter._clean_local_path_waypoint(
+            exit_waypoint, suppress_corridor_metadata=True
+        )
 
     @staticmethod
     def _clean_local_path_waypoint(
@@ -582,7 +600,9 @@ class Nav2PolicyAdapter:
         return normalized
 
     @staticmethod
-    def _same_waypoint_position(*, first: dict[str, Any], second: dict[str, Any], tolerance: float = 1e-4) -> bool:
+    def _same_waypoint_position(
+        *, first: dict[str, Any], second: dict[str, Any], tolerance: float = 1e-4
+    ) -> bool:
         for axis in ("x", "y", "z"):
             try:
                 if abs(float(first[axis]) - float(second[axis])) > tolerance:
@@ -598,7 +618,9 @@ class Nav2PolicyAdapter:
         vertical_axis: str,
         reference_pose: dict[str, Any],
     ) -> dict[str, float] | None:
-        if not isinstance(point_xy.get("x"), (int, float)) or not isinstance(point_xy.get("y"), (int, float)):
+        if not isinstance(point_xy.get("x"), (int, float)) or not isinstance(
+            point_xy.get("y"), (int, float)
+        ):
             return None
         plane_axes = Nav2PolicyAdapter._plane_axes(vertical_axis)
         if plane_axes is None:
@@ -613,7 +635,9 @@ class Nav2PolicyAdapter:
         return world
 
     @staticmethod
-    def _world_to_nav2_plane(*, waypoint: dict[str, Any], vertical_axis: str) -> dict[str, float] | None:
+    def _world_to_nav2_plane(
+        *, waypoint: dict[str, Any], vertical_axis: str
+    ) -> dict[str, float] | None:
         plane_axes = Nav2PolicyAdapter._plane_axes(vertical_axis)
         if plane_axes is None:
             return None
@@ -635,7 +659,8 @@ class Nav2PolicyAdapter:
             return []
         nearest_index = min(
             range(len(path_points)),
-            key=lambda idx: (path_points[idx]["x"] - anchor_xy["x"]) ** 2 + (path_points[idx]["y"] - anchor_xy["y"]) ** 2,
+            key=lambda idx: (path_points[idx]["x"] - anchor_xy["x"]) ** 2
+            + (path_points[idx]["y"] - anchor_xy["y"]) ** 2,
         )
         end_index = nearest_index + 1
         if len(path_points) > 1:
@@ -665,8 +690,7 @@ class Nav2PolicyAdapter:
         normal_tolerance_m: float = 0.10,
     ) -> bool:
         target_side_anchor = (
-            str(anchor.get("portal_alignment_stage", "")).strip().lower()
-            == "target_anchor"
+            str(anchor.get("portal_alignment_stage", "")).strip().lower() == "target_anchor"
         )
         if target_side_anchor and nav2_portal_safety.has_portal_frame(anchor):
             return nav2_portal_safety.pose_has_sufficient_egress(
@@ -792,7 +816,9 @@ class Nav2PolicyAdapter:
         return mapping.get(vertical_axis)
 
     @staticmethod
-    def _should_append_waypoint(*, waypoints: list[dict[str, Any]], candidate: dict[str, Any]) -> bool:
+    def _should_append_waypoint(
+        *, waypoints: list[dict[str, Any]], candidate: dict[str, Any]
+    ) -> bool:
         if not waypoints:
             return True
         previous = waypoints[-1]
@@ -802,20 +828,26 @@ class Nav2PolicyAdapter:
         return (dx * dx + dy * dy + dz * dz) > 1e-8
 
     @staticmethod
-    def _merge_target_metadata(*, waypoint: dict[str, Any], target: dict[str, Any]) -> dict[str, Any]:
+    def _merge_target_metadata(
+        *, waypoint: dict[str, Any], target: dict[str, Any]
+    ) -> dict[str, Any]:
         merged = dict(waypoint)
         merged["waypoint_type"] = str(target.get("waypoint_type") or "goal")
         return Nav2PolicyAdapter._merge_context_metadata(waypoint=merged, target=target)
 
     @staticmethod
-    def _merge_local_path_metadata(*, waypoint: dict[str, Any], target: dict[str, Any]) -> dict[str, Any]:
+    def _merge_local_path_metadata(
+        *, waypoint: dict[str, Any], target: dict[str, Any]
+    ) -> dict[str, Any]:
         merged = dict(waypoint)
         if "floor_id" in target:
             merged["floor_id"] = target["floor_id"]
         return merged
 
     @staticmethod
-    def _merge_context_metadata(*, waypoint: dict[str, Any], target: dict[str, Any]) -> dict[str, Any]:
+    def _merge_context_metadata(
+        *, waypoint: dict[str, Any], target: dict[str, Any]
+    ) -> dict[str, Any]:
         merged = dict(waypoint)
         for key in (
             "room_id",
@@ -851,12 +883,18 @@ class Nav2PolicyAdapter:
         nav_plan = options.get("nav_plan")
         if not isinstance(nav_plan, dict):
             return []
-        nav2_compute_goal = Nav2PolicyAdapter._normalize_waypoint_candidate(nav_plan.get("nav2_compute_goal"))
-        execution_goal = Nav2PolicyAdapter._normalize_waypoint_candidate(nav_plan.get("execution_goal"))
+        nav2_compute_goal = Nav2PolicyAdapter._normalize_waypoint_candidate(
+            nav_plan.get("nav2_compute_goal")
+        )
+        execution_goal = Nav2PolicyAdapter._normalize_waypoint_candidate(
+            nav_plan.get("execution_goal")
+        )
         if (
             nav2_compute_goal is not None
             and execution_goal is not None
-            and Nav2PolicyAdapter._same_waypoint_position(first=nav2_compute_goal, second=execution_goal)
+            and Nav2PolicyAdapter._same_waypoint_position(
+                first=nav2_compute_goal, second=execution_goal
+            )
         ):
             return []
         doorway_corridor = nav_plan.get("doorway_corridor")

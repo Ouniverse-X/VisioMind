@@ -1,5 +1,3 @@
-"""Verification contract for Action internal step completion."""
-
 from __future__ import annotations
 
 from typing import Protocol
@@ -9,8 +7,6 @@ from voltron.shared.context import ExecutionContext, Subtask
 
 
 class ActionStepVerifier(Protocol):
-    """Contract for Action-owned internal-step verifiers."""
-
     def verify_step(
         self,
         *,
@@ -21,4 +17,4 @@ class ActionStepVerifier(Protocol):
         executed_control_steps: int,
         verification_index: int,
     ) -> ActionStepVerification:
-        """Return whether the active internal step has satisfied its completion conditions."""
+        pass

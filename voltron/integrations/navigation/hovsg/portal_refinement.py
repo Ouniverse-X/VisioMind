@@ -1,5 +1,3 @@
-"""Traversability-aware portal refinement for HOV-SG room transitions."""
-
 from __future__ import annotations
 
 import math
@@ -128,8 +126,7 @@ def load_portal_analysis_map(
         start=start, goal=goal, context=context
     )
     base_key = (scene_id, trav_map_filename, adapter.portal_analysis_map_resolution)
-    # The exported traversability map reflects export-time door states; runtime
-    # door changes are stamped on top, keyed by the door-state signature.
+
     door_signature = hovsg_runtime_state.door_signature(adapter, scene_id)
     object_overlay = hovsg_object_gating.runtime_object_map_overlays(
         adapter,
@@ -206,9 +203,7 @@ def load_portal_analysis_map(
     return map_spec
 
 
-def _evict_stale_stamped_entries(
-    adapter: Any, *, base_key: tuple, keep_key: tuple
-) -> None:
+def _evict_stale_stamped_entries(adapter: Any, *, base_key: tuple, keep_key: tuple) -> None:
     stale_keys = [
         key
         for key in adapter._portal_analysis_map_cache
@@ -233,12 +228,8 @@ def resolve_traversability_map_filename_from_context(
         goal.get("nav2_trav_map_filename"),
         start.get("nav2_trav_map_filename"),
         context.get("nav2_trav_map_filename"),
-        parameters.get("nav2_trav_map_filename")
-        if isinstance(parameters, dict)
-        else None,
-        map_state.get("nav2_trav_map_filename")
-        if isinstance(map_state, dict)
-        else None,
+        parameters.get("nav2_trav_map_filename") if isinstance(parameters, dict) else None,
+        map_state.get("nav2_trav_map_filename") if isinstance(map_state, dict) else None,
     ):
         if isinstance(candidate, str) and candidate.strip():
             return candidate.strip()
@@ -317,8 +308,7 @@ def refine_transition_metrics_with_traversability(
     gap = float(metrics.get("gap", 0.0))
     normal_sign = (
         1.0
-        if float(target_point[normal_axis_index])
-        >= float(source_point[normal_axis_index])
+        if float(target_point[normal_axis_index]) >= float(source_point[normal_axis_index])
         else -1.0
     )
     probe_offset = max(
@@ -491,21 +481,14 @@ def search_transition_metrics_from_segment_pairs(
                 sample_value += adapter.portal_sampling_step_m
                 continue
 
-            gap = math.hypot(
-                target_point[0] - source_point[0], target_point[1] - source_point[1]
-            )
+            gap = math.hypot(target_point[0] - source_point[0], target_point[1] - source_point[1])
             normal_sign = (
-                1.0
-                if target_point[normal_axis_index] >= source_point[normal_axis_index]
-                else -1.0
+                1.0 if target_point[normal_axis_index] >= source_point[normal_axis_index] else -1.0
             )
             boundary_value = (
-                float(source_point[normal_axis_index])
-                + float(target_point[normal_axis_index])
+                float(source_point[normal_axis_index]) + float(target_point[normal_axis_index])
             ) * 0.5
-            probe_offset = max(
-                adapter.portal_opening_probe_offset_m, gap * 0.5 + resolution
-            )
+            probe_offset = max(adapter.portal_opening_probe_offset_m, gap * 0.5 + resolution)
             source_xy = portal_plane_point(
                 plane_axes=plane_axes,
                 span_axis=plane_axes[span_axis_index],
@@ -583,14 +566,12 @@ def search_transition_metrics_from_segment_pairs(
             run_end_sample = valid_samples[end_index]
             run_span = max(
                 0.0,
-                float(run_end_sample["span_value"])
-                - float(run_start_sample["span_value"]),
+                float(run_end_sample["span_value"]) - float(run_start_sample["span_value"]),
             )
             if run_span <= 0.0:
                 continue
             center_span_value = (
-                float(run_start_sample["span_value"])
-                + float(run_end_sample["span_value"])
+                float(run_start_sample["span_value"]) + float(run_end_sample["span_value"])
             ) * 0.5
             center_sample = min(
                 valid_samples[start_index : end_index + 1],

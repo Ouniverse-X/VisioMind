@@ -1,5 +1,3 @@
-"""Tracking target selection helpers for the waypoint policy adapter."""
-
 from __future__ import annotations
 
 import math
@@ -46,7 +44,10 @@ def tracking_target(
     blended: dict[str, float] = {}
     for axis in ("x", "y", "z"):
         blended[axis] = (
-            sum(weight * float(point.get(axis, target.get(axis, 0.0))) for weight, point in weighted_waypoints)
+            sum(
+                weight * float(point.get(axis, target.get(axis, 0.0)))
+                for weight, point in weighted_waypoints
+            )
             / weight_sum
         )
     for key in ("floor_id", "room_id", "room_name", "nav_node"):
@@ -151,7 +152,11 @@ def can_blend_tracking_waypoint(
         return False
     current_room_id = current.get("room_id")
     candidate_room_id = candidate.get("room_id")
-    if current_room_id is not None and candidate_room_id is not None and str(current_room_id) != str(candidate_room_id):
+    if (
+        current_room_id is not None
+        and candidate_room_id is not None
+        and str(current_room_id) != str(candidate_room_id)
+    ):
         return False
     current_room = adapter._normalize_label(current.get("room_name"))
     candidate_room = adapter._normalize_label(candidate.get("room_name"))

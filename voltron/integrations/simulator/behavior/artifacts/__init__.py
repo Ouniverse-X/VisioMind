@@ -1,5 +1,3 @@
-"""BEHAVIOR artifact and process-logging helpers."""
-
 from .process_logger import (
     build_env_step_payload,
     build_event_record,

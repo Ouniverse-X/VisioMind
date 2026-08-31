@@ -1,5 +1,3 @@
-"""Memory diagnostics for BEHAVIOR runtime lifecycle events."""
-
 from __future__ import annotations
 
 import os
@@ -99,7 +97,9 @@ def _process_payload(pid: int, pid_dir: Path) -> dict[str, Any] | None:
     }
 
 
-def collect_matching_processes(*, limit: int = 20, proc_root: Path = Path("/proc")) -> list[dict[str, Any]]:
+def collect_matching_processes(
+    *, limit: int = 20, proc_root: Path = Path("/proc")
+) -> list[dict[str, Any]]:
     processes: list[dict[str, Any]] = []
     try:
         children = list(proc_root.iterdir())

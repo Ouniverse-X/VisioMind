@@ -1,5 +1,3 @@
-"""Plan lifecycle helpers for BrainAgent."""
-
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -16,8 +14,6 @@ def normalize_plan(
     seed_interaction: bool,
     should_apply_runtime_interaction_control: Callable[[TaskRequest, list[Subtask]], bool],
 ) -> Plan:
-    """Normalize planner output into the canonical runtime-facing plan shape."""
-
     normalized_metadata = dict(plan.metadata)
     normalized_metadata.setdefault("dynamic_execution", True)
     if _uses_native_pi05_policy(request):
@@ -69,13 +65,6 @@ def version_plan(
     reason: str,
     replaces_execution_id: str | None = None,
 ) -> Plan:
-    """Assign plan-local step numbers and globally unique execution identities.
-
-    Planner-provided IDs are treated as provisional ordering labels. Every active
-    plan revision is presented as ``st_01..st_N`` while runtime state keys remain
-    unique through ``r<revision>/st_<index>`` execution IDs.
-    """
-
     if not plan.subtasks:
         return plan
 
@@ -116,9 +105,7 @@ def version_plan(
                 context=dict(subtask.context),
                 plan_revision=revision,
                 execution_id=execution_id,
-                replaces_execution_id=(
-                    replaces_execution_id if index == 1 else None
-                ),
+                replaces_execution_id=(replaces_execution_id if index == 1 else None),
             )
         )
 
@@ -146,7 +133,11 @@ def _uses_native_pi05_policy(request: TaskRequest) -> bool:
 
 def _canonicalize_pi05_plan(subtasks: list[Subtask]) -> list[Subtask]:
     action_target = next(
-        (dict(subtask.target) for subtask in subtasks if subtask.agent == AgentName.ACTION and subtask.target.get("object")),
+        (
+            dict(subtask.target)
+            for subtask in subtasks
+            if subtask.agent == AgentName.ACTION and subtask.target.get("object")
+        ),
         None,
     )
     if action_target is None:
@@ -158,7 +149,12 @@ def _canonicalize_pi05_plan(subtasks: list[Subtask]) -> list[Subtask]:
     for subtask in subtasks:
         if not converted and subtask.agent == AgentName.NAVIGATION:
             target = dict(subtask.target)
-            room = target.get("room") or target.get("region") or action_target.get("room") or action_target.get("region")
+            room = (
+                target.get("room")
+                or target.get("region")
+                or action_target.get("room")
+                or action_target.get("region")
+            )
             target = {"object": object_name}
             if room:
                 target["room"] = room
@@ -169,7 +165,10 @@ def _canonicalize_pi05_plan(subtasks: list[Subtask]) -> list[Subtask]:
                     agent=subtask.agent,
                     action="approach_target",
                     target=target,
-                    parameters={**subtask.parameters, "instruction": f"Approach the {object_name} for local interaction."},
+                    parameters={
+                        **subtask.parameters,
+                        "instruction": f"Approach the {object_name} for local interaction.",
+                    },
                     context=dict(subtask.context),
                 )
             )

@@ -1,5 +1,3 @@
-"""Subtask naming and instruction helpers for the BEHAVIOR runtime bridge."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -142,7 +140,11 @@ def resolved_subtask_name(
         value = str(active_internal_step.get("display_name") or "").strip()
         if value:
             return value
-    return env_subtask_name or planned_subtask_name or f"{subtask.subtask_id}:{subtask.agent.value}:{subtask.action}"
+    return (
+        env_subtask_name
+        or planned_subtask_name
+        or f"{subtask.subtask_id}:{subtask.agent.value}:{subtask.action}"
+    )
 
 
 def action_internal_display_name(payload: dict[str, Any]) -> str:
@@ -151,7 +153,9 @@ def action_internal_display_name(payload: dict[str, Any]) -> str:
     if not parent_id and "." in internal_step_id:
         parent_id = internal_step_id.split(".", 1)[0]
     child_token = internal_step_id.split(".", 1)[1] if "." in internal_step_id else internal_step_id
-    skill_id = str(payload.get("selected_skill_id") or payload.get("preferred_skill_id") or "").strip()
+    skill_id = str(
+        payload.get("selected_skill_id") or payload.get("preferred_skill_id") or ""
+    ).strip()
     parts = [token for token in (parent_id, child_token, skill_id) if token]
     return " | ".join(parts)
 

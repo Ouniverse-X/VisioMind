@@ -1,5 +1,3 @@
-"""Navigation goal completion helpers for the BEHAVIOR runtime bridge."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -90,7 +88,9 @@ def evaluate_navigation_goal_completion(
         {
             "subtask_completed": True,
             "subtask_succeeded": True,
-            "subtask_completion_reason": "view_goal_reached" if object_view_goal_reached else "goal_reached",
+            "subtask_completion_reason": "view_goal_reached"
+            if object_view_goal_reached
+            else "goal_reached",
         }
     )
     task_success = task_type == TaskType.NAVIGATION
@@ -207,7 +207,9 @@ def _evaluate_object_view_goal_completion(
     if None in {current_x, current_y, goal_x, goal_y}:
         return {"reached": False, "last_info_updates": last_info_updates}
 
-    distance = ((float(goal_x) - float(current_x)) ** 2 + (float(goal_y) - float(current_y)) ** 2) ** 0.5
+    distance = (
+        (float(goal_x) - float(current_x)) ** 2 + (float(goal_y) - float(current_y)) ** 2
+    ) ** 0.5
     tolerance = _object_view_goal_distance_tolerance(
         nav_state=nav_state,
         fallback_tolerance_m=distance_tolerance_m,
@@ -218,11 +220,11 @@ def _evaluate_object_view_goal_completion(
 
 
 def _is_view_goal(goal: dict[str, Any]) -> bool:
-    stop_conditions = {
-        str(item).strip().lower()
-        for item in goal.get("stop_condition", [])
-        if str(item).strip()
-    } if isinstance(goal.get("stop_condition"), list) else set()
+    stop_conditions = (
+        {str(item).strip().lower() for item in goal.get("stop_condition", []) if str(item).strip()}
+        if isinstance(goal.get("stop_condition"), list)
+        else set()
+    )
     if stop_conditions & {"interaction_ready", "object_reachable", "same_side"}:
         return False
     return bool(stop_conditions & {"object_visible", "view_ready"})
@@ -238,5 +240,7 @@ def _object_view_goal_distance_tolerance(
     if isinstance(selected, dict):
         approach_distance = behavior_robot_state.to_float(selected.get("approach_distance_m"))
         if approach_distance is not None:
-            tolerance = max(tolerance, float(approach_distance) + max(0.05, float(abs(fallback_tolerance_m))))
+            tolerance = max(
+                tolerance, float(approach_distance) + max(0.05, float(abs(fallback_tolerance_m)))
+            )
     return tolerance

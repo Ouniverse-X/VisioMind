@@ -1,5 +1,3 @@
-"""LLM-backed natural-language goal interpretation for Navigation."""
-
 from __future__ import annotations
 
 import json
@@ -165,26 +163,20 @@ class OpenAINavigationGoalInterpreterConfig:
 
 
 class OpenAICompatibleNavigationGoalInterpreter:
-    """OpenAI-compatible interpreter used by Navigation before backend grounding."""
-
     def __init__(self, config: OpenAINavigationGoalInterpreterConfig) -> None:
         self.config = config
         self.session = requests.Session()
 
-    def interpret_goal(
-        self, *, instruction: str, context: dict[str, Any]
-    ) -> dict[str, Any]:
+    def interpret_goal(self, *, instruction: str, context: dict[str, Any]) -> dict[str, Any]:
         prompt = self._build_prompt(instruction=instruction, context=context)
         content = self._request_chat_completion(prompt)
         payload = extract_json_object(content, label="Navigation goal interpreter")
         if not isinstance(payload, dict):
-            raise ValueError(
-                "Navigation goal interpreter response must be a JSON object"
-            )
+            raise ValueError("Navigation goal interpreter response must be a JSON object")
         grounding_candidates = context.get("grounding_candidates")
-        allow_grounding_candidate_selection = isinstance(
-            grounding_candidates, list
-        ) and bool(grounding_candidates)
+        allow_grounding_candidate_selection = isinstance(grounding_candidates, list) and bool(
+            grounding_candidates
+        )
         return self._normalize_payload(
             payload,
             allow_grounding_candidate_selection=allow_grounding_candidate_selection,
@@ -193,9 +185,7 @@ class OpenAICompatibleNavigationGoalInterpreter:
     def _request_chat_completion(self, user_prompt: str) -> str:
         url = self._completion_url(self.config.base_url)
         api_key = (
-            self.config.api_key
-            or os.getenv(self.config.api_key_env)
-            or os.getenv("OPENAI_API_KEY")
+            self.config.api_key or os.getenv(self.config.api_key_env) or os.getenv("OPENAI_API_KEY")
         )
         headers = {"Content-Type": "application/json"}
         if api_key:
@@ -216,10 +206,7 @@ class OpenAICompatibleNavigationGoalInterpreter:
                 response = self.session.post(
                     url, headers=headers, json=payload, timeout=self.config.timeout_s
                 )
-                if (
-                    response.status_code in _RETRIABLE_STATUS_CODES
-                    and attempt < attempts
-                ):
+                if response.status_code in _RETRIABLE_STATUS_CODES and attempt < attempts:
                     time.sleep(max(0.0, float(self.config.retry_backoff_s)))
                     continue
                 response.raise_for_status()
@@ -232,9 +219,7 @@ class OpenAICompatibleNavigationGoalInterpreter:
                         continue
                     raise
             except requests.exceptions.HTTPError as exc:
-                status_code = (
-                    exc.response.status_code if exc.response is not None else None
-                )
+                status_code = exc.response.status_code if exc.response is not None else None
                 if status_code in _RETRIABLE_STATUS_CODES and attempt < attempts:
                     time.sleep(max(0.0, float(self.config.retry_backoff_s)))
                     continue
@@ -249,9 +234,7 @@ class OpenAICompatibleNavigationGoalInterpreter:
                     continue
                 raise
         if response is None:
-            raise RuntimeError(
-                "Navigation goal interpreter request produced no response"
-            )
+            raise RuntimeError("Navigation goal interpreter request produced no response")
         if last_content_error is not None:
             raise last_content_error
         return self._response_content(response)
@@ -261,14 +244,11 @@ class OpenAICompatibleNavigationGoalInterpreter:
         body = response.json()
         choices = body.get("choices") or []
         if not choices:
-            raise ValueError(
-                "Navigation goal interpreter response did not include choices"
-            )
+            raise ValueError("Navigation goal interpreter response did not include choices")
         content = choices[0].get("message", {}).get("content")
         if isinstance(content, list):
             content = "".join(
-                item.get("text", "") if isinstance(item, dict) else str(item)
-                for item in content
+                item.get("text", "") if isinstance(item, dict) else str(item) for item in content
             )
         if not isinstance(content, str) or not content.strip():
             raise ValueError("Navigation goal interpreter response content is empty")
@@ -328,9 +308,7 @@ class OpenAICompatibleNavigationGoalInterpreter:
                 "for the Navigation agent to execute."
             )
         else:
-            task = (
-                "Interpret this navigation instruction for grounding and path planning."
-            )
+            task = "Interpret this navigation instruction for grounding and path planning."
         return f"{task}\nContext JSON: {json.dumps(payload, ensure_ascii=False, default=str)}\nReturn JSON only."
 
     @staticmethod
@@ -346,9 +324,7 @@ class OpenAICompatibleNavigationGoalInterpreter:
         target_query = dict(normalized["target_query"])
         if goal_kind == "room":
             goal_kind = "region"
-            if "region" not in target_query and isinstance(
-                target_query.get("room"), str
-            ):
+            if "region" not in target_query and isinstance(target_query.get("room"), str):
                 target_query["region"] = target_query["room"]
         elif goal_kind == "doorway":
             goal_kind = "landmark"
@@ -412,18 +388,12 @@ class OpenAICompatibleNavigationGoalInterpreter:
         ]
         normalized.setdefault("reason", "")
         selected_grounding_candidate = normalized.get("selected_grounding_candidate")
-        if allow_grounding_candidate_selection and isinstance(
-            selected_grounding_candidate, dict
-        ):
+        if allow_grounding_candidate_selection and isinstance(selected_grounding_candidate, dict):
             selected = {
-                "object_id": str(
-                    selected_grounding_candidate.get("object_id") or ""
-                ).strip(),
+                "object_id": str(selected_grounding_candidate.get("object_id") or "").strip(),
                 "reason": str(selected_grounding_candidate.get("reason") or "").strip(),
             }
-            normalized["selected_grounding_candidate"] = (
-                selected if selected["object_id"] else {}
-            )
+            normalized["selected_grounding_candidate"] = selected if selected["object_id"] else {}
         else:
             normalized["selected_grounding_candidate"] = {}
         normalized["source"] = "openai_compatible_navigation_goal_interpreter"
@@ -511,14 +481,10 @@ def _compact_scene_state(value: dict[str, Any], *, target: Any) -> dict[str, Any
         if key in value and value[key] is not None
     }
     summary["object_count"] = (
-        len(objects)
-        if isinstance(objects, (dict, list))
-        else int(value.get("object_count") or 0)
+        len(objects) if isinstance(objects, (dict, list)) else int(value.get("object_count") or 0)
     )
     summary["door_count"] = (
-        len(doors)
-        if isinstance(doors, (dict, list))
-        else int(value.get("door_count") or 0)
+        len(doors) if isinstance(doors, (dict, list)) else int(value.get("door_count") or 0)
     )
     summary["temporary_obstacle_count"] = (
         len(temporary_obstacles) if isinstance(temporary_obstacles, (dict, list)) else 0
@@ -598,9 +564,7 @@ def _compact_context_value(
         kept = 0
         for key, item in value.items():
             normalized_key = str(key)
-            if normalized_key in _HEAVY_CONTEXT_KEYS or normalized_key.startswith(
-                "video."
-            ):
+            if normalized_key in _HEAVY_CONTEXT_KEYS or normalized_key.startswith("video."):
                 continue
             compacted[normalized_key] = _compact_context_value(
                 item,
@@ -650,9 +614,7 @@ def _array_metadata(value: Any) -> dict[str, Any] | None:
 
 def _semantic_terms(value: Any) -> set[str]:
     if isinstance(value, dict):
-        text = " ".join(
-            str(item) for item in value.values() if isinstance(item, (str, int, float))
-        )
+        text = " ".join(str(item) for item in value.values() if isinstance(item, (str, int, float)))
     else:
         text = str(value or "")
     return {term for term in re.sub(r"[^a-z0-9]+", " ", text.lower()).split() if term}

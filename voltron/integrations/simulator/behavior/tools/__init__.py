@@ -1,5 +1,3 @@
-"""Remaining helper surfaces for the BEHAVIOR simulator integration."""
-
 from . import localization
 from . import bridge_execution
 from . import navigation_success

@@ -1,5 +1,3 @@
-"""Execution-write helpers for the HEMS backend."""
-
 from __future__ import annotations
 
 from typing import Any, Callable
@@ -276,9 +274,7 @@ def _compact_monitor_environment_feedback(feedback: dict[str, Any]) -> dict[str,
     heartbeat = feedback.get("environment_vlm_heartbeat")
     if isinstance(heartbeat, dict):
         heartbeat_summary = {
-            key: _compact_scalar(heartbeat[key])
-            for key in _VLM_HEARTBEAT_KEYS
-            if key in heartbeat
+            key: _compact_scalar(heartbeat[key]) for key in _VLM_HEARTBEAT_KEYS if key in heartbeat
         }
         if heartbeat_summary:
             compact["environment_vlm_heartbeat"] = heartbeat_summary

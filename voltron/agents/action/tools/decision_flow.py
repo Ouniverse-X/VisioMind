@@ -1,5 +1,3 @@
-"""Decision-flow helpers for the Action agent body."""
-
 from __future__ import annotations
 
 from dataclasses import asdict
@@ -129,9 +127,9 @@ def apply_target_refinement(
     if selector_hints:
         refined_parameters["selector_hints"] = selector_hints
 
-    control_mode = target_refinement.policy_hints.get("control_mode") or deliberation.policy_hints.get(
+    control_mode = target_refinement.policy_hints.get(
         "control_mode"
-    )
+    ) or deliberation.policy_hints.get("control_mode")
     if isinstance(control_mode, str) and control_mode.strip():
         refined_parameters["control_mode"] = control_mode.strip()
 
@@ -157,5 +155,7 @@ def decorate_skill_result(
     result.result["deliberation_source"] = deliberation.source
     result.runtime_artifacts["vla_deliberation"] = asdict(deliberation)
     if target_refinement != VLATargetRefinement():
-        result.runtime_artifacts["target_refinement"] = serialize_target_refinement(target_refinement)
+        result.runtime_artifacts["target_refinement"] = serialize_target_refinement(
+            target_refinement
+        )
     return result

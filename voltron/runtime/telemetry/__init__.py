@@ -1,5 +1,3 @@
-"""Runtime telemetry surfaces."""
-
 from .artifact_writer import open_artifact_file, write_json_artifact
 from .process_trace import build_event_record, write_event_record
 from .run_logger import build_task_run_response

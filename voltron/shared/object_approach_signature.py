@@ -1,5 +1,3 @@
-"""Shared helpers for object-approach candidate identity."""
-
 from __future__ import annotations
 
 import math
@@ -12,7 +10,6 @@ HEADING_SECTORS = 16
 
 
 def candidate_signature(candidate: dict[str, Any]) -> dict[str, Any]:
-    """Build a stable identity for object-approach history lookup."""
     explicit = candidate.get("candidate_signature")
     if isinstance(explicit, dict) and explicit:
         return deepcopy(explicit)

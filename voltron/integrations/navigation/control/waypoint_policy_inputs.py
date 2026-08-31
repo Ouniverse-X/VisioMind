@@ -1,5 +1,3 @@
-"""Input parsing helpers for the waypoint policy adapter."""
-
 from __future__ import annotations
 
 import math
@@ -90,7 +88,10 @@ def pending_local_path_transition_goal(*, options: dict[str, Any]) -> dict[str, 
             candidate = refined_transition_anchor
     if not isinstance(candidate, dict):
         return None
-    if bool(nav_plan.get("nav2_path_clipped_for_clearance")) and not candidate_is_refined_transition:
+    if (
+        bool(nav_plan.get("nav2_path_clipped_for_clearance"))
+        and not candidate_is_refined_transition
+    ):
         return None
 
     return _coerce_waypoint_candidate(candidate)

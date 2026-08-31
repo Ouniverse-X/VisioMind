@@ -1,5 +1,3 @@
-"""Brain-agent local contracts."""
-
 from .interactive_planning import (
     BrainPlanningSession,
     ClarificationQuestion,

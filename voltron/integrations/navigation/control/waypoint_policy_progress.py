@@ -1,5 +1,3 @@
-"""Progress-tracking helpers for the waypoint policy adapter."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -64,7 +62,9 @@ def update_waypoint_progress(
 
     adapter._heading_error_history.append(float(heading_error))
     if len(adapter._heading_error_history) > adapter.oscillation_window:
-        adapter._heading_error_history = adapter._heading_error_history[-adapter.oscillation_window :]
+        adapter._heading_error_history = adapter._heading_error_history[
+            -adapter.oscillation_window :
+        ]
 
 
 def progress_tracking_signature(target: dict[str, Any]) -> tuple[Any, ...]:
