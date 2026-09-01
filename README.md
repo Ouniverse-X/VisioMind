@@ -2,12 +2,9 @@
 
 面向挑战杯赛题 **XH-202607「工业环境下物体感知识别与指令交互型智能体研发」** 的交互式机器人智能体。系统接收中英文自然语言指令，完成工业工具感知、指令理解、任务分解、抓取放置、结果验证与失败恢复，形成“感知—决策—执行—验证”闭环。
 
-<p align="center">
-  <a href="demo/visiomind_industrial_demo.mp4">
-    <img src="demo/visiomind_highlight.gif" width="800" alt="灵眸智控工业钳子识别、抓取、导航与第三格放置演示">
-  </a>
-</p>
-<p align="center"><a href="demo/visiomind_industrial_demo.mp4">查看 139 秒完整仿真闭环演示</a></p>
+![灵眸智控工业钳子识别、抓取、导航与第三格放置演示](demo/visiomind_highlight.gif)
+
+完整仿真演示视频位于 `demo/visiomind_industrial_demo.mp4`。
 
 ## 核心能力
 
@@ -28,7 +25,7 @@
 
 | 指令解析与任务序列 | AnyGrasp / CuRobo 抓取执行 | 第三格放置与闭环验收 |
 | :---: | :---: | :---: |
-| <img src="demo/preview/instruction_plan.jpg" width="320" alt="指令解析与任务序列"> | <img src="demo/preview/grasp_execution.jpg" width="320" alt="AnyGrasp 与 CuRobo 抓取执行"> | <img src="demo/preview/placement_verified.jpg" width="320" alt="第三格放置与闭环验收"> |
+| ![指令解析与任务序列](demo/preview/instruction_plan.jpg) | ![AnyGrasp 与 CuRobo 抓取执行](demo/preview/grasp_execution.jpg) | ![第三格放置与闭环验收](demo/preview/placement_verified.jpg) |
 
 演示完成从中文指令到 `pick_up → place_inside` 的全流程执行，终态同时验证目标身份、抓取抬升、持物约束、夹爪释放和第三格三维包含关系。
 
@@ -36,7 +33,7 @@
 
 | 工业工位与三格料箱 | 第三格安全放置体积 |
 | :---: | :---: |
-| <img src="demo/industrial_workcell_3d_overview.png" width="460" alt="工业工位与三格料箱参数化建模"> | <img src="demo/industrial_toolbox_cell3_geometry.png" width="460" alt="第三格安全放置体积与 AABB 验收几何"> |
+| ![工业工位与三格料箱参数化建模](demo/industrial_workcell_3d_overview.png) | ![第三格安全放置体积与 AABB 验收几何](demo/industrial_toolbox_cell3_geometry.png) |
 
 `visiomind.simulation` 将工位、料箱隔板和第三格安全 AABB 注入仿真场景，为放置规划、隔板碰撞检查和释放后验收提供统一几何约束。
 
