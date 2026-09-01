@@ -23,11 +23,25 @@
 
 ## 运行效果
 
-| 指令解析与任务序列 | AnyGrasp / CuRobo 抓取执行 | 第三格放置与闭环验收 |
-| :---: | :---: | :---: |
-| ![指令解析与任务序列](demo/preview/instruction_plan.jpg) | ![AnyGrasp 与 CuRobo 抓取执行](demo/preview/grasp_execution.jpg) | ![第三格放置与闭环验收](demo/preview/placement_verified.jpg) |
+系统从中文指令出发，依次完成任务规划、目标感知、工具抓取、携物导航、格位对齐与终态验收。
 
-演示完成从中文指令到 `pick_up → place_inside` 的全流程执行，终态同时验证目标身份、抓取抬升、持物约束、夹爪释放和第三格三维包含关系。
+| ① 自然语言处理 | ② 任务规划分解 |
+| :---: | :---: |
+| ![自然语言处理](demo/preview/1.png) | ![任务规划分解](demo/preview/2.png) |
+
+| ③ 工业工具感知 | ④ 抓取工具 |
+| :---: | :---: |
+| ![工业工具感知](demo/preview/3.png) | ![抓取工具](demo/preview/4.png) |
+
+| ⑤ 携物安全导航 | ⑥ 第三格定位对齐 |
+| :---: | :---: |
+| ![携物安全导航](demo/preview/5.png) | ![第三格定位对齐](demo/preview/6.png) |
+
+**⑦ 释放与几何验收**
+
+![释放与几何验收](demo/preview/7.png)
+
+闭环终态同时验证目标身份、抓取抬升、持物约束、夹爪释放和第三格三维包含关系，完成 `pick_up → place_inside` 任务。
 
 ### 工业场景建模
 
