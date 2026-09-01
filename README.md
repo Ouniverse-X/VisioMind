@@ -25,9 +25,9 @@
 
 系统从中文指令出发，依次完成任务规划、目标感知、工具抓取、携物导航、格位对齐与终态验收。
 
-**① 自然语言处理 → ② 任务规划分解**
-
-![自然语言指令输入与任务规划分解](demo/preview/language_planning_demo.gif)
+| ① 自然语言处理 | ② 任务规划分解 |
+| :---: | :---: |
+| ![自然语言指令输入](demo/preview/instruction_input.gif) | ![任务规划分解过程](demo/preview/task_planning.gif) |
 
 | ③ 工业工具感知 | ④ 抓取工具 |
 | :---: | :---: |
