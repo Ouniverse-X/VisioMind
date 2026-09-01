@@ -21,7 +21,7 @@
 
 ## 代码架构
 
-项目仅使用 `visiomind` 一个 Python 包，其中四个子模块共同组成“灵眸智控”闭环：
+项目核心代码`visiomind` 由其中四个子模块共同组成“灵眸智控”闭环：
 
 - `visiomind.plan`：解析自然语言指令，生成结构化任务与 ACTION 序列。
 - `visiomind.perception`：检测工业零件，结合 RGB-D 信息完成分割和三维定位。
