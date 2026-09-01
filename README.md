@@ -103,11 +103,9 @@ VisioMind/
 
 ## 快速开始
 
-推荐环境为 Ubuntu 22.04、Python 3.10 和 NVIDIA GPU。
+推荐环境为 Ubuntu 22.04、Python 3.10 和 NVIDIA GPU。将赛题代码压缩包解压后，进入 `README.md` 与 `pyproject.toml` 所在的项目根目录，执行：
 
 ```bash
-git clone https://github.com/Ouniverse-X/VisioMind.git
-cd VisioMind
 python -m venv .venv
 source .venv/bin/activate
 pip install -U pip
